@@ -1,0 +1,59 @@
+environment: dev
+
+# Cluster configuration
+clusterName: kafka-dev-cluster
+kafkaVersion: 3.9.0
+zookeeperReplicaCount: 1
+brokerReplicaCount: 1
+defaultReplicationFactor: 1
+defaultMinInsyncReplicas: 1
+interBrokerProtocolVersion: "3.9"
+storage:
+  brokerStorageSize: 2Gi
+  zookeeperStorageSize: 2Gi
+  class: "managed-premium"
+
+broker_resources:
+  cpu: 500m
+  memory: 500Mi
+
+zookeeper_resources:
+  cpu: 200m
+  memory: 200Mi
+
+logs_topics:
+  - name: router-metering-logs
+    partitions: 1
+    replicas: 1
+    retentionMs: 2592000000  # 30 days
+    segmentBytes: 1073741824 # 1 GB
+  - name: router-raw-logs
+    partitions: 1
+    replicas: 1
+    retentionMs: 2592000000  # 30 days
+    segmentBytes: 1073741824 # 1 GB
+
+connect_topics:
+  configs:
+    partitions: 1
+    replicas: 1
+    retentionMs: 2592000000  # 30 days
+    segmentBytes: 10000000 # 10 MB
+
+  offsets:
+    partitions: 1
+    replicas: 1
+    retentionMs: 2592000000  # 30 days
+    segmentBytes: 1073741824 # 1 GB
+
+  status:
+    partitions: 1
+    replicas: 1
+    retentionMs: 2592000000  # 30 days
+    segmentBytes: 1073741824 # 1 GB
+
+  dlq:
+    partitions: 1
+    replicas: 1
+    retentionMs: 2592000000  # 30 days
+    segmentBytes: 1073741824 # 1 GB

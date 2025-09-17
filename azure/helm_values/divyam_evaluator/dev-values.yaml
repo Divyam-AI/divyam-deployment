@@ -1,0 +1,42 @@
+schedule: "*/2 * * * *"
+activeDeadlineSeconds: 300
+
+resources:
+  limits:
+    cpu: "1"
+    memory: "1Gi"
+  requests:
+    cpu: "500m"
+    memory: "500Mi"
+
+mpi_db:
+  host: "mysql-dev-svc.mysql-dev-ns.svc.cluster.local"
+  port: 3306
+  db: "divyam_dev"
+
+raw_logs_db:
+  host: "clickhouse-clk-dev.clickhouse-dev-ns.svc.cluster.local"
+  port: 8123
+  db_name: "divyam_router_logs"
+  username: "default"
+  max_backfill_days: 30
+  max_processing_days: 1
+
+output_db:
+  host: "clickhouse-clk-dev.clickhouse-dev-ns.svc.cluster.local"
+  port: 8123
+  db_name: "divyam_router_logs"
+  username: "default"
+  eval_results_table: "evaluation_metrics_dist"
+  batch_size: 1000
+
+add_shadow_selector_logs:
+  max_parallel_calls: 10
+
+serviceAccount:
+  name: eval-dev-sa
+
+lookback_duration: "1m" # Duration to look back for raw logs. Till we start tracking last time in DB, make this match the frequency of the cron job.
+raw_logs_limit: 1000 # Limit on the number of raw logs to fetch in one go. This is to prevent overwhelming the system with too many logs at once.
+
+end_time_ingestion_lag_minutes: 1 # Lag in minutes to account for the time taken to ingest the logs. This is to prevent fetching logs that are not yet ingested.

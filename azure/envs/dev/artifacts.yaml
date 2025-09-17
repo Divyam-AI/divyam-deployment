@@ -1,0 +1,184 @@
+# Helm charts to deply along with versions in order of deployment dependency.
+# The key in this map is used to look for values in the configured values directory.
+# {env}-values.yaml and values.yaml if present will be picked up from the chart directory.
+helm_charts:
+  ## External charts
+  kube_prometheus_stack:
+    repository: "https://prometheus-community.github.io/helm-charts"
+    chart: "kube-prometheus-stack"
+    namespace: "observability"
+    version: "56.0.0" # Use the latest tested version or pin to one you prefer
+
+  nvidia_device_plugin:
+    repository: "https://nvidia.github.io/k8s-device-plugin"
+    chart: "nvidia-device-plugin"
+    version: "0.14.1"
+    namespace: "kube-system"
+
+  qdrant:
+    chart: "qdrant"
+    version: "2.0.74"
+    namespace_prefix: "qdrant"
+
+  infinity:
+    chart: "infinity"
+    version: "0.0.75-azure"
+    namespace_prefix: "infinity"
+  clickhouse_operator:
+    repository: "https://docs.altinity.com/clickhouse-operator"
+    chart: "altinity-clickhouse-operator"
+    version: "0.25.1"
+    namespace_prefix: "clickhouse"
+
+  clickhouse:
+    chart: "clickhouse"
+    version: "0.2.51"
+    namespace_prefix: "clickhouse"
+    az_secret_inject:
+      # No chart variable for click house user
+      #- secret_name: divyam-clickhouse-user-name
+      #  chart_variable_name: clickhouse.defaultUser
+      - secret_name: divyam-clickhouse-password
+        chart_variable_name: clickhouse.defaultUser.password
+      - secret_name: divyam-db-user-name
+        chart_variable_name: mysql_integration.username
+      - secret_name: divyam-db-password
+        chart_variable_name: mysql_integration.password
+
+  otel_collector:
+    chart: "otel_collector"
+    version: "0.0.72"
+    namespace_prefix: "otel-collector"
+
+  mysql:
+    chart: "mysql"
+    version: "0.1.72-azure"
+    namespace_prefix: "mysql"
+    az_secret_inject:
+      - secret_name: divyam-db-user-name
+        chart_variable_name: mysql.user
+      - secret_name: divyam-db-password
+        chart_variable_name: mysql.password
+
+  kafka_operator:
+    repository: "https://strimzi.io/charts/"
+    chart: "strimzi-kafka-operator"
+    version: "0.45.1"
+    namespace_prefix: "kafka"
+
+  kafka_cluster:
+    chart: "kafka_cluster"
+    version: "0.1.65"
+    namespace_prefix: "kafka"
+
+  kafka_connect_azblob:
+    chart: "kafka_connect_azblob"
+    version: "0.1.52-azure"
+    namespace_prefix: "kafka"
+    # TODO: Maybe this is a list.
+    uai_client_id_name: "kafka_connect_uai_client_id"
+    uai_federated_ksa_pattern: "kafka-${env}-connect"
+    share_router_logs_storage_connection_string: azure.storage.connection.string
+    share_router_logs_container_name: azure.storage.containerName
+    # TODO: Maybe this is a list.
+    image_override:
+      name: "kafka-connect-avient-azblob-sink"
+      tag: "3.4.0"
+      use_divyam_registry: true
+
+
+  superset_postgresql:
+    chart: "superset_postgresql"
+    version: "0.0.72-azure"
+    namespace_prefix: "superset"
+    # TODO: Inject base64 superset password here or change helm chart
+    az_secret_inject:
+      - secret_name: "divyam-superset-pg-password"
+        chart_variable_name: password
+      - secret_name: "divyam-superset-pg-superset-password"
+        chart_variable_name: superset_password
+
+  superset:
+    chart: "superset"
+    version: "0.14.46-azure"
+    namespace_prefix: "superset"
+    share_dns_names: true
+    az_secret_inject:
+      - secret_name: "divyam-superset-pg-superset-password"
+        chart_variable_name: supersetNode.connections.db_pass
+
+  # Divyam charts
+  # TODO: Make the names consistent across chart name, helm release name :
+  divyam_bill_tracker:
+    chart: "divyam-bill-tracker"
+    version: "0.1.23"
+    name: "billing-chart"
+    namespace_prefix: "billing"
+    uai_client_id_name: "billing_uai_client_id"
+    # TODO: Use separate service account?
+    uai_federated_ksa_pattern: "default"
+    # Replace chart if helm things it is pre-existing due to errors or bad terraform state
+    # replace: true
+    image_override:
+      name: "divyam_bill_tracker"
+      tag: "0.0.73"
+      use_divyam_registry: true
+
+  divyam_evaluator:
+    chart: "divyam-evaluator"
+    version: "0.1.19-azure"
+    name: "divyam-evaluator-chart"
+    namespace_prefix: "eval"
+    uai_client_id_name: "eval_uai_client_id"
+    uai_federated_ksa_pattern: "eval-${env}-sa"
+    share_key_vault_uri: true
+    image_override:
+      name: "divyam_evaluator"
+      tag: "0.1.27"
+      use_divyam_registry: true
+    az_secret_inject:
+      - secret_name: divyam-db-user-name
+        chart_variable_name: mpi_db_user
+      - secret_name: divyam-db-password
+        chart_variable_name: mpi_db_password
+      - secret_name: divyam-clickhouse-password
+        chart_variable_name: clickhouse_password
+
+  divyam_route_selector:
+    chart: "divyam-route-selector"
+    version: "0.0.32-azure"
+    name: "route-selector-chart"
+    namespace_prefix: "route-selector"
+    image_override:
+      name: "route_selector"
+      tag: "0.0.50"
+      use_divyam_registry: true
+
+  divyam_selector_training:
+    chart: "selector-training"
+    version: "0.0.5-azure"
+    name: "selector-training"
+    namespace_prefix: "selector-training"
+    uai_client_id_name: "selector_training_uai_client_id"
+    uai_federated_ksa_pattern: "selector-training-${env}-sa"
+    share_key_vault_uri: true
+    share_router_logs_storage_account_name: artifacts_storage.storage_account
+    share_router_logs_container_name: artifacts_storage.container
+    image_override:
+      name: "selector_training"
+      tag: "0.0.9"
+      use_divyam_registry: true
+
+  divyam_router_controller:
+    chart: "router-controller"
+    version: "0.1.108-azure"
+    name: "router-controller-chart"
+    namespace_prefix: "router-controller"
+    uai_client_id_name: "router_controller_uai_client_id"
+    uai_federated_ksa_pattern: "router-controller-${env}-sa"
+    share_key_vault_uri: true
+    share_dns_names: true
+    image_override:
+      name: "router_controller"
+      tag: "0.1.115"
+      use_divyam_registry: true

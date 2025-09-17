@@ -1,0 +1,64 @@
+environment: dev
+app: otel-collector
+replicaCount: 1
+image:
+  repository: "otel/opentelemetry-collector-contrib"         # Replace with your Otel Collector image repository
+  tag: "0.123.0"                        # Replace with your desired tag
+
+resources:
+  requests:
+    memory: "1Gi"
+    cpu: 1
+  limits:
+    memory: "1Gi"
+    cpu: 1
+
+kafka:
+  metering_logs_topic: router-metering-logs
+  raw_logs_topic: router-raw-logs
+  broker: kafka-dev-cluster-kafka-bootstrap.kafka-dev-ns.svc.cluster.local:9092
+
+memory_limiter:
+  check_interval: 1s
+  limit_mib: 4000
+  spike_limit_mib: 800
+
+storage:
+  size: 1Gi
+  directory: /var/lib/otelcol/file_storage
+
+env:
+  OTEL_LOG_LEVEL: "INFO"
+
+config:
+  path: "/etc/collector_config.yaml"
+
+ports:
+  otlpReqGrpc: 4617
+  otlpReqHttp: 4618
+  zpages: 8282
+  metrics: 8181
+healthCheck:
+  port: 13133
+  path: "/healthz"
+  interval: "30s"
+  exporterFailureThreshold: 5
+
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+
+  readinessProbe:
+      initialDelaySeconds: 30
+      periodSeconds: 30
+      timeoutSeconds: 10
+      failureThreshold: 3
+
+  startupProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+

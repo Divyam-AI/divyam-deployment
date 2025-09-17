@@ -1,0 +1,46 @@
+# values.yaml
+environment: "dev"
+
+external_lb:
+  enable: false
+
+router:
+  app_name: "router-controller"
+
+  # The container listens on this port (this value is used as the ROUTER_PORT)
+  containerPort: 8000
+  otelEndpoint: "grpc://otel-collector-dev-svc.otel-collector-dev-ns.svc.cluster.local:4617"
+  otel_timeout_secs: 1
+  airflowEndpoint: "http://10.160.0.33:8080/"
+  selectorEndpoint: "http://route-selector-dev-svc.route-selector-dev-ns.svc.cluster.local"
+  corsAllowOrigins: "http://127.0.0.1:8888,http://localhost:8888,http://divyam-dashboard:8888"
+  forwardedAllowIps: 35.244.238.149
+  mock_selector: false
+  mock_model: false
+  uvicornLogLevel: "info"
+  dbHost: "mysql-dev-svc.mysql-dev-ns.svc.cluster.local"
+  dbPort: 3306
+  dbDatabase: "divyam_dev"
+
+  #NFR configurations
+  concurrency: 60
+  workerCount: 2
+  backlog: 100
+  replicaCount: 1
+  resources:
+    cpu: "1"
+    memory: "2Gi"
+  # Should be set by GKE terraform/setup scripts.
+  #gcpServiceAccount: "gke-router-controller-dev@dev-benchmarking.iam.gserviceaccount.com"
+  serviceAccountName: "router-controller-dev-sa"
+
+  # Cache configurations
+  modelProviderCacheMaxsize: 100
+  modelProviderCacheTtl: 300  # 5 minutes in seconds
+  apiKeysCacheMaxsize: 100
+  apiKeysCacheTtl: 300  # 5 minutes in seconds
+
+divyam_cloud_provider: "local"
+
+hpa:
+  enabled: false

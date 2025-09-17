@@ -1,0 +1,13 @@
+environment: dev
+
+service:
+  type: NodePort
+
+resources: { }
+
+persistence:
+  accessModes: [ "ReadWriteOnce" ]
+  size: 10Gi
+  annotations: { }
+  # storageVolumeName: qdrant-storage
+  storageClassName: "managed-premium"

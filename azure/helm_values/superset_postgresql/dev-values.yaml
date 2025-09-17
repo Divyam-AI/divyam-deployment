@@ -1,0 +1,6 @@
+deploy: true
+environment: dev
+app_name: superset-postgres
+resources: { }
+storage: 1Gi
+storage_class: "managed-premium"

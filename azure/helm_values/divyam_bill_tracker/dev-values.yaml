@@ -1,0 +1,49 @@
+# Development environment configuration
+environment: "dev"
+images:
+  divyam_bill_tracker: "localhost:32000/divyam_bill_tracker:latest"
+
+# Run every hour in dev for more frequent testing
+schedule: "0 * * * *"
+
+# ClickHouse configuration
+clickhouse:
+  host: "clickhouse-clk-dev.clickhouse-dev-ns.svc.cluster.local"
+  port: "8123"
+  database: "divyam_router_logs"
+mysql:
+  host: "10.25.0.3"
+  port: "3306"
+  database: "divyam_preprod"
+  openai_billing_table_name: "openai_billing_data"
+  gemini_billing_table_name: "gemini_billing_data"
+  run_table_name: "bill_run_status"
+
+# Google and K8s Secret Manager configurations
+secretManager:
+  # Secret containing provider billing keys and clickhouse credentials
+  k8sExternalSecret: "billing-external-secrets"
+  k8sSecretStore: "billing-secrets-store"
+  # The Kubernetes secret that will be created to store the key
+  k8sSecretName: "billing-secrets"
+  k8sSecretKey: "billing_secrets.yaml"
+  gcpSecretKey: "divyam_billing_secrets"
+  # Service account name
+  k8sServiceAccount: "billing-secret-accessor-sa"
+
+# Lower resource limits for dev
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+# Job configuration
+billing:
+  app_name: "divyam-bill-tracker"
+  gcp_bigquery_table_full_name: "divyam-production.divyam_billing_bq_export.gcp_billing_export_resource_v1_01FACA_EFA07C_B3BD77"
+  backoffLimit: 3
+  activeDeadlineSeconds: 600
+  ttlSecondsAfterFinished: 3600  # 1 hour retention in dev
