@@ -1,6 +1,6 @@
 locals {
   env_name = get_env("ENV", "dev")
-  install_config = read_terragrunt_config("${get_repo_root()}/deployment/azure/envs/${local.env_name}/terragrunt.hcl").locals
+  install_config = read_terragrunt_config("${get_repo_root()}/azure/envs/${local.env_name}/terragrunt.hcl").locals
 
   location            = local.install_config.location
   resource_group_name = local.install_config.resource_group_name

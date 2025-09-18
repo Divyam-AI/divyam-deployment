@@ -63,6 +63,7 @@ inputs = merge(local.merged_inputs, {
   uai_client_ids                              = dependency.iam_bindings.outputs.uai_client_ids
   azure_router_logs_storage_connection_string = dependency.azure_blob_storage.outputs.router_logs_storage_account_connection_string
   azure_router_logs_storage_account_name = dependency.azure_blob_storage.outputs.router_logs_storage_account_name
+
   # TODO: Using the first container as the logs container.
   azure_router_logs_container_name            = dependency.azure_blob_storage.outputs.router_logs_container_names[0]
   router_dns_zone                             = dependency.dns.outputs.router_dns_zone

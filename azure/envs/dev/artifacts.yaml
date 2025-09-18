@@ -24,6 +24,7 @@ helm_charts:
     chart: "infinity"
     version: "0.0.75-azure"
     namespace_prefix: "infinity"
+
   clickhouse_operator:
     repository: "https://docs.altinity.com/clickhouse-operator"
     chart: "altinity-clickhouse-operator"
@@ -32,7 +33,7 @@ helm_charts:
 
   clickhouse:
     chart: "clickhouse"
-    version: "0.2.51"
+    version: "0.2.60"
     namespace_prefix: "clickhouse"
     az_secret_inject:
       # No chart variable for click house user
@@ -47,7 +48,7 @@ helm_charts:
 
   otel_collector:
     chart: "otel_collector"
-    version: "0.0.72"
+    version: "0.0.82"
     namespace_prefix: "otel-collector"
 
   mysql:
@@ -63,12 +64,12 @@ helm_charts:
   kafka_operator:
     repository: "https://strimzi.io/charts/"
     chart: "strimzi-kafka-operator"
-    version: "0.45.1"
+    version: "0.47.0"
     namespace_prefix: "kafka"
 
   kafka_cluster:
     chart: "kafka_cluster"
-    version: "0.1.65"
+    version: "0.1.75"
     namespace_prefix: "kafka"
 
   kafka_connect_azblob:
@@ -126,7 +127,7 @@ helm_charts:
 
   divyam_evaluator:
     chart: "divyam-evaluator"
-    version: "0.1.19-azure"
+    version: "0.1.39-azure"
     name: "divyam-evaluator-chart"
     namespace_prefix: "eval"
     uai_client_id_name: "eval_uai_client_id"
@@ -134,7 +135,7 @@ helm_charts:
     share_key_vault_uri: true
     image_override:
       name: "divyam_evaluator"
-      tag: "0.1.27"
+      tag: "0.1.30"
       use_divyam_registry: true
     az_secret_inject:
       - secret_name: divyam-db-user-name
@@ -146,32 +147,32 @@ helm_charts:
 
   divyam_route_selector:
     chart: "divyam-route-selector"
-    version: "0.0.32-azure"
+    version: "0.0.63-azure"
     name: "route-selector-chart"
     namespace_prefix: "route-selector"
     image_override:
       name: "route_selector"
-      tag: "0.0.50"
+      tag: "0.0.55"
       use_divyam_registry: true
 
   divyam_selector_training:
     chart: "selector-training"
-    version: "0.0.5-azure"
+    version: "0.0.18-azure"
     name: "selector-training"
     namespace_prefix: "selector-training"
     uai_client_id_name: "selector_training_uai_client_id"
     uai_federated_ksa_pattern: "selector-training-${env}-sa"
     share_key_vault_uri: true
-    share_router_logs_storage_account_name: artifacts_storage.storage_account
-    share_router_logs_container_name: artifacts_storage.container
+    share_router_logs_storage_account_name: env_config.artifacts_storage.storage_account
+    share_router_logs_container_name: env_config.artifacts_storage.container
     image_override:
       name: "selector_training"
-      tag: "0.0.9"
+      tag: "0.0.20"
       use_divyam_registry: true
 
   divyam_router_controller:
     chart: "router-controller"
-    version: "0.1.108-azure"
+    version: "0.1.161-azure"
     name: "router-controller-chart"
     namespace_prefix: "router-controller"
     uai_client_id_name: "router_controller_uai_client_id"
@@ -180,5 +181,5 @@ helm_charts:
     share_dns_names: true
     image_override:
       name: "router_controller"
-      tag: "0.1.115"
+      tag: "0.1.148"
       use_divyam_registry: true

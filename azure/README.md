@@ -185,5 +185,14 @@ export TF_VAR_divyam_superset_pg_password=="XXXXXXX"
 
 ## Deploy entire stack
 
-TBD
+Initialize terraform
+```shell
+terragrunt run-all init
+```
+Deploy
+
+```shell
+terragrunt run-all apply
+```
+
 

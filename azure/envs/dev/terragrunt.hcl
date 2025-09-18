@@ -91,7 +91,7 @@ locals {
 
         # Networking
         api_server_authorized_ip_ranges = [
-          "171.76.87.141/32",
+          "171.76.82.184/32",
           "180.151.117.0/24",
         ]
 
@@ -116,7 +116,7 @@ locals {
     artifacts_path = abspath("${get_parent_terragrunt_dir()}/../${local.env_name}/artifacts.yaml")
     values_dir_path = abspath("${get_parent_terragrunt_dir()}/../../helm_values")
     divyam_helm_registry_url   = "oci://asia-south1-docker.pkg.dev/prod-benchmarking/divyam-helm-dev-as1"
-    divyam_docker_registry_url = "asia-south1-docker.pkg.dev/prod-benchmarking/divyam-docker-dev-as1"
+    divyam_docker_registry_url = "asia-south1-docker.pkg.dev/prod-benchmarking/divyam-router-docker-as1"
 
     helm_release_replace_all       = true
     helm_release_recreate_pods_all = true
