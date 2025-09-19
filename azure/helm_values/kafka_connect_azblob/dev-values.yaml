@@ -1,0 +1,21 @@
+environment: dev
+images:
+  kafka_connect_azblob: asia-south1-docker.pkg.dev/prod-benchmarking/divyam-docker-dev-as1/kafka-connect-avient-azblob-sink:3.4.0
+
+clusterName: kafka-dev
+kafkaVersion: 3.9.0
+bootstrapServers: kafka-dev-cluster-kafka-bootstrap:9092
+offset_topic: connect-offsets
+config_topic: connect-configs
+status_topic: connect-status
+
+worker_replica: 1
+resources:
+  cpu: 1
+  memory: 1Gi
+
+topics: "router-raw-logs" #Comma separated string
+dlq_topic: "connect-dlq"
+
+file_max_records: 10
+flush_interval: 6000

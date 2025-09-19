@@ -1,0 +1,56 @@
+environment: dev
+images:
+  route_selector: route-selector:latest
+
+route_selector:
+  app_name: "route-selector"
+  service_type: "NodePort"
+  model_name: "irt"
+  version: "latest"
+  #NFR configurations
+  # Not in use (no-op)
+  concurrency: 50
+  backlog: 100
+
+  # In-use
+  workerCount: 2
+  replicaCount: 1
+  resources: { }
+
+  infinity_host: "infinity-dev-svc.infinity-dev-ns.svc.cluster.local"
+  infinity_port: 80
+  qdrant_host: "qdrant-dev-svc.qdrant-dev-ns.svc.cluster.local"
+  qdrant_port: 6333
+  embed_model: "sentence-transformers/all-MiniLM-L6-v2"
+  k: 20
+  embedder_read_timeout_secs: 5
+  embedder_connect_timeout_secs: 2
+  vectordb_timeout_secs: 5
+
+  logging_level: "DEBUG"
+
+  readinessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+    successThreshold: 1
+  livenessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+    successThreshold: 1
+  startupProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+    successThreshold: 1
+
+  service:
+    ports:
+      targetPort: 8080
+
+  nodeSelector: { }
+  tolerations: [ ]

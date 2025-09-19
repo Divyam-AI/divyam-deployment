@@ -1,0 +1,8 @@
+tolerations:
+  - key: "sku"
+    operator: "Equal"
+    value: "gpu"
+    effect: "NoSchedule"
+
+nodeSelector:
+  gpu: "true"

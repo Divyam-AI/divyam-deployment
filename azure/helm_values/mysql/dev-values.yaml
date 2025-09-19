@@ -1,0 +1,32 @@
+environment: "dev"
+mysql:
+  deploy: true
+  image:
+    repository: mysql
+    tag: "8.0"
+    pullPolicy: IfNotPresent
+
+  persistence:
+    enabled: true
+    size: 2Gi
+    storageClass: "managed-premium"
+  
+  rootPassword: randomPassword
+  database: "divyam_dev"
+  user: "divyam-preprod"
+  password: ""
+
+  service:
+    type: ClusterIP
+    port: 3306
+
+adminer:
+  deploy: true
+  image:
+    repository: adminer
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  resources: { }
+  service:
+    type: NodePort
+    port: 8080

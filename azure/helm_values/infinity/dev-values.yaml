@@ -1,0 +1,23 @@
+environment: dev
+
+replicaCount: 1
+
+resources:
+  requests:
+    memory: 12Gi
+    cpu: 3
+    nvidia.com/gpu: 1  # Requesting 1 NVIDIA L4 GPU
+  limits:
+    memory: 12Gi
+    cpu: 3
+    nvidia.com/gpu: 1  # Limiting to 1 NVIDIA L4 GPU
+
+tolerations:
+  - key: "sku"
+    operator: "Equal"
+    value: "gpu"
+    effect: "NoSchedule"
+
+nodeSelector:
+  gpu: "true"
+

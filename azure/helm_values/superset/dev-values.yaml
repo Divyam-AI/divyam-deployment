@@ -1,0 +1,19 @@
+image:
+  repository: asia-south1-docker.pkg.dev/prod-benchmarking/divyam-docker-dev-as1/superset_divyam_custom
+  tag: 0.0.5
+
+service:
+  type: NodePort
+  nodePort:
+    # -- (int)
+    http: 32525
+
+supersetNode:
+  connections:
+    # TODO: password for superset is not configurable!!
+    # db_user: "postgres"
+    db_host: "superset-postgres-dev-svc.superset-dev-ns"
+
+# Superset Celery worker configuration
+supersetWorker:
+  resources: { }

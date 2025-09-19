@@ -1,0 +1,91 @@
+environment: dev
+
+service_account:
+  k8sServiceAccount: "selector-training-dev-sa"
+
+images:
+  selector_training: "route_selector:latest"
+
+env_config:
+  vectordb_destination:
+    host: qdrant-dev-svc.qdrant-dev-ns.svc.cluster.local
+    port: 6333
+
+  clickhousedb_destination:
+    host: clickhouse-dev-clk.clickhouse-dev-ns.svc.cluster.local
+    port: 8123
+    database: divyam_router_logs
+    user: default
+
+  router_db_source:
+    db_host: mysql-dev-svc.mysql-dev-ns.svc.cluster.local
+    db_port: 3306
+    db_name: divyam_dev
+
+job_config:
+  app_name: selector-training
+  backoffLimit: 4
+  ttlSecondsAfterFinished: 604800 #7 days
+  logging_level: "INFO"
+  history_limit: 3
+
+defaults:
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  schedule: "0 2 * * *" # Example cron schedule for defaults
+  training_interval_days: 7
+
+  run_config:
+    org_id: null
+    service_account_id: null
+    model_selector_endpoint: "http://route-selector-preprod-svc.route-selector-preprod-ns.cluster.local"
+    datasets:
+      train:
+        sample_ratio: null
+        sample_size_limit: 20
+        min_rows: 1000
+        source: "router_logs"
+        source_specs:
+          last_n_days: 7
+          last_n_days_offset: 1
+        use_cache: true
+        train_split_from_eval_ratio: 0.3
+      eval:
+        sample_ratio: null
+        sample_size_limit: 20
+        min_rows: 1000
+        source: "router_logs"
+        source_specs:
+          last_n_days: 7
+          last_n_days_offset: 1
+        use_cache: true
+        train_split_from_eval_ratio: 0.3
+
+
+    stages:
+      enrichment:
+        run: true
+        concurrency: 25
+        rate_limit_rps: 25
+        mock_model: true
+        use_cache: true
+
+      selector_training:
+        run: true
+        epochs: 2000
+        device: "cpu"
+        model_params: {}
+
+      selector_evaluation:
+        generate_artifacts: true
+        run: true
+        embedder_model: "all-MiniLM-L6-v2"
+        device: "cpu"
+        anchor_point_count: 100
+
+      promote_artifacts:
+        run: false
+        high_quality_lambda: 0.00016768329368110083
+        cost_efficient_lambda: 2.3299518105153718e-05
