@@ -90,9 +90,9 @@ locals {
 
         # Networking
         api_server_authorized_ip_ranges = [
-          # TODO: Remove
-          "171.76.87.122/32",
-          "180.151.117.0/24",
+          # Allowed IP list for public AKS clusters
+          #"171.76.81.119/32",
+          #"180.151.117.0/24",
         ]
 
         service_cidr   = "10.24.0.0/16"
@@ -148,12 +148,6 @@ locals {
 
     divyam_db_user_name         = "divyam"
     divyam_clickhouse_user_name = "default"
-
-    # Change accordingly.
-    # For divyam gar sa account key export TF_VAR_divyam_gar_sa_key = ("~/.keys/gar-sa.json")
-    # for mysql password do export TF_VAR_divyam_db_password=<SECURE_PASSWORD>
-    # for clickhouse password do export TF_VAR_divyam_clickhouse_password=<SECURE_PASSWORD>
-    # for openai billing api key export TF_VAR_divyam_openai_billing_admin_api_key=<SECURE_KEY>
   }
 
   aks_namespaces = {
@@ -166,20 +160,18 @@ locals {
 
   dns = {
     enabled = true
-    /*router_dns_zone = (local.customer != null ?
+    router_dns_zone = (local.customer != null ?
       "${local.env_name}.${local.customer}.divyam.local" :
       "${local.env_name}.divyam.local")
 
     dashboard_dns_zone = (local.customer != null ?
       "${local.env_name}.${local.customer}.dashboard.divyam.local" :
-      "${local.env_name}.dashboard.divyam.local")*/
-    router_dns_zone    = "in-az.api.divyam.ai"
-    dashboard_dns_zone = "in-az.dashboard.divyam.ai"
+      "${local.env_name}.dashboard.divyam.local")
   }
 
   tls_certs = {
     enabled   = true
-    create    = true
+    create    = false
     cert_name = (local.customer != null ?
       "${local.env_name}-${local.customer}-cert" :
       "${local.env_name}-.cert")

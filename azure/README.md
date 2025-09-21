@@ -4,6 +4,10 @@ Deploys the entire divyam router stack on Azure.
 
 ## Prerequisites
 
+### Divyam
+ - Service account key - To be obtained from Divyam. Grants to access Divyam docker and helm repositories
+
+#### Azure
 An azure account that have permission to create various resources required by
 Divyam in amn existing resource group.
 
@@ -19,6 +23,7 @@ Sample resources created are
 The azure account should have `User Access Administrator` role assigned for the
 target group.
 
+#### Software Tools
 Make sure you have the following software installed on the host the terraform
 scripts are run from:
 
@@ -118,16 +123,13 @@ Sample Output:
   "subscriptionId": "xxxxx",
   "tenantId": "xxxxx",
   "activeDirectoryEndpointUrl": "https://login.microsoftonline.com",
-  "resourceManagerEndpointUrl": "https://management.azure.com/",
-  ...
+  "resourceManagerEndpointUrl": "https://management.azure.com/"
 }
 ```
 
 **Important**: Save this output securely — it contains credentials.
 
 ## Assign User Access Administrator role to this service principal
-
-# TODO: This scope can be restricted to the `Azure Key Vault` and `Azure Storage Account` created later on
 
 ```shell
 az role assignment create \   
@@ -154,7 +156,7 @@ Azure and the deployment environment.
     - dev
     - preprod
     - prod
-    - A custom environment can be create as well
+    - A custom environment can be created as well
 
 ```shell
 # Service principal credentials.
@@ -183,6 +185,22 @@ export TF_VAR_divyam_gar_sa_key_file="$(< path/to/sa-key.json)"
 export TF_VAR_divyam_superset_pg_password=="XXXXXXX"
 ```
 
+## Configuration
+The configuration for the chose environment will be picked from [envs](envs) 
+folder.
+
+The environment has two files
+ - artifacts.yaml - which is can be thought of as Divyam SBOM containing the 
+   helm based component chart and image versions
+ - terragrunt.hcl - containing deployment configuration
+
+> ⚠️ **Important**  
+> Review and update `terragrunt.hcl` to ensure the security and privacy settings before deploying.
+>
+> Make sure you set `aks->cluster->private_cluster_enabled = true` if the AKS cluster should not be public.  
+> If public, ensure you update the authorized IP list accordingly.
+
+
 ## Deploy entire stack
 
 Initialize terraform
@@ -195,4 +213,12 @@ Deploy
 terragrunt run-all apply
 ```
 
+At time some helm charts fail because of timeouts. They need to be 
+retried. To retry and reinstall failed helm charts run
+
+```shell
+cd helm_charts
+
+terragrunt apply
+```
 

@@ -16,7 +16,7 @@ resource "random_password" "random_db_root_password" {
 locals {
   superset_pg_password          = var.divyam_superset_pg_password != null ? var.divyam_superset_pg_password : random_password.random_superset_pg_password.result
   superset_pg_superset_password = var.divyam_superset_pg_superset_password != null ? var.divyam_superset_pg_superset_password : random_password.random_superset_pg_superset_password.result
-  divyam_db_root_password= var.divyam_db_root_password != null ? var.divyam_db_root_password : random_password.random_db_root_password.result
+  divyam_db_root_password       = var.divyam_db_root_password != null ? var.divyam_db_root_password : random_password.random_db_root_password.result
 }
 
 resource "azurerm_key_vault_secret" "db_root_password" {
