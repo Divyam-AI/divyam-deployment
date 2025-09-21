@@ -1,5 +1,5 @@
 image:
-  repository: asia-south1-docker.pkg.dev/prod-benchmarking/divyam-docker-dev-as1/superset_divyam_custom
+  repository: asia-south1-docker.pkg.dev/prod-benchmarking/divyam-router-docker-as1/superset_divyam_custom
   tag: 0.0.5
 
 service:

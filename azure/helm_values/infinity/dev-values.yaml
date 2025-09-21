@@ -6,11 +6,11 @@ resources:
   requests:
     memory: 12Gi
     cpu: 3
-    nvidia.com/gpu: 1  # Requesting 1 NVIDIA L4 GPU
+    nvidia.com/gpu: 1  # Requesting 1 NVIDIA GPU
   limits:
     memory: 12Gi
     cpu: 3
-    nvidia.com/gpu: 1  # Limiting to 1 NVIDIA L4 GPU
+    nvidia.com/gpu: 1  # Limiting to 1 NVIDIA GPU
 
 tolerations:
   - key: "sku"

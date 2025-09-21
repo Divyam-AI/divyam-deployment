@@ -41,6 +41,7 @@ variable "clusters" {
 
     additional_node_pools = optional(map(object({
       vm_size      = string
+      gpu_driver   = optional(string, "Install")
       auto_scaling = bool
       count        = optional(number, null)
       min_count    = optional(number, null)
