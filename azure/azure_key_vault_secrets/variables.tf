@@ -3,6 +3,13 @@ variable "azure_key_vault_id" {
   type        = string
 }
 
+variable "divyam_db_root_password" {
+  type = string
+  description = "Root user password required for example for mysql. If not provided a randomly generated password is used."
+  sensitive = true
+  default = null
+}
+
 variable "divyam_db_user_name" {
   type = string
 }

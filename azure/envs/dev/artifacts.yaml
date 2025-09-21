@@ -56,6 +56,8 @@ helm_charts:
     version: "0.1.72-azure"
     namespace_prefix: "mysql"
     az_secret_inject:
+      - secret_name: divyam-db-root-password
+        chart_variable_name: mysql.rootPassword
       - secret_name: divyam-db-user-name
         chart_variable_name: mysql.user
       - secret_name: divyam-db-password
@@ -69,7 +71,7 @@ helm_charts:
 
   kafka_cluster:
     chart: "kafka_cluster"
-    version: "0.1.75"
+    version: "0.1.76-kraft"
     namespace_prefix: "kafka"
 
   kafka_connect_azblob:
@@ -84,7 +86,7 @@ helm_charts:
     # TODO: Maybe this is a list.
     image_override:
       name: "kafka-connect-avient-azblob-sink"
-      tag: "3.4.0"
+      tag: "3.4.0-kraft"
       use_divyam_registry: true
 
 

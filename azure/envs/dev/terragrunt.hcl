@@ -3,7 +3,7 @@ locals {
   subscription_id = get_env("ARM_SUBSCRIPTION_ID", "")
   tenant_id = get_env("ARM_TENANT_ID", "")
   location = get_env("LOCATION", "")
-  #resource_group_name  = "divyam-${local.env_name}-rg"
+
   resource_group_name = "Divyam-Training"
   aks_cluster_name    = "divyam-aks-${local.env_name}-cluster"
   customer            = "mmt"
@@ -75,13 +75,12 @@ locals {
             #max_count    = 1
 
 
-            # TODO: See if we should use taints used by GKE automatically or more standard values.
             node_taints = ["sku=gpu:NoSchedule"]
             node_labels = {
               # Important to use tostring otherwise k8s get the value as bool,
               # when only strings are allowed.
               gpu = tostring(true)
-              # TODO: Special label for azure gpu type and count maybe.
+              # Add special label for azure gpu type maybe.
             }
             tags = {
               type = "gpu"
@@ -91,12 +90,11 @@ locals {
 
         # Networking
         api_server_authorized_ip_ranges = [
-          "171.76.82.184/32",
+          # TODO: Remove
+          "171.76.87.122/32",
           "180.151.117.0/24",
         ]
 
-        # TODO: Figure this and docker_bridge_cidr
-        # Figure out what ranges are ok on azure
         service_cidr   = "10.24.0.0/16"
         dns_service_ip = "10.24.0.10"
         cluster_cidr   = "172.17.0.1/16"
@@ -105,7 +103,7 @@ locals {
   }
 
   bastion_host = {
-    enabled          = true
+    enabled          = false
     bastion_name     = "divyam-${local.env_name}-bastion"
     vnet_subnet_name = "internal"
   }
@@ -148,7 +146,6 @@ locals {
   azure_key_vault_secrets = {
     enabled = true
 
-    # TODO: Figure out default values
     divyam_db_user_name         = "divyam"
     divyam_clickhouse_user_name = "default"
 

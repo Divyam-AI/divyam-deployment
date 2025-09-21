@@ -10,11 +10,8 @@ mysql:
     enabled: true
     size: 2Gi
     storageClass: "managed-premium"
-  
-  rootPassword: randomPassword
+
   database: "divyam_dev"
-  user: "divyam-preprod"
-  password: ""
 
   service:
     type: ClusterIP
