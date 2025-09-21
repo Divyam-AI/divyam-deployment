@@ -7,7 +7,7 @@ Deploys the entire divyam router stack on Azure.
 ### Divyam
  - Service account key - To be obtained from Divyam. Grants to access Divyam docker and helm repositories
 
-#### Azure
+### Azure
 An azure account that have permission to create various resources required by
 Divyam in amn existing resource group.
 
@@ -23,13 +23,19 @@ Sample resources created are
 The azure account should have `User Access Administrator` role assigned for the
 target group.
 
-#### Software Tools
+### Software Tools
 Make sure you have the following software installed on the host the terraform
 scripts are run from:
 
 - `curl`
 - `unzip`
 - `jq` (for JSON parsing)
+
+### Bastion Host
+
+If you are deploying a private AKS cluster on a private VNet,  
+you will need a bastion host within the same VNet.  
+The following commands must be executed from the bastion host.
 
 ## Install Terraform
 
