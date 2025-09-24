@@ -25,6 +25,7 @@ locals {
 
   tfstate_azure_blob_storage = {
     enabled = true
+    create = false
     # In production this should only allow access from the bastion/vnet
     storage_account_ip_rules = ["0.0.0.0/0"]
   }

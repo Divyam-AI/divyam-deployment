@@ -59,7 +59,7 @@ variable "divyam_superset_pg_password" {
 variable "divyam_superset_pg_superset_password" {
   type      = string
   sensitive = true
-  default = null
+  default   = null
 }
 
 variable "divyam_jwt_secret_key" {

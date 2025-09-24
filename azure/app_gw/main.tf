@@ -12,13 +12,13 @@ locals {
 
 resource "random_integer" "host_offset" {
   min = 5
-  max = local.total_hosts - 5  # leave some headroom
+  max = local.total_hosts - 5 # leave some headroom
 }
 
 locals {
   # Convert the values to terraform templates.
   common_tags = {
-    for key, value in var.common_tags:
+    for key, value in var.common_tags :
     key => replace(value, "/@\\{([^}]+)\\}/", "$${$1}")
   }
 
@@ -73,7 +73,7 @@ resource "azurerm_application_gateway" "appgw" {
   sku {
     # TODO: WAF_v2 for public and private?
     name     = var.create_public_lb ? "Standard_v2" : "WAF_v2"
-    tier     = var.create_public_lb ? "Standard_v2" :  "WAF_v2"
+    tier     = var.create_public_lb ? "Standard_v2" : "WAF_v2"
     capacity = 2
   }
 
@@ -81,10 +81,10 @@ resource "azurerm_application_gateway" "appgw" {
     for_each = var.create_public_lb ? [] : [1]
 
     content {
-      enabled                = true
-      firewall_mode         = "Prevention"  # or "Detection"
-      rule_set_type         = "OWASP"
-      rule_set_version      = "3.2"
+      enabled          = true
+      firewall_mode    = "Prevention" # or "Detection"
+      rule_set_type    = "OWASP"
+      rule_set_version = "3.2"
     }
   }
 
@@ -117,7 +117,7 @@ resource "azurerm_application_gateway" "appgw" {
   frontend_ip_configuration {
     name                          = "appgw-fe-ip"
     public_ip_address_id          = var.create_public_lb ? azurerm_public_ip.lb_ip[0].id : null
-    private_ip_address = var.create_public_lb ? null: local.fixed_private_ip
+    private_ip_address            = var.create_public_lb ? null : local.fixed_private_ip
     private_ip_address_allocation = var.create_public_lb ? null : "Static"
     subnet_id                     = var.create_public_lb ? null : var.subnet_ids[var.vnet_subnet_name]
   }

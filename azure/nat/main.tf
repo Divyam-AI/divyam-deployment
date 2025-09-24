@@ -9,16 +9,16 @@ locals {
 resource "azurerm_public_ip" "nat" {
   count = var.create ? 1 : 0
 
-  name                 = "${var.resource_name_prefix}-nat-ip"
-  location             = var.location
-  resource_group_name  = var.resource_group_name
-  allocation_method    = "Static"
-  sku                  = "Standard"
+  name                = "${var.resource_name_prefix}-nat-ip"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  allocation_method   = "Static"
+  sku                 = "Standard"
 
   tags = {
     for key, value in local.common_tags :
     key => templatestring(value, {
-      resource_name           = "${var.resource_name_prefix}-nat-ip"
+      resource_name  = "${var.resource_name_prefix}-nat-ip"
       location       = var.location
       resource_group = var.resource_group_name
       environment    = var.environment
@@ -29,15 +29,15 @@ resource "azurerm_public_ip" "nat" {
 resource "azurerm_nat_gateway" "nat" {
   count = var.create ? 1 : 0
 
-  name                 = "${var.resource_name_prefix}-nat-gateway"
-  location             = var.location
-  resource_group_name  = var.resource_group_name
-  sku_name             = "Standard"
+  name                = "${var.resource_name_prefix}-nat-gateway"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  sku_name            = "Standard"
 
   tags = {
     for key, value in local.common_tags :
     key => templatestring(value, {
-      resource_name           = "${var.resource_name_prefix}-nat-gateway"
+      resource_name  = "${var.resource_name_prefix}-nat-gateway"
       location       = var.location
       resource_group = var.resource_group_name
       environment    = var.environment

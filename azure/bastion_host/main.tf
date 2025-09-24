@@ -85,9 +85,9 @@ resource "azurerm_linux_virtual_machine" "bastion" {
   ]
 
   os_disk {
-    caching                 = "ReadWrite"
+    caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
-    name                    = "${var.bastion_name}-osdisk"
+    name                 = "${var.bastion_name}-osdisk"
   }
 
   source_image_reference {

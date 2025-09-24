@@ -1,8 +1,8 @@
 locals {
   # Convert the values to terraform templates.
   common_tags = {
-    for key, value in var.common_tags:
-      key => replace(value, "/@\\{([^}]+)\\}/", "$${$1}")
+    for key, value in var.common_tags :
+    key => replace(value, "/@\\{([^}]+)\\}/", "$${$1}")
   }
 
   flattened_additional_node_pools = flatten([
@@ -71,12 +71,12 @@ resource "azurerm_user_assigned_identity" "agic_uami" {
 
   tags = {
     for key, value in local.common_tags :
-      key => templatestring(value, {
-        resource_name  = "${keys(var.clusters)[0]}-agic-identity"
-        location       = var.location
-        resource_group = var.resource_group_name
-        environment    = var.environment
-      })
+    key => templatestring(value, {
+      resource_name  = "${keys(var.clusters)[0]}-agic-identity"
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
   }
 }
 
@@ -130,14 +130,14 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
   kubernetes_version = each.value.kubernetes_version
 
   default_node_pool {
-    name                        = "system"
-    vnet_subnet_id              = var.subnet_ids[each.value.vnet_subnet_name]
-    vm_size                     = each.value.default_node_pool.vm_size
-    node_count                  = !each.value.default_node_pool.auto_scaling ? each.value.default_node_pool.count : null
-    auto_scaling_enabled        = each.value.default_node_pool.auto_scaling
-    min_count                   = each.value.default_node_pool.auto_scaling ? each.value.default_node_pool.min_count : null
-    max_count                   = each.value.default_node_pool.auto_scaling ? each.value.default_node_pool.max_count : null
-    tags                        = merge(each.value.default_node_pool.tags, {
+    name                 = "system"
+    vnet_subnet_id       = var.subnet_ids[each.value.vnet_subnet_name]
+    vm_size              = each.value.default_node_pool.vm_size
+    node_count           = !each.value.default_node_pool.auto_scaling ? each.value.default_node_pool.count : null
+    auto_scaling_enabled = each.value.default_node_pool.auto_scaling
+    min_count            = each.value.default_node_pool.auto_scaling ? each.value.default_node_pool.min_count : null
+    max_count            = each.value.default_node_pool.auto_scaling ? each.value.default_node_pool.max_count : null
+    tags = merge(each.value.default_node_pool.tags, {
       for key, value in local.common_tags :
       key => templatestring(value, {
         resource_name  = "system"
@@ -230,7 +230,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "additional_node_pools" {
   min_count             = each.value.pool.auto_scaling ? each.value.pool.min_count : null
   max_count             = each.value.pool.auto_scaling ? each.value.pool.max_count : null
   node_taints           = each.value.pool.node_taints
-  tags                  = merge(each.value.pool.tags, {
+  tags = merge(each.value.pool.tags, {
     for key, value in local.common_tags :
     key => templatestring(value, {
       resource_name  = each.value.pool_name
@@ -240,7 +240,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "additional_node_pools" {
     })
   })
 
-  node_labels           = each.value.pool.node_labels
+  node_labels = each.value.pool.node_labels
 
   lifecycle {
     ignore_changes = [
@@ -259,7 +259,7 @@ resource "azurerm_log_analytics_workspace" "log_analytics_workspace" {
   location            = var.location
   resource_group_name = var.resource_group_name
   sku                 = "PerGB2018"
-  tags                = {
+  tags = {
     for key, value in local.common_tags :
     key => templatestring(value, {
       resource_name  = "${each.key}-log-workspace"
@@ -341,7 +341,7 @@ resource "azurerm_monitor_workspace" "prometheus" {
   name                = "${join("", [for p in split("-", each.key) : substr(p, 0, 3)])}-amw"
   location            = var.location
   resource_group_name = var.resource_group_name
-  tags                = {
+  tags = {
     for key, value in local.common_tags :
     key => templatestring(value, {
       resource_name  = "${join("", [for p in split("-", each.key) : substr(p, 0, 3)])}-amw"
