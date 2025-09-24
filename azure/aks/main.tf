@@ -1,4 +1,10 @@
 locals {
+  # Convert the values to terraform templates.
+  common_tags = {
+    for key, value in var.common_tags:
+      key => replace(value, "/@\\{([^}]+)\\}/", "$${$1}")
+  }
+
   flattened_additional_node_pools = flatten([
     for cluster_name, cluster in var.clusters : [
       for pool_name, pool in cluster.additional_node_pools : {
@@ -62,6 +68,16 @@ resource "azurerm_user_assigned_identity" "agic_uami" {
   name                = "${keys(var.clusters)[0]}-agic-identity"
   location            = var.location
   resource_group_name = var.resource_group_name
+
+  tags = {
+    for key, value in local.common_tags :
+      key => templatestring(value, {
+        resource_name  = "${keys(var.clusters)[0]}-agic-identity"
+        location       = var.location
+        resource_group = var.resource_group_name
+        environment    = var.environment
+      })
+  }
 }
 
 # Give the AKS Managed Identity "Contributor" role on the Application Gateway
@@ -121,7 +137,16 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
     auto_scaling_enabled        = each.value.default_node_pool.auto_scaling
     min_count                   = each.value.default_node_pool.auto_scaling ? each.value.default_node_pool.min_count : null
     max_count                   = each.value.default_node_pool.auto_scaling ? each.value.default_node_pool.max_count : null
-    tags                        = each.value.default_node_pool.tags
+    tags                        = merge(each.value.default_node_pool.tags, {
+      for key, value in local.common_tags :
+      key => templatestring(value, {
+        resource_name  = "system"
+        location       = var.location
+        resource_group = var.resource_group_name
+        environment    = var.environment
+      })
+    })
+
     node_labels                 = each.value.default_node_pool.node_labels
     temporary_name_for_rotation = each.value.default_node_pool.temporary_name_for_rotation
   }
@@ -171,7 +196,13 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
   }
 
   tags = {
-    environment = var.environment
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = each.key
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
   }
 
   lifecycle {
@@ -199,7 +230,16 @@ resource "azurerm_kubernetes_cluster_node_pool" "additional_node_pools" {
   min_count             = each.value.pool.auto_scaling ? each.value.pool.min_count : null
   max_count             = each.value.pool.auto_scaling ? each.value.pool.max_count : null
   node_taints           = each.value.pool.node_taints
-  tags                  = each.value.pool.tags
+  tags                  = merge(each.value.pool.tags, {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = each.value.pool_name
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
+  })
+
   node_labels           = each.value.pool.node_labels
 
   lifecycle {
@@ -219,6 +259,15 @@ resource "azurerm_log_analytics_workspace" "log_analytics_workspace" {
   location            = var.location
   resource_group_name = var.resource_group_name
   sku                 = "PerGB2018"
+  tags                = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = "${each.key}-log-workspace"
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
+  }
 }
 
 resource "azurerm_monitor_data_collection_rule" "aks_logs" {
@@ -263,6 +312,16 @@ resource "azurerm_monitor_data_collection_rule" "aks_logs" {
     streams      = local.log_streams
     destinations = ["law-destination"]
   }
+
+  tags = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = "${each.key}-aks-dcr"
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
+  }
 }
 
 resource "azurerm_monitor_data_collection_rule_association" "aks_dcr_assoc" {
@@ -282,6 +341,15 @@ resource "azurerm_monitor_workspace" "prometheus" {
   name                = "${join("", [for p in split("-", each.key) : substr(p, 0, 3)])}-amw"
   location            = var.location
   resource_group_name = var.resource_group_name
+  tags                = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = "${join("", [for p in split("-", each.key) : substr(p, 0, 3)])}-amw"
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
+  }
 }
 
 resource "azurerm_monitor_data_collection_rule" "aks_prometheus" {
@@ -311,6 +379,16 @@ resource "azurerm_monitor_data_collection_rule" "aks_prometheus" {
     streams      = ["Microsoft-PrometheusMetrics"]
     destinations = ["prometheus-dest"]
   }
+
+  tags = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = "${each.key}-aks-prom-dcr"
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
+  }
 }
 
 resource "azurerm_monitor_data_collection_rule_association" "aks_assoc" {
@@ -336,6 +414,16 @@ resource "azurerm_dashboard_grafana" "grafana" {
 
   identity {
     type = "SystemAssigned"
+  }
+
+  tags = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = "${join("", [for p in split("-", each.key) : substr(p, 0, 3)])}-gf"
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
   }
 }
 

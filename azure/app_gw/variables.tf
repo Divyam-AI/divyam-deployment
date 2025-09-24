@@ -1,3 +1,13 @@
+variable "environment" {
+  description = "Deployment environment"
+  type        = string
+}
+
+variable "common_tags" {
+  description = "Common tags applied to all azure resources"
+  type        = map(string)
+}
+
 variable "backend_service_name" {
   description = "The base name for the backend service and associated resources (App Gateway, IPs, etc)."
   type        = string
@@ -16,6 +26,11 @@ variable "location" {
 variable "resource_group_name" {
   description = "The name of the resource group in which to deploy the Application Gateway and related resources."
   type        = string
+}
+
+variable "vnet_name" {
+  description = "Name of the virtual network"
+  type = string
 }
 
 variable "subnet_ids" {

@@ -3,6 +3,11 @@ variable "environment" {
   type        = string
 }
 
+variable "common_tags" {
+  description = "Common tags applied to all azure resources"
+  type        = map(string)
+}
+
 variable "aks_cluster_name" {
   description = "AKS  Cluster name"
   type        = string

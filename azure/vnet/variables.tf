@@ -8,6 +8,16 @@ variable "location" {
   description = "Azure region"
 }
 
+variable "environment" {
+  description = "Deployment environment"
+  type        = string
+}
+
+variable "common_tags" {
+  description = "Common tags applied to all azure resources"
+  type        = map(string)
+}
+
 variable "use_existing_vnet" {
   description = "The name of the existing Azure VNet to use"
   type        = bool

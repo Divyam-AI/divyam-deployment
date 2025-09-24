@@ -1,26 +1,50 @@
+data "azurerm_subnet" "appgw" {
+  name                 = var.vnet_subnet_name
+  virtual_network_name = var.vnet_name
+  resource_group_name  = var.resource_group_name
+}
+
+# Total number of addresses in subnet
+locals {
+  subnet_size = tonumber(regex(".*\\/(\\d+)$", local.subnet_cidr)[0])
+  total_hosts = pow(2, 32 - local.subnet_size)
+}
+
+resource "random_integer" "host_offset" {
+  min = 5
+  max = local.total_hosts - 5  # leave some headroom
+}
+
+locals {
+  # Convert the values to terraform templates.
+  common_tags = {
+    for key, value in var.common_tags:
+    key => replace(value, "/@\\{([^}]+)\\}/", "$${$1}")
+  }
+
+  # Extract subnet CIDR and calculate a fixed IP
+  # For example, if subnet is 10.0.2.0/24, use 10.0.2.10
+  subnet_cidr = data.azurerm_subnet.appgw.address_prefixes[0]
+
+  fixed_private_ip = cidrhost(local.subnet_cidr, random_integer.host_offset.result)
+}
+
 # Public or Internal IP
 resource "azurerm_public_ip" "lb_ip" {
-  count = var.create_public_lb ? 1 : 0
-  # TODO: generate better name prefix
+  count               = var.create_public_lb ? 1 : 0
   name                = "${var.backend_service_name}-public-ip"
   resource_group_name = var.resource_group_name
   location            = var.location
   allocation_method   = "Static"
   sku                 = "Standard"
-}
-
-resource "azurerm_private_endpoint" "lb_internal_ip" {
-  count               = var.create_public_lb ? 0 : 1
-  name                = "${var.backend_service_name}-private-ip"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  subnet_id           = var.subnet_ids[var.vnet_subnet_name]
-
-  private_service_connection {
-    name                           = "appgw-connection"
-    private_connection_resource_id = azurerm_application_gateway.appgw.id
-    is_manual_connection           = false
-    subresource_names              = ["frontendIPConfigurations"]
+  tags = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = "${var.backend_service_name}-public-ip"
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
   }
 }
 
@@ -29,6 +53,15 @@ resource "azurerm_user_assigned_identity" "appgw_identity" {
   name                = "${var.backend_service_name}-appgw-uami"
   location            = var.location
   resource_group_name = var.resource_group_name
+  tags = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = "${var.backend_service_name}-appgw-uami"
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
+  }
 }
 
 # Application Gateway
@@ -38,9 +71,21 @@ resource "azurerm_application_gateway" "appgw" {
   resource_group_name = var.resource_group_name
 
   sku {
-    name     = "Standard_v2"
-    tier     = "Standard_v2"
+    # TODO: WAF_v2 for public and private?
+    name     = var.create_public_lb ? "Standard_v2" : "WAF_v2"
+    tier     = var.create_public_lb ? "Standard_v2" :  "WAF_v2"
     capacity = 2
+  }
+
+  dynamic "waf_configuration" {
+    for_each = var.create_public_lb ? [] : [1]
+
+    content {
+      enabled                = true
+      firewall_mode         = "Prevention"  # or "Detection"
+      rule_set_type         = "OWASP"
+      rule_set_version      = "3.2"
+    }
   }
 
   identity {
@@ -54,7 +99,7 @@ resource "azurerm_application_gateway" "appgw" {
   }
 
   dynamic "frontend_port" {
-    for_each = var.certificate_secret_id == null ? [1] : []
+    for_each = var.tls_enabled ? [] : [1]
     content {
       name = "http-port"
       port = 80
@@ -62,7 +107,7 @@ resource "azurerm_application_gateway" "appgw" {
   }
 
   dynamic "frontend_port" {
-    for_each = var.certificate_secret_id != null ? [1] : []
+    for_each = var.tls_enabled ? [1] : []
     content {
       name = "https-port"
       port = 443
@@ -72,7 +117,8 @@ resource "azurerm_application_gateway" "appgw" {
   frontend_ip_configuration {
     name                          = "appgw-fe-ip"
     public_ip_address_id          = var.create_public_lb ? azurerm_public_ip.lb_ip[0].id : null
-    private_ip_address_allocation = var.create_public_lb ? null : "Dynamic"
+    private_ip_address = var.create_public_lb ? null: local.fixed_private_ip
+    private_ip_address_allocation = var.create_public_lb ? null : "Static"
     subnet_id                     = var.create_public_lb ? null : var.subnet_ids[var.vnet_subnet_name]
   }
 
@@ -101,7 +147,7 @@ resource "azurerm_application_gateway" "appgw" {
   }
 
   dynamic "ssl_certificate" {
-    for_each = var.certificate_secret_id != null ? [1] : []
+    for_each = var.tls_enabled ? [1] : []
     content {
       name                = "${var.backend_service_name}-cert"
       key_vault_secret_id = var.certificate_secret_id
@@ -109,7 +155,7 @@ resource "azurerm_application_gateway" "appgw" {
   }
 
   dynamic "http_listener" {
-    for_each = var.certificate_secret_id == null ? [1] : []
+    for_each = var.tls_enabled ? [] : [1]
     content {
       name                           = "http-listener"
       frontend_ip_configuration_name = "appgw-fe-ip"
@@ -119,7 +165,7 @@ resource "azurerm_application_gateway" "appgw" {
   }
 
   dynamic "http_listener" {
-    for_each = var.certificate_secret_id != null ? [1] : []
+    for_each = var.tls_enabled ? [1] : []
     content {
       name                           = "https-listener"
       frontend_ip_configuration_name = "appgw-fe-ip"
@@ -130,7 +176,7 @@ resource "azurerm_application_gateway" "appgw" {
   }
 
   dynamic "redirect_configuration" {
-    for_each = var.certificate_secret_id != null ? [1] : []
+    for_each = var.tls_enabled ? [1] : []
     content {
       name                 = "http-to-https-redirect"
       redirect_type        = "Permanent"
@@ -143,7 +189,7 @@ resource "azurerm_application_gateway" "appgw" {
   request_routing_rule {
     name                       = "rule1"
     rule_type                  = "Basic"
-    http_listener_name         = var.certificate_secret_id != null ? "https-listener" : "http-listener"
+    http_listener_name         = var.tls_enabled ? "https-listener" : "http-listener"
     backend_address_pool_name  = "appgw-backend-pool"
     backend_http_settings_name = "placeholder-http-settings"
     priority                   = 1001
@@ -160,6 +206,16 @@ resource "azurerm_application_gateway" "appgw" {
     match {
       status_code = ["200"]
     }
+  }
+
+  tags = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = "${var.backend_service_name}-appgw"
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
   }
 
   lifecycle {
@@ -192,4 +248,13 @@ resource "azurerm_user_assigned_identity" "agic_identity" {
   name                = "${var.backend_service_name}-agic-id"
   location            = var.location
   resource_group_name = var.resource_group_name
+  tags = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = "${var.backend_service_name}-agic-id"
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
+  }
 }

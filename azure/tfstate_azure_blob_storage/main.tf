@@ -1,3 +1,11 @@
+locals {
+  # Convert the values to terraform templates.
+  common_tags = {
+    for key, value in var.common_tags :
+    key => replace(value, "/@\\{([^}]+)\\}/", "$${$1}")
+  }
+}
+
 resource "azurerm_storage_account" "terraform" {
   name                = var.storage_account_name
   resource_group_name = var.resource_group_name
@@ -10,6 +18,16 @@ resource "azurerm_storage_account" "terraform" {
     default_action             = "Deny"
     ip_rules                   = var.storage_account_ip_rules
     virtual_network_subnet_ids = values(var.subnet_ids)
+  }
+
+  tags = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name                = var.storage_account_name
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
   }
 
   lifecycle {

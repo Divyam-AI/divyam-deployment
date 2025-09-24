@@ -135,6 +135,9 @@ resource "helm_release" "divyam_deploy" {
   version    = each.value.version
   namespace  = lookup(each.value, "namespace", null) != null ? each.value["namespace"] : "${each.value["namespace_prefix"]}-${var.environment}-ns"
 
+  # TODO: A regression in terraform helm resource does not allow upgrade/install support. Will be fixed in next release of helm
+  #  See: https://github.com/hashicorp/terraform-provider-helm/pull/1675
+  #upgrade_install = true
   replace       = var.helm_release_replace_all || lookup(each.value, "replace", false)
   recreate_pods = var.helm_release_recreate_pods_all || lookup(each.value, "recreate_pods", false)
   force_update  = var.helm_release_force_update_all || lookup(each.value, "force_update", false)

@@ -1,3 +1,11 @@
+locals {
+  # Convert the values to terraform templates.
+  common_tags = {
+    for key, value in var.common_tags :
+    key => replace(value, "/@\\{([^}]+)\\}/", "$${$1}")
+  }
+}
+
 resource "azurerm_key_vault_certificate" "cert" {
   count        = var.create ? 1 : 0
   name         = var.cert_name
@@ -33,5 +41,15 @@ resource "azurerm_key_vault_certificate" "cert" {
 
       key_usage = ["digitalSignature", "keyEncipherment"]
     }
+  }
+
+  tags = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = var.cert_name
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
   }
 }
