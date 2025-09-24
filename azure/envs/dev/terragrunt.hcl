@@ -115,7 +115,7 @@ locals {
   }
 
   bastion_host = {
-    enabled          = false
+    enabled          = true
     bastion_name     = "divyam-${local.env_name}-bastion"
     vnet_subnet_name = "internal"
   }
