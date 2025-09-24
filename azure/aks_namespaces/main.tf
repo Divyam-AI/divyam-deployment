@@ -69,27 +69,6 @@ resource "kubernetes_secret" "gar_sa_key" {
   type = "kubernetes.io/dockerconfigjson"
 }
 
-
-# Create service accounts.
-# resource "kubernetes_service_account" "example" {
-#   metadata {
-#     name      = "example-sa"
-#     namespace = "default"
-#     labels = {
-#       app = "my-app"
-#     }
-#     annotations = {
-#       "azure.workload.identity/client-id" = azurerm_user_assigned_identity.ci_cd.client_id
-#     }
-#   }
-#
-#   automount_service_account_token = true
-#
-#   image_pull_secret {
-#     name = "divyam-gar-sa-key"
-#   }
-# }
-
 # Patch default service account in all namespaces to use this as image pull secret.
 resource "kubernetes_default_service_account" "default_sa_patch" {
   depends_on = [kubernetes_namespace.divyam_namespaces, kubernetes_secret.gar_sa_key]

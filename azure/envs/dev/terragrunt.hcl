@@ -4,11 +4,23 @@ locals {
   tenant_id = get_env("ARM_TENANT_ID", "")
   location = get_env("LOCATION", "")
 
+  # TODO: Add org if present to all names
+  # Used to disambiguate resource names.
+  # Leave empty to not not use the org name.
+  org            = ""
   resource_group_name = "Divyam-Training"
   aks_cluster_name    = "divyam-aks-${local.env_name}-cluster"
-  customer            = "mmt"
   resource_group = {
     enabled = false
+  }
+
+  # Common tags applied to all resources.
+  common_tags = {
+    Environment = "@{environment}"
+    # Can be a template. Available variables are resource_name, location,
+    # resource_group and environment. For example.
+
+    #Name: "@{resource_name}"
   }
 
   tfstate_azure_blob_storage = {
@@ -54,7 +66,7 @@ locals {
         dns_prefix         = "aks${local.env_name}"
         kubernetes_version = "1.33.1"
         vnet_subnet_name   = "internal"
-        private_cluster_enabled = false
+        private_cluster_enabled = true
 
         # System/default node pool
         default_node_pool = {
@@ -91,7 +103,7 @@ locals {
         # Networking
         api_server_authorized_ip_ranges = [
           # Allowed IP list for public AKS clusters
-          #"171.76.81.119/32",
+          #"171.76.82.164/32",
           #"180.151.117.0/24",
         ]
 
@@ -127,20 +139,20 @@ locals {
   app_gw = {
     enabled              = true
     backend_service_name = "divyam-${local.env_name}-app-gw"
-    create_public_lb     = true
+    create_public_lb     = false
     vnet_subnet_name     = "app-gw"
   }
 
   nat = {
     enabled          = true
+    create = false
     vnet_subnet_name = "internal"
-    random           = "cake"
+    resource_name_prefix = "divyam"
   }
 
   azure_key_vault = {
     enabled        = true
     key_vault_name = "divyam-${local.env_name}-vault"
-    #key_vault_name = "divyam-vault"
   }
 
   azure_key_vault_secrets = {
@@ -160,20 +172,20 @@ locals {
 
   dns = {
     enabled = true
-    router_dns_zone = (local.customer != null ?
-      "${local.env_name}.${local.customer}.divyam.local" :
+    router_dns_zone = (local.org != "" ?
+      "api.${local.env_name}.${local.org}.divyam.local" :
       "${local.env_name}.divyam.local")
 
-    dashboard_dns_zone = (local.customer != null ?
-      "${local.env_name}.${local.customer}.dashboard.divyam.local" :
+    dashboard_dns_zone = (local.org != "" ?
+      "dashboard.${local.env_name}.${local.org}.divyam.local" :
       "${local.env_name}.dashboard.divyam.local")
   }
 
   tls_certs = {
     enabled   = true
     create    = false
-    cert_name = (local.customer != null ?
-      "${local.env_name}-${local.customer}-cert" :
-      "${local.env_name}-.cert")
+    cert_name = (local.org != "" ?
+      "divyam-${local.env_name}-${local.org}-cert" :
+      "divyam-${local.env_name}-cert")
   }
 }

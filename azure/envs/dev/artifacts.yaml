@@ -183,5 +183,5 @@ helm_charts:
     share_dns_names: true
     image_override:
       name: "router_controller"
-      tag: "0.1.148"
+      tag: "0.1.151"
       use_divyam_registry: true

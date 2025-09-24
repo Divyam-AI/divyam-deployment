@@ -1,4 +1,10 @@
 locals {
+  # Convert the values to terraform templates.
+  common_tags = {
+    for key, value in var.common_tags :
+    key => replace(value, "/@\\{([^}]+)\\}/", "$${$1}")
+  }
+
   artifacts_preprocessed = yamldecode(file(var.artifacts_path))
 
   filtered_charts = [
@@ -61,6 +67,16 @@ resource "azurerm_user_assigned_identity" "prometheus" {
   name                = "${local.name_prefix}-prometheus-uai"
   location            = var.location
   resource_group_name = var.resource_group_name
+
+  tags = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = "${local.name_prefix}-prometheus-uai"
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
+  }
 }
 
 resource "azurerm_role_assignment" "prometheus_monitoring_metrics" {
@@ -88,6 +104,15 @@ resource "azurerm_user_assigned_identity" "kafka_connect" {
   name                = "${local.name_prefix}-kafka-connect-uai"
   location            = var.location
   resource_group_name = var.resource_group_name
+  tags = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = "${local.name_prefix}-kafka-connect-uai"
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
+  }
 }
 
 resource "azurerm_role_assignment" "kafka_storage_admin" {
@@ -114,6 +139,15 @@ resource "azurerm_user_assigned_identity" "billing" {
   name                = "${local.name_prefix}-billing-uai"
   location            = var.location
   resource_group_name = var.resource_group_name
+  tags = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = "${local.name_prefix}-billing-uai"
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
+  }
 }
 
 resource "azurerm_role_assignment" "billing_storage_reader" {
@@ -146,6 +180,15 @@ resource "azurerm_user_assigned_identity" "router_controller" {
   name                = "${local.name_prefix}-router-controller-uai"
   location            = var.location
   resource_group_name = var.resource_group_name
+  tags = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = "${local.name_prefix}-router-controller-uai"
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
+  }
 }
 
 resource "azurerm_role_assignment" "router_controller_reader" {
@@ -191,6 +234,15 @@ resource "azurerm_user_assigned_identity" "eval" {
   name                = "${local.name_prefix}-eval-uai"
   location            = var.location
   resource_group_name = var.resource_group_name
+  tags = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = "${local.name_prefix}-eval-uai"
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
+  }
 }
 
 resource "azurerm_role_assignment" "eval_reader" {
@@ -235,6 +287,15 @@ resource "azurerm_user_assigned_identity" "selector_training" {
   name                = "${local.name_prefix}-selector-training-uai"
   location            = var.location
   resource_group_name = var.resource_group_name
+  tags = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = "${local.name_prefix}-selector-training-uai"
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
+  }
 }
 
 resource "azurerm_role_assignment" "selector_training_key_vault" {

@@ -69,7 +69,7 @@ inputs = merge(local.merged_inputs, {
   router_dns_zone                             = dependency.dns.outputs.router_dns_zone
   dashboard_dns_zone                          = dependency.dns.outputs.dashboard_dns_zone
   app_gateway_tls_enabled                     = dependency.app_gw.outputs.app_gateway_tls_enabled
-  app_gateway_certificate_name                = dependency.app_gw.outputs.app_gateway_certificate_name
+  app_gateway_certificate_name                = dependency.app_gw.outputs.app_gateway_tls_enabled ? dependency.app_gw.outputs.app_gateway_certificate_name:null
 })
 
 skip = !local.merged_inputs.enabled

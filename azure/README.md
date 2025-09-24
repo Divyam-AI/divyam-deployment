@@ -187,7 +187,7 @@ export TF_VAR_divyam_db_password="XXXXXXX"
 export TF_VAR_divyam_jwt_secret_key="XXXXXXX"
 export TF_VAR_divyam_provider_keys_encryption_key="XXXXXXX"
 export TF_VAR_divyam_openai_billing_admin_api_key="XXXXXXX"
-export TF_VAR_divyam_gar_sa_key_file="$(< path/to/sa-key.json)"
+export TF_VAR_divyam_gar_sa_key="$(< path/to/sa-key.json)"
 export TF_VAR_divyam_superset_pg_password=="XXXXXXX"
 ```
 
