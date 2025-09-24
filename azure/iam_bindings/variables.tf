@@ -1,3 +1,8 @@
+variable "common_tags" {
+  description = "Common tags applied to all azure resources"
+  type        = map(string)
+}
+
 variable "resource_group_name" {
   type        = string
   description = "Azure resource group name"

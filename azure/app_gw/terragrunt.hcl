@@ -32,13 +32,14 @@ locals {
 }
 
 inputs = merge(local.merged_inputs, {
+  vnet_name = dependency.vnet.outputs.vnet_name
   vnet_id               = dependency.vnet.outputs.vnet_id
   subnet_ids            = dependency.vnet.outputs.subnet_ids
   subnet_names          = dependency.vnet.outputs.subnet_names
   subnet_prefixes       = dependency.vnet.outputs.subnet_prefixes
   tls_enabled           = dependency.tls_certs.outputs.tls_enabled
   azure_key_vault_id    = dependency.azure_key_vault.outputs.azure_key_vault_id
-  certificate_secret_id = dependency.tls_certs.outputs.certificate_secret_id
+  certificate_secret_id = dependency.tls_certs.outputs.tls_enabled ? dependency.tls_certs.outputs.certificate_secret_id : null
 })
 
 skip = !local.merged_inputs.enabled

@@ -3,6 +3,16 @@ variable "location" {
   description = "The Azure region where all resources will be deployed (e.g., East US, West Europe)."
 }
 
+variable "environment" {
+  description = "Deployment environment"
+  type        = string
+}
+
+variable "common_tags" {
+  description = "Common tags applied to all azure resources"
+  type        = map(string)
+}
+
 variable "resource_group_name" {
   type        = string
   description = "The name of the existing Azure Resource Group in which to create resources."

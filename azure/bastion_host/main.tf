@@ -1,3 +1,11 @@
+locals {
+  # Convert the values to terraform templates.
+  common_tags = {
+    for key, value in var.common_tags :
+    key => replace(value, "/@\\{([^}]+)\\}/", "$${$1}")
+  }
+}
+
 resource "azurerm_network_interface" "bastion_nic" {
   name                = "${var.bastion_name}-nic"
   location            = var.location
@@ -9,6 +17,15 @@ resource "azurerm_network_interface" "bastion_nic" {
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = azurerm_public_ip.bastion_pip.id
   }
+  tags = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = "${var.bastion_name}-nic"
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
+  }
 }
 
 resource "azurerm_public_ip" "bastion_pip" {
@@ -17,12 +34,30 @@ resource "azurerm_public_ip" "bastion_pip" {
   resource_group_name = var.resource_group_name
   allocation_method   = "Static"
   sku                 = "Standard"
+  tags = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = "${var.bastion_name}-pip"
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
+  }
 }
 
 resource "azurerm_network_security_group" "bastion_nsg" {
   name                = "${var.bastion_name}-nsg"
   location            = var.location
   resource_group_name = var.resource_group_name
+  tags = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = "${var.bastion_name}-nsg"
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
+  }
 }
 
 resource "azurerm_network_security_rule" "allow_ssh" {
@@ -51,7 +86,7 @@ resource "azurerm_linux_virtual_machine" "bastion" {
 
   os_disk {
     caching                 = "ReadWrite"
-    azure_blob_storage_type = "Standard_LRS"
+    storage_account_type = "Standard_LRS"
     name                    = "${var.bastion_name}-osdisk"
   }
 
@@ -76,6 +111,15 @@ resource "azurerm_linux_virtual_machine" "bastion" {
     kube_config_map = var.aks_kube_config_raw
     admin_username  = var.admin_username
   }))
+  tags = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = var.bastion_name
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
+  }
 }
 
 resource "azurerm_network_interface_security_group_association" "bastion_nic_nsg" {

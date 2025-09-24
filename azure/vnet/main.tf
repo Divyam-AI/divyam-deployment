@@ -1,4 +1,10 @@
 locals {
+  # Convert the values to terraform templates.
+  common_tags = {
+    for key, value in var.common_tags :
+    key => replace(value, "/@\\{([^}]+)\\}/", "$${$1}")
+  }
+
   filtered_subnets_to_create = [
     # Filter out subnets to create.
     for subnet in var.subnets : { subnet_name = subnet.subnet_name, subnet = subnet } if !subnet.use_existing
@@ -22,6 +28,16 @@ resource "azurerm_virtual_network" "vnet" {
   address_space       = var.address_space
   location            = var.location
   resource_group_name = var.resource_group_name
+
+  tags = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = var.network_name
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
+  }
 
   lifecycle {
     ignore_changes = [
