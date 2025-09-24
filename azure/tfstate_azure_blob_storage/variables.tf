@@ -18,6 +18,12 @@ variable "common_tags" {
   type        = map(string)
 }
 
+variable "create" {
+  description = "Indicates if storage account and container need to be created"
+  type        = string
+  default     = true
+}
+
 variable "storage_account_name" {
   description = "Name of the storage account"
   type        = string

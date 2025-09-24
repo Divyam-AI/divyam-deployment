@@ -25,10 +25,10 @@ output "nat_gateway_ip_id" {
 
 output "nat_gateway_ip" {
   description = "The public IP address used for outbound connections"
-  value       = var.create ? azurerm_public_ip.nat[0].ip_address: null
+  value       = var.create ? azurerm_public_ip.nat[0].ip_address : null
 }
 
 output "nat_gateway_resource_group" {
   description = "The resource group containing the NAT Gateway"
-  value       = var.create ? azurerm_nat_gateway.nat[0].resource_group_name: null
+  value       = var.create ? azurerm_nat_gateway.nat[0].resource_group_name : null
 }

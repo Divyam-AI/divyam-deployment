@@ -20,9 +20,9 @@ locals {
     key => replace(value, "/@\\{([^}]+)\\}/", "$${$1}")
   }
 
-  superset_pg_password          = var.divyam_superset_pg_password          != null ? var.divyam_superset_pg_password          : random_password.random_superset_pg_password.result
+  superset_pg_password          = var.divyam_superset_pg_password != null ? var.divyam_superset_pg_password : random_password.random_superset_pg_password.result
   superset_pg_superset_password = var.divyam_superset_pg_superset_password != null ? var.divyam_superset_pg_superset_password : random_password.random_superset_pg_superset_password.result
-  divyam_db_root_password       = var.divyam_db_root_password              != null ? var.divyam_db_root_password              : random_password.random_db_root_password.result
+  divyam_db_root_password       = var.divyam_db_root_password != null ? var.divyam_db_root_password : random_password.random_db_root_password.result
 
   secrets = {
     "divyam-db-root-password"              = local.divyam_db_root_password
@@ -58,7 +58,7 @@ resource "azurerm_key_vault_secret" "secrets" {
   name         = each.key
   value        = each.value
   key_vault_id = var.azure_key_vault_id
-  tags         = {
+  tags = {
     for key, value in local.common_tags :
     key => templatestring(value, {
       resource_name  = each.key

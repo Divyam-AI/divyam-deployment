@@ -27,7 +27,7 @@ resource "azurerm_virtual_network" "vnet" {
   name                = var.network_name
   address_space       = var.address_space
   location            = var.location
-  resource_group_name = var.resource_group_name
+  resource_group_name = var.vnet_resource_group_name != null ? var.vnet_resource_group_name : var.resource_group_name
 
   tags = {
     for key, value in local.common_tags :
@@ -48,12 +48,10 @@ resource "azurerm_virtual_network" "vnet" {
 }
 
 # Look up the existing Azure Virtual Network.
-# The `count` meta-argument is used to make this resource conditional.
-# It will only be created if the 'existing_vnet_name' variable is not empty.
 data "azurerm_virtual_network" "vnet" {
   count               = var.use_existing_vnet ? 1 : 0
   name                = var.network_name
-  resource_group_name = var.resource_group_name
+  resource_group_name = var.vnet_resource_group_name != null ? var.vnet_resource_group_name : var.resource_group_name
 }
 
 # Look up existing subnets
@@ -61,7 +59,7 @@ data "azurerm_subnet" "existing_subnets" {
   for_each             = local.subnets_existing
   name                 = each.key
   virtual_network_name = (var.use_existing_vnet ? data.azurerm_virtual_network.vnet[0].name : azurerm_virtual_network.vnet[0].name)
-  resource_group_name  = var.resource_group_name
+  resource_group_name  = var.vnet_resource_group_name != null ? var.vnet_resource_group_name : var.resource_group_name
 }
 
 resource "azurerm_subnet" "subnets" {
