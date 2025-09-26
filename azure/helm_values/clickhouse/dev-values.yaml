@@ -45,8 +45,8 @@ clickhouse:
     hostIP: 127.0.0.1/32
 
   resources: { }
-    # requests:  
-    #   cpu: "2"  
+    # requests:
+    #   cpu: "2"
   #   memory: "4Gi"
   # limits:
   #   cpu: "2"
@@ -76,6 +76,8 @@ clickhouse:
     host: ""
     # -- Override the default keeper port
     port: 2181
+    localStorage:
+      storageClass: divyam-managed-csi
 
   persistence:
     # -- enable storage
@@ -84,7 +86,7 @@ clickhouse:
     size: 1Gi
     accessMode: ReadWriteOnce
     ## -- StorageClass for PV (e.g. gp2, standard, ...)
-    storageClass: "managed-premium"
+    storageClass: divyam-managed-csi
     logs:
       # -- enable pvc for logs
       enabled: false
@@ -157,7 +159,7 @@ keeper:
   settings: { }
   localStorage:
     size: 1Gi
-    storageClass: "managed-premium"
+    storageClass: divyam-managed-csi
   nodeSelector: { }
   tolerations: [ ]
   podAnnotations: { }

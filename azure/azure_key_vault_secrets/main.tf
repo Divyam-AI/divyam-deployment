@@ -67,4 +67,9 @@ resource "azurerm_key_vault_secret" "secrets" {
       environment    = var.environment
     })
   }
+
+  lifecycle {
+    prevent_destroy      = true
+    create_before_destroy = true
+  }
 }

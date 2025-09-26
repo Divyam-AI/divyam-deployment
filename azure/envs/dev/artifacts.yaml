@@ -2,7 +2,16 @@
 # The key in this map is used to look for values in the configured values directory.
 # {env}-values.yaml and values.yaml if present will be picked up from the chart directory.
 helm_charts:
-  ## External charts
+  divyam-persistent-storage:
+    chart: "divyam-persistent-storage"
+    version: "0.1.0-azure"
+    namespace: "kube-system"
+
+  divyam-redis:
+    chart: "divyam-redis"
+    version: "0.1.0"
+    namespace_prefix: "divyam-redis"
+
   kube_prometheus_stack:
     repository: "https://prometheus-community.github.io/helm-charts"
     chart: "kube-prometheus-stack"
@@ -33,7 +42,7 @@ helm_charts:
 
   clickhouse:
     chart: "clickhouse"
-    version: "0.2.60"
+    version: "0.2.62"
     namespace_prefix: "clickhouse"
     az_secret_inject:
       # No chart variable for click house user
@@ -48,7 +57,7 @@ helm_charts:
 
   otel_collector:
     chart: "otel_collector"
-    version: "0.0.82"
+    version: "0.0.85-azure"
     namespace_prefix: "otel-collector"
 
   mysql:
@@ -110,7 +119,6 @@ helm_charts:
       - secret_name: "divyam-superset-pg-superset-password"
         chart_variable_name: supersetNode.connections.db_pass
 
-  # Divyam charts
   # TODO: Make the names consistent across chart name, helm release name :
   divyam_bill_tracker:
     chart: "divyam-bill-tracker"
@@ -124,8 +132,9 @@ helm_charts:
     # replace: true
     image_override:
       name: "divyam_bill_tracker"
-      tag: "0.0.73"
+      tag: "latest"
       use_divyam_registry: true
+      imagePullPolicy: Always
 
   divyam_evaluator:
     chart: "divyam-evaluator"
@@ -137,8 +146,9 @@ helm_charts:
     share_key_vault_uri: true
     image_override:
       name: "divyam_evaluator"
-      tag: "0.1.30"
+      tag: "latest"
       use_divyam_registry: true
+      imagePullPolicy: Always
     az_secret_inject:
       - secret_name: divyam-db-user-name
         chart_variable_name: mpi_db_user
@@ -154,8 +164,9 @@ helm_charts:
     namespace_prefix: "route-selector"
     image_override:
       name: "route_selector"
-      tag: "0.0.55"
+      tag: "latest"
       use_divyam_registry: true
+      imagePullPolicy: Always
 
   divyam_selector_training:
     chart: "selector-training"
@@ -169,8 +180,9 @@ helm_charts:
     share_router_logs_container_name: env_config.artifacts_storage.container
     image_override:
       name: "selector_training"
-      tag: "0.0.20"
+      tag: "latest"
       use_divyam_registry: true
+      imagePullPolicy: Always
 
   divyam_router_controller:
     chart: "router-controller"
@@ -183,5 +195,6 @@ helm_charts:
     share_dns_names: true
     image_override:
       name: "router_controller"
-      tag: "0.1.151"
+      tag: "latest"
       use_divyam_registry: true
+      imagePullPolicy: Always

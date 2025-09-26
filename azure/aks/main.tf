@@ -341,6 +341,7 @@ resource "azurerm_monitor_workspace" "prometheus" {
   name                = "${join("", [for p in split("-", each.key) : substr(p, 0, 3)])}-amw"
   location            = var.location
   resource_group_name = var.resource_group_name
+
   tags = {
     for key, value in local.common_tags :
     key => templatestring(value, {

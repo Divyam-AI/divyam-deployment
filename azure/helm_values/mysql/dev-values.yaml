@@ -9,7 +9,7 @@ mysql:
   persistence:
     enabled: true
     size: 2Gi
-    storageClass: "managed-premium"
+    storageClass: divyam-managed-csi
 
   database: "divyam_dev"
 

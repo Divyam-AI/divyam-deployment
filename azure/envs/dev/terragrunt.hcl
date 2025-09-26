@@ -72,7 +72,7 @@ locals {
         # System/default node pool
         default_node_pool = {
           vm_size      = "Standard_DS4_v2"
-          count        = 4
+          count        = 5
           auto_scaling = false
         }
 
@@ -81,7 +81,7 @@ locals {
           # GPU node pool
           gpupool = {
             vm_size      = "Standard_NV6ads_A10_v5"
-            count        = 1
+            count        = 2
             auto_scaling = false
             #auto_scaling = true
             #min_count    = 1
@@ -104,8 +104,9 @@ locals {
         # Networking
         api_server_authorized_ip_ranges = [
           # Allowed IP list for public AKS clusters
-          #"171.76.82.164/32",
-          #"180.151.117.0/24",
+          # TODO: comment back
+          "171.76.82.164/32",
+          "180.151.117.0/24",
         ]
 
         service_cidr   = "10.24.0.0/16"

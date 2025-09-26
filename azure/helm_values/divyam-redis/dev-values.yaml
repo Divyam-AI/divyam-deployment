@@ -1,0 +1,3 @@
+persistence:
+  storageClass: divyam-managed-csi
+  size: 100Gi
