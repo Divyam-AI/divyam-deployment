@@ -21,7 +21,7 @@ variable "resource_group_name" {
 variable "resource_name_prefix" {
   description = "Resource name prefix to use"
   type        = string
-  default = "divyam"
+  default     = "divyam"
 }
 
 variable "create" {

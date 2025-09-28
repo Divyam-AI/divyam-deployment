@@ -79,10 +79,10 @@ resource "azurerm_application_gateway" "appgw" {
   }
 
   waf_configuration {
-      enabled          = var.create_public_lb
-      firewall_mode    = "Prevention" # or "Detection"
-      rule_set_type    = "OWASP"
-      rule_set_version = "3.2"
+    enabled          = var.create_public_lb
+    firewall_mode    = "Prevention" # or "Detection"
+    rule_set_type    = "OWASP"
+    rule_set_version = "3.2"
   }
 
   identity {

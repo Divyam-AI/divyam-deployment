@@ -10,7 +10,7 @@ output "vnet_name" {
 
 output "vnet_resource_group_name" {
   description = "Vnet resource group"
-  value = var.vnet_resource_group_name != null ? var.vnet_resource_group_name : var.resource_group_name
+  value       = var.vnet_resource_group_name != null ? var.vnet_resource_group_name : var.resource_group_name
 }
 
 output "vnet_address_space" {

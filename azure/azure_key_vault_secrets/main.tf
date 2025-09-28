@@ -69,7 +69,7 @@ resource "azurerm_key_vault_secret" "secrets" {
   }
 
   lifecycle {
-    prevent_destroy      = true
+    prevent_destroy       = true
     create_before_destroy = true
   }
 }

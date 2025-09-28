@@ -1,0 +1,115 @@
+{
+  "name": "kube-alerts",
+  "description": "Kubernetes alerts",
+  "interval": "PT1M",
+  "rules": [
+    {
+      "alert": "deployment-replica-mismatch",
+      "expression": "(kube_deployment_status_replicas_available / kube_deployment_spec_replicas) < 0.8",
+      "for": "PT2M",
+      "labels": {
+        "severity": "CRITICAL",
+        "rule_group": "Kubernetes",
+        "alert_rule": "AlwaysOn"
+      },
+      "annotations": {
+        "summary": "Deployment Replica Mismatch",
+        "description": "Less than 80% of replicas are available"
+      },
+      "alert_resolution": {
+        "auto_resolved": true,
+        "time_to_resolve": "PT30M"
+      }
+    },
+    {
+      "alert": "pods-in-crashloopbackoff",
+      "expression": "(kube_pod_container_status_waiting_reason{reason='CrashLoopBackOff'}) > 0",
+      "for": "PT2M",
+      "labels": {
+        "severity": "CRITICAL",
+        "rule_group": "Kubernetes",
+        "alert_rule": "AlwaysOn"
+      },
+      "annotations": {
+        "summary": "Pods in CrashLoopBackOff",
+        "description": "One or more pods are in CrashLoopBackOff state"
+      },
+      "alert_resolution": {
+        "auto_resolved": true,
+        "time_to_resolve": "PT30M"
+      }
+    },
+    {
+      "alert": "pods-in-failed-state",
+      "expression": "(kube_pod_status_phase{phase='Failed'}) > 0",
+      "for": "PT2M",
+      "labels": {
+        "severity": "CRITICAL",
+        "rule_group": "Kubernetes",
+        "alert_rule": "AlwaysOn"
+      },
+      "annotations": {
+        "summary": "Pods in Failed State",
+        "description": "One or more pods are in Failed phase"
+      },
+      "alert_resolution": {
+        "auto_resolved": true,
+        "time_to_resolve": "PT30M"
+      }
+    },
+    {
+      "alert": "pvc-unbound-state",
+      "expression": "(kube_persistentvolumeclaim_status_phase{phase!='Bound'}) > 0",
+      "for": "PT1M",
+      "labels": {
+        "severity": "CRITICAL",
+        "rule_group": "Kubernetes",
+        "alert_rule": "AlwaysOn"
+      },
+      "annotations": {
+        "summary": "PVC Unbound State",
+        "description": "One or more PVCs are not in Bound state"
+      },
+      "alert_resolution": {
+        "auto_resolved": true,
+        "time_to_resolve": "PT30M"
+      }
+    },
+    {
+      "alert": "pvc-usage-high",
+      "expression": "(kubelet_volume_stats_used_bytes * 100 / kubelet_volume_stats_capacity_bytes) > 60",
+      "for": "PT1M",
+      "labels": {
+        "severity": "WARNING",
+        "rule_group": "Kubernetes",
+        "alert_rule": "AlwaysOn"
+      },
+      "annotations": {
+        "summary": "PVC Usage High",
+        "description": "PVC usage has exceeded 60%"
+      },
+      "alert_resolution": {
+        "auto_resolved": true,
+        "time_to_resolve": "PT30M"
+      }
+    },
+    {
+      "alert": "statefulset-replica-mismatch",
+      "expression": "(kube_statefulset_status_replicas_ready / kube_statefulset_replicas) < 0.8",
+      "for": "PT2M",
+      "labels": {
+        "severity": "CRITICAL",
+        "rule_group": "Kubernetes",
+        "alert_rule": "AlwaysOn"
+      },
+      "annotations": {
+        "summary": "StatefulSet Replica Mismatch",
+        "description": "Less than 80% of StatefulSet replicas are ready"
+      },
+      "alert_resolution": {
+        "auto_resolved": true,
+        "time_to_resolve": "PT30M"
+      }
+    }
+  ]
+}

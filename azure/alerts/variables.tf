@@ -25,12 +25,12 @@ variable "aks_cluster_name" {
 
 variable "azure_monitor_workspace_name" {
   description = "Name of the azure monitor workspace"
-  type = string
+  type        = string
 }
 
 variable "azure_monitor_workspace_id" {
   description = "ID of the azure monitor workspace"
-  type = string
+  type        = string
 }
 
 variable "alerts_folder" {

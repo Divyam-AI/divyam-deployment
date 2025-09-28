@@ -19,7 +19,7 @@ locals {
     for chart_name, chart in local.charts : chart_name => concat(
       lookup(chart, "image_override", null) != null ?
       ["images:\n  ${chart_name}: ${lookup(chart.image_override, "use_divyam_registry", false) == true ? "${var.divyam_docker_registry_url}/${chart.image_override.name}:${chart.image_override.tag}" : "${chart.image_override.name}:${chart.image_override.tag}"}",
-      "imagePullPolicy: ${lookup(chart.image_override, "imagePullPolicy", "IfNotPresent")}"
+        "imagePullPolicy: ${lookup(chart.image_override, "imagePullPolicy", "IfNotPresent")}"
       ]
     : [])
   }
@@ -152,7 +152,7 @@ resource "helm_release" "divyam_deploy" {
 
   # TODO: Custom folder for terragrunt and helm values files outside repo root.
 
-values = concat(
+  values = concat(
     local.chart_values[each.key],
     [
       # Service account metadata.

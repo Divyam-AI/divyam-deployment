@@ -5,7 +5,7 @@ locals {
     key => replace(value, "/@\\{([^}]+)\\}/", "$${$1}")
   }
 
-  # Load all JSON files
+  # Load all JSON files, assuming they are in GCP alter format.
   alert_files = fileset(var.alerts_folder, "*.json")
 
   alerts = {
@@ -63,34 +63,46 @@ resource "azurerm_monitor_alert_prometheus_rule_group" "alerts" {
   location            = var.location
   resource_group_name = var.resource_group_name
   cluster_name        = var.azure_monitor_workspace_name
-  description         = lookup(each.value, "display_name", each.value.name)
-  rule_group_enabled = lookup(each.value, "enabled", true)
+  description         = lookup(each.value, "description", each.value.name)
+  rule_group_enabled  = lookup(each.value, "enabled", true)
 
   # evaluation_interval in seconds → ISO8601 duration string
-  interval = "PT${tonumber(replace(each.value.condition.evaluation_interval, "s", ""))}S"
+  interval = each.value.interval
 
   scopes = [var.azure_monitor_workspace_id]
 
-  rule {
-    alert = replace(each.value.display_name, " ", "")
-    expression  = each.value.condition.query
-    for   =  "PT${tonumber(replace(each.value.condition.duration, "s", ""))}S"
+  dynamic "rule" {
+    for_each = each.value.rules
+    content {
+      alert      = rule.value.alert
+      expression = rule.value.expression
+      for        = rule.value.for
+      enabled    = lookup(rule.value, "enabled", true)
 
-    labels = {
-      severity   = each.value.severity
-      rule_group = lookup(each.value.condition, "rule_group", "")
-      alert_rule = lookup(each.value.condition, "alert_rule", "")
-    }
+      dynamic "alert_resolution" {
+        for_each = lookup(rule.value, "alert_resolution", null) != null ? [1] : []
+        content {
+          auto_resolved   = rule.value.alert_resolution.auto_resolved
+          time_to_resolve = rule.value.alert_resolution.time_to_resolve
+        }
+      }
 
-    annotations = {
-      summary     = each.value.condition.display_name
-      description = "Generated from JSON spec"
-    }
+      labels = {
+        severity   = rule.value.labels.severity
+        rule_group = rule.value.labels.rule_group
+        alert_rule = rule.value.labels.alert_rule
+      }
 
-    dynamic "action" {
-      for_each = contains(["CRITICAL"], each.value.severity) ? [1] : [] # condition here
-      content {
-        action_group_id = azurerm_monitor_action_group.alerts.id
+      annotations = {
+        summary     = rule.value.annotations.summary
+        description = rule.value.annotations.description
+      }
+
+      dynamic "action" {
+        for_each = contains(["CRITICAL"], rule.value.labels.severity) ? [1] : []
+        content {
+          action_group_id = azurerm_monitor_action_group.alerts.id
+        }
       }
     }
   }

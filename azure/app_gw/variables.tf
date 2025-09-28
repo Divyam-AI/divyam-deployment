@@ -35,7 +35,7 @@ variable "vnet_name" {
 
 variable "vnet_resource_group_name" {
   description = "Vnet resource group"
-  type = string
+  type        = string
 }
 
 variable "subnet_ids" {
