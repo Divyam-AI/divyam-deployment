@@ -66,7 +66,7 @@ resource "azurerm_subnet" "subnets" {
   for_each = local.subnets_to_create
 
   name                 = each.key
-  resource_group_name  = azurerm_virtual_network.vnet[0].resource_group_name
+  resource_group_name  = var.vnet_resource_group_name != null ? var.vnet_resource_group_name : var.resource_group_name
   virtual_network_name = (var.use_existing_vnet ? data.azurerm_virtual_network.vnet[0].name : azurerm_virtual_network.vnet[0].name)
   address_prefixes     = [each.value.subnet_ip]
   service_endpoints    = ["Microsoft.Storage"]

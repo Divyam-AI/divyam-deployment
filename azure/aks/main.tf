@@ -222,7 +222,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "additional_node_pools" {
 
   name                  = each.value.pool_name
   kubernetes_cluster_id = azurerm_kubernetes_cluster.aks_cluster[each.value.cluster_name].id
-  vnet_subnet_id        = var.subnet_ids[var.clusters[each.value.cluster_name].vnet_subnet_name]
+  vnet_subnet_id        = var.subnet_ids[each.value.pool.vnet_subnet_name != null ? each.value.pool.vnet_subnet_name : var.clusters[each.value.cluster_name].vnet_subnet_name]
   vm_size               = each.value.pool.vm_size
   gpu_driver            = each.value.pool.gpu_driver
   node_count            = !each.value.pool.auto_scaling ? each.value.pool.count : null

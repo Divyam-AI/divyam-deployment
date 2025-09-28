@@ -95,9 +95,6 @@ locals {
               gpu = tostring(true)
               # Add special label for azure gpu type maybe.
             }
-            tags = {
-              type = "gpu"
-            }
           }
         }
 
