@@ -1,8 +1,7 @@
 data "azurerm_subnet" "appgw" {
   name                 = var.vnet_subnet_name
   virtual_network_name = var.vnet_name
-  # TODO: Take subnet resource group from vnet output
-  resource_group_name  = var.resource_group_name
+  resource_group_name  = var.vnet_resource_group_name
 }
 
 # Total number of addresses in subnet

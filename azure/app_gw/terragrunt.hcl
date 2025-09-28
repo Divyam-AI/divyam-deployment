@@ -33,6 +33,7 @@ locals {
 
 inputs = merge(local.merged_inputs, {
   vnet_name = dependency.vnet.outputs.vnet_name
+  vnet_resource_group_name = dependency.vnet.outputs.vnet_resource_group_name
   vnet_id               = dependency.vnet.outputs.vnet_id
   subnet_ids            = dependency.vnet.outputs.subnet_ids
   subnet_names          = dependency.vnet.outputs.subnet_names

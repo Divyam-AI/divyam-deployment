@@ -159,7 +159,20 @@ values = concat(
       local.service_account_meta[each.key]
     ],
     # Pod metadata.
-    local.pod_meta[each.key] != null ? [local.pod_meta[each.key]] : []
+    local.pod_meta[each.key] != null ? [local.pod_meta[each.key]] : [],
+    [
+      yamlencode({
+        tags = {
+          for key, value in local.common_tags :
+          key => templatestring(value, {
+            resource_name  = "divyam_k8s_resource"
+            location       = var.location
+            resource_group = var.resource_group_name
+            environment    = var.environment
+          })
+        }
+      })
+    ]
   )
 
   # Common chart values.
@@ -172,18 +185,6 @@ values = concat(
       {
         name  = "divyam_platform"
         value = "AZURE"
-      },
-      {
-        name = "tags"
-        value = {
-          for key, value in local.common_tags :
-          key => templatestring(value, {
-            resource_name  = "divyam_k8s_resource"
-            location       = var.location
-            resource_group = var.resource_group_name
-            environment    = var.environment
-          })
-        }
       }
     ],
 

@@ -67,12 +67,12 @@ locals {
         dns_prefix         = "aks${local.env_name}"
         kubernetes_version = "1.33.1"
         vnet_subnet_name   = "internal"
-        private_cluster_enabled = true
+        private_cluster_enabled = false
 
         # System/default node pool
         default_node_pool = {
           vm_size      = "Standard_DS4_v2"
-          count        = 5
+          count        = 6
           auto_scaling = false
         }
 
@@ -105,7 +105,7 @@ locals {
         api_server_authorized_ip_ranges = [
           # Allowed IP list for public AKS clusters
           # TODO: comment back
-          "171.76.82.164/32",
+          "171.76.83.251/32",
           "180.151.117.0/24",
         ]
 
@@ -147,7 +147,7 @@ locals {
 
   nat = {
     enabled          = true
-    create = false
+    create = true
     vnet_subnet_name = "internal"
     resource_name_prefix = "divyam"
   }

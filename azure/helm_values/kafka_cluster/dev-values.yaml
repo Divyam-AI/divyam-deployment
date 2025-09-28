@@ -9,8 +9,8 @@ defaultReplicationFactor: 1
 defaultMinInsyncReplicas: 1
 interBrokerProtocolVersion: "3.9"
 storage:
-  brokerStorageSize: 2Gi
-  zookeeperStorageSize: 2Gi
+  brokerStorageSize: 20Gi
+  zookeeperStorageSize: 20Gi
   class: divyam-managed-csi
 
 broker_resources:

@@ -8,6 +8,11 @@ output "vnet_name" {
   value       = (var.use_existing_vnet ? data.azurerm_virtual_network.vnet[0].name : azurerm_virtual_network.vnet[0].name)
 }
 
+output "vnet_resource_group_name" {
+  description = "Vnet resource group"
+  value = var.vnet_resource_group_name != null ? var.vnet_resource_group_name : var.resource_group_name
+}
+
 output "vnet_address_space" {
   description = "Address space of the virtual network"
   value       = (var.use_existing_vnet ? data.azurerm_virtual_network.vnet[0].address_space : azurerm_virtual_network.vnet[0].address_space)

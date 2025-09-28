@@ -83,7 +83,7 @@ clickhouse:
     # -- enable storage
     enabled: true
     # -- volume size (per replica)
-    size: 1Gi
+    size: 100Gi
     accessMode: ReadWriteOnce
     ## -- StorageClass for PV (e.g. gp2, standard, ...)
     storageClass: divyam-managed-csi
@@ -91,7 +91,7 @@ clickhouse:
       # -- enable pvc for logs
       enabled: false
       # -- size for logs pvc
-      size: 10Gi
+      size: 100Gi
       accessMode: ReadWriteOnce
 
   image:
@@ -158,7 +158,7 @@ keeper:
   # instance
   settings: { }
   localStorage:
-    size: 1Gi
+    size: 100Gi
     storageClass: divyam-managed-csi
   nodeSelector: { }
   tolerations: [ ]
@@ -168,10 +168,10 @@ keeper:
   zoneSpread: true
   metricsPort: ""
   resources:
-    cpuRequestsMs: 1
-    memoryRequestsMiB: 1Gi
-    cpuLimitsMs: 1
-    memoryLimitsMiB: 1Gi
+    cpuRequestsMs: 4
+    memoryRequestsMiB: 4Gi
+    cpuLimitsMs: 4
+    memoryLimitsMiB: 4Gi
 
 operator:
   # -- Whether to enabled the Altinity Operator for ClickHouse.
