@@ -67,7 +67,7 @@ locals {
         dns_prefix         = "aks${local.env_name}"
         kubernetes_version = "1.33.1"
         vnet_subnet_name   = "internal"
-        private_cluster_enabled = false
+        private_cluster_enabled = true
 
         # System/default node pool
         default_node_pool = {
@@ -104,9 +104,8 @@ locals {
         # Networking
         api_server_authorized_ip_ranges = [
           # Allowed IP list for public AKS clusters
-          # TODO: comment back
-          "171.76.83.251/32",
-          "180.151.117.0/24",
+          #"171.76.83.251/32",
+          #"180.151.117.0/24",
         ]
 
         service_cidr   = "10.24.0.0/16"
