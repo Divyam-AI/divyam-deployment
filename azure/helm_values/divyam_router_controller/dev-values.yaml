@@ -6,6 +6,7 @@ external_lb:
 
 router:
   app_name: "router-controller"
+  divyamRouterConfigPath: "/etc/divyam_router/configs/router-config.yaml"
 
   # The container listens on this port (this value is used as the ROUTER_PORT)
   containerPort: 8000
@@ -51,8 +52,6 @@ router:
   # Fallback settings for models (dev - enabled for testing)
   modelFallbackEnabled: true
   modelMaxFallbackHops: 3
-
-divyam_router_config_path: "/app/divyam_router/configs/router-config.yaml"
 
 
 hpa:
