@@ -7,7 +7,14 @@ resources: { }
 
 persistence:
   accessModes: [ "ReadWriteOnce" ]
-  size: 10Gi
+  size: 100Gi
   annotations: { }
   # storageVolumeName: qdrant-storage
-  storageClassName: "managed-premium"
+  storageClassName: divyam-managed-csi
+
+snapshotPersistence:
+  accessModes: [ "ReadWriteOnce" ]
+  size: 100Gi
+  annotations: { }
+  # storageVolumeName: qdrant-storage
+  storageClassName: divyam-managed-csi

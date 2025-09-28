@@ -1,7 +1,7 @@
 data "azurerm_subnet" "appgw" {
   name                 = var.vnet_subnet_name
   virtual_network_name = var.vnet_name
-  resource_group_name  = var.resource_group_name
+  resource_group_name  = var.vnet_resource_group_name
 }
 
 # Total number of addresses in subnet
@@ -71,21 +71,18 @@ resource "azurerm_application_gateway" "appgw" {
   resource_group_name = var.resource_group_name
 
   sku {
-    # TODO: WAF_v2 for public and private?
-    name     = var.create_public_lb ? "Standard_v2" : "WAF_v2"
-    tier     = var.create_public_lb ? "Standard_v2" : "WAF_v2"
+    # TODO: Standard_v2 with private IP not supported in all regions. For now using
+    #  WAF_v2
+    name     = "WAF_v2"
+    tier     = "WAF_v2"
     capacity = 2
   }
 
-  dynamic "waf_configuration" {
-    for_each = var.create_public_lb ? [] : [1]
-
-    content {
-      enabled          = true
-      firewall_mode    = "Prevention" # or "Detection"
-      rule_set_type    = "OWASP"
-      rule_set_version = "3.2"
-    }
+  waf_configuration {
+    enabled          = var.create_public_lb
+    firewall_mode    = "Prevention" # or "Detection"
+    rule_set_type    = "OWASP"
+    rule_set_version = "3.2"
   }
 
   identity {

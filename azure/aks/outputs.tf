@@ -34,3 +34,13 @@ output "aks_oidc_issuer_urls" {
   value     = { for k, v in azurerm_kubernetes_cluster.aks_cluster : k => v.oidc_issuer_url }
   sensitive = true
 }
+
+output "monitor_workspace_names" {
+  description = "The names of the monitor workspace"
+  value       = { for k, v in azurerm_kubernetes_cluster.aks_cluster : k => azurerm_monitor_workspace.prometheus[k].name }
+}
+
+output "monitor_workspace_ids" {
+  description = "The IDs of the monitor workspace"
+  value       = { for k, v in azurerm_kubernetes_cluster.aks_cluster : k => azurerm_monitor_workspace.prometheus[k].id }
+}

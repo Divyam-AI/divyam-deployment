@@ -33,6 +33,11 @@ variable "vnet_name" {
   type        = string
 }
 
+variable "vnet_resource_group_name" {
+  description = "Vnet resource group"
+  type        = string
+}
+
 variable "subnet_ids" {
   description = "Map of subnet resource IDs"
   type        = map(string)

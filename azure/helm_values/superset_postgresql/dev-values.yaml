@@ -2,5 +2,5 @@ deploy: true
 environment: dev
 app_name: superset-postgres
 resources: { }
-storage: 1Gi
-storage_class: "managed-premium"
+storage: 50Gi
+storage_class: divyam-managed-csi

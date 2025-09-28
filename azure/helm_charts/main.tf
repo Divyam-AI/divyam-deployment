@@ -1,4 +1,10 @@
 locals {
+  # Convert the values to terraform templates.
+  common_tags = {
+    for key, value in var.common_tags :
+    key => replace(value, "/@\\{([^}]+)\\}/", "$${$1}")
+  }
+
   artifacts_preprocessed = yamldecode(file(var.artifacts_path))
 
   filtered_charts = [
@@ -12,7 +18,9 @@ locals {
   image_override_values = {
     for chart_name, chart in local.charts : chart_name => concat(
       lookup(chart, "image_override", null) != null ?
-      ["images:\n  ${chart_name}: ${lookup(chart.image_override, "use_divyam_registry", false) == true ? "${var.divyam_docker_registry_url}/${chart.image_override.name}:${chart.image_override.tag}" : "${chart.image_override.name}:${chart.image_override.tag}"}"]
+      ["images:\n  ${chart_name}: ${lookup(chart.image_override, "use_divyam_registry", false) == true ? "${var.divyam_docker_registry_url}/${chart.image_override.name}:${chart.image_override.tag}" : "${chart.image_override.name}:${chart.image_override.tag}"}",
+        "imagePullPolicy: ${lookup(chart.image_override, "imagePullPolicy", "IfNotPresent")}"
+      ]
     : [])
   }
 
@@ -142,6 +150,8 @@ resource "helm_release" "divyam_deploy" {
   recreate_pods = var.helm_release_recreate_pods_all || lookup(each.value, "recreate_pods", false)
   force_update  = var.helm_release_force_update_all || lookup(each.value, "force_update", false)
 
+  # TODO: Custom folder for terragrunt and helm values files outside repo root.
+
   values = concat(
     local.chart_values[each.key],
     [
@@ -149,7 +159,20 @@ resource "helm_release" "divyam_deploy" {
       local.service_account_meta[each.key]
     ],
     # Pod metadata.
-    local.pod_meta[each.key] != null ? [local.pod_meta[each.key]] : []
+    local.pod_meta[each.key] != null ? [local.pod_meta[each.key]] : [],
+    [
+      yamlencode({
+        tags = {
+          for key, value in local.common_tags :
+          key => templatestring(value, {
+            resource_name  = "divyam_k8s_resource"
+            location       = var.location
+            resource_group = var.resource_group_name
+            environment    = var.environment
+          })
+        }
+      })
+    ]
   )
 
   # Common chart values.

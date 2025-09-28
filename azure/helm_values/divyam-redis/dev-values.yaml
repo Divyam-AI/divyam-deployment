@@ -1,0 +1,17 @@
+environment: prod
+image:
+  repository: redis
+  tag: "8.2.1"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 6379
+
+persistence:
+  enabled: true
+  storageClass: divyam-managed-csi
+  accessMode: ReadWriteOnce
+  size: 100Gi
+
+resources: {}

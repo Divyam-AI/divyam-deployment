@@ -40,7 +40,8 @@ resource "azurerm_key_vault_access_policy" "divyam" {
     "Get",
     "Set",
     "List",
-    "Recover"
+    "Recover",
+    "Delete"
   ]
 
   key_permissions = [
@@ -48,6 +49,7 @@ resource "azurerm_key_vault_access_policy" "divyam" {
     "Create",
     "Update",
     "List",
+    "Delete"
   ]
 
   certificate_permissions = [

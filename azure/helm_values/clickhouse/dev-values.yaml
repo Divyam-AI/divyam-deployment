@@ -45,8 +45,8 @@ clickhouse:
     hostIP: 127.0.0.1/32
 
   resources: { }
-    # requests:  
-    #   cpu: "2"  
+    # requests:
+    #   cpu: "2"
   #   memory: "4Gi"
   # limits:
   #   cpu: "2"
@@ -76,20 +76,22 @@ clickhouse:
     host: ""
     # -- Override the default keeper port
     port: 2181
+    localStorage:
+      storageClass: divyam-managed-csi
 
   persistence:
     # -- enable storage
     enabled: true
     # -- volume size (per replica)
-    size: 1Gi
+    size: 100Gi
     accessMode: ReadWriteOnce
     ## -- StorageClass for PV (e.g. gp2, standard, ...)
-    storageClass: "managed-premium"
+    storageClass: divyam-managed-csi
     logs:
       # -- enable pvc for logs
       enabled: false
       # -- size for logs pvc
-      size: 10Gi
+      size: 100Gi
       accessMode: ReadWriteOnce
 
   image:
@@ -156,8 +158,8 @@ keeper:
   # instance
   settings: { }
   localStorage:
-    size: 1Gi
-    storageClass: "managed-premium"
+    size: 100Gi
+    storageClass: divyam-managed-csi
   nodeSelector: { }
   tolerations: [ ]
   podAnnotations: { }
@@ -166,10 +168,10 @@ keeper:
   zoneSpread: true
   metricsPort: ""
   resources:
-    cpuRequestsMs: 1
-    memoryRequestsMiB: 1Gi
-    cpuLimitsMs: 1
-    memoryLimitsMiB: 1Gi
+    cpuRequestsMs: 4
+    memoryRequestsMiB: 4Gi
+    cpuLimitsMs: 4
+    memoryLimitsMiB: 4Gi
 
 operator:
   # -- Whether to enabled the Altinity Operator for ClickHouse.

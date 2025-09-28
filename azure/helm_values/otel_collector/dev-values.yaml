@@ -7,11 +7,11 @@ image:
 
 resources:
   requests:
-    memory: "1Gi"
-    cpu: 1
+    memory: "4Gi"
+    cpu: 2
   limits:
-    memory: "1Gi"
-    cpu: 1
+    memory: "4Gi"
+    cpu: 2
 
 kafka:
   metering_logs_topic: router-metering-logs
@@ -24,8 +24,9 @@ memory_limiter:
   spike_limit_mib: 800
 
 storage:
-  size: 1Gi
+  size: 50Gi
   directory: /var/lib/otelcol/file_storage
+  storageClass: divyam-managed-csi
 
 env:
   OTEL_LOG_LEVEL: "INFO"
