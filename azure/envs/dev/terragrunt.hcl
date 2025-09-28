@@ -190,4 +190,13 @@ locals {
       "divyam-${local.env_name}-${local.org}-cert" :
       "divyam-${local.env_name}-cert")
   }
+
+  alerts = {
+    enabled = true
+
+    # Update as appropriate.
+    #notification_pager_webhook_url          = ""
+    #notification_gchat_space_id             = ""
+    #notification_email_alert_email          = ""
+  }
 }
