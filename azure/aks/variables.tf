@@ -55,6 +55,7 @@ variable "clusters" {
       node_taints  = optional(list(string), [])
       tags         = optional(map(string), {})
       node_labels  = optional(map(string), {})
+      vnet_subnet_name   = optional(string, null)
     })), {})
   }))
 }
