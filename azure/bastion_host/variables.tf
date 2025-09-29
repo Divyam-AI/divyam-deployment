@@ -68,7 +68,7 @@ variable "vnet_subnet_name" {
 
 variable "aks_cluster_name" {
   description = "AKS cluster name"
-  type = string
+  type        = string
 }
 
 variable "aks_kube_config_raw" {

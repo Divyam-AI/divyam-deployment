@@ -21,7 +21,7 @@ variable "environment" {
 variable "cluster" {
   description = "A map of AKS cluster configurations. The key is the cluster name."
   type = object({
-    name = string
+    name                            = string
     kubernetes_version              = string
     api_server_authorized_ip_ranges = optional(list(string), null)
     private_cluster_enabled         = optional(bool, true)

@@ -389,7 +389,7 @@ resource "azurerm_monitor_data_collection_rule_association" "aks_assoc" {
 
 
 resource "azurerm_dashboard_grafana" "grafana" {
-  for_each = var.enable_metrics_collection ?  { "enabled" = true } : {}
+  for_each = var.enable_metrics_collection ? { "enabled" = true } : {}
 
   name                  = "${join("", [for p in split("-", var.cluster.name) : substr(p, 0, 3)])}-gf"
   resource_group_name   = var.resource_group_name

@@ -32,10 +32,10 @@ output "aks_oidc_issuer_url" {
 
 output "monitor_workspace_name" {
   description = "The names of the monitor workspace"
-  value       = var.enable_metrics_collection  ? azurerm_monitor_workspace.prometheus["enabled"].name : null
+  value       = var.enable_metrics_collection ? azurerm_monitor_workspace.prometheus["enabled"].name : null
 }
 
 output "monitor_workspace_id" {
   description = "The IDs of the monitor workspace"
-  value       = var.enable_metrics_collection  ? azurerm_monitor_workspace.prometheus["enabled"].id : null
+  value       = var.enable_metrics_collection ? azurerm_monitor_workspace.prometheus["enabled"].id : null
 }

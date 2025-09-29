@@ -22,19 +22,19 @@ locals {
   # Convert the filtered map from UAI name to a list of {oidc_issuer_url, namespace,
   # service account} objects creating federated identity credentials.
   identity_maps = flatten([
-      for chart_name, chart in local.charts : (
-        lookup(chart, "uai_client_id_name", null) != null && lookup(chart, "uai_federated_ksa_pattern", null) != null ?
-        [{
-          key = chart.uai_client_id_name
-          value = {
-            oidc_issuer_url = var.aks_oidc_issuer_url
-            namespace       = lookup(chart, "namespace", null) != null ? chart["namespace"] : "${chart["namespace_prefix"]}-${var.environment}-ns"
-            service_account = replace(chart.uai_federated_ksa_pattern, "$${env}", var.environment)
-          }
-        }] :
-        []
-      )
-    ])
+    for chart_name, chart in local.charts : (
+      lookup(chart, "uai_client_id_name", null) != null && lookup(chart, "uai_federated_ksa_pattern", null) != null ?
+      [{
+        key = chart.uai_client_id_name
+        value = {
+          oidc_issuer_url = var.aks_oidc_issuer_url
+          namespace       = lookup(chart, "namespace", null) != null ? chart["namespace"] : "${chart["namespace_prefix"]}-${var.environment}-ns"
+          service_account = replace(chart.uai_federated_ksa_pattern, "$${env}", var.environment)
+        }
+      }] :
+      []
+    )
+  ])
 
   federated_identity_grouped_temp = {
     for k in toset([for i in local.identity_maps : i.key]) :

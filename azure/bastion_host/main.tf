@@ -107,7 +107,7 @@ resource "azurerm_linux_virtual_machine" "bastion" {
   }
 
   custom_data = base64encode(templatefile("${path.module}/scripts/init.tpl", {
-    kube_config_map = { (var.aks_cluster_name) = var.aks_kube_config_raw}
+    kube_config_map = { (var.aks_cluster_name) = var.aks_kube_config_raw }
     admin_username  = var.admin_username
   }))
   tags = {

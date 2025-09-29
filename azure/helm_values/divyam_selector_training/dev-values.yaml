@@ -18,7 +18,7 @@ env_config:
     user: default
 
   router_db_source:
-    db_host: edi
+    db_host: mysql-dev-svc.mysql-dev-ns.svc.cluster.local
     db_port: 3306
     db_name: divyam_dev
 

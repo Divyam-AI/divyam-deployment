@@ -165,7 +165,7 @@ resource "helm_release" "divyam_deploy" {
         tags = {
           for key, value in local.common_tags :
           key => templatestring(value, {
-            resource_name = "${replace(var.resource_name_prefix, "-", "_")}_k8s_resource"
+            resource_name  = "${replace(var.resource_name_prefix, "-", "_")}_k8s_resource"
             location       = var.location
             resource_group = var.resource_group_name
             environment    = var.environment

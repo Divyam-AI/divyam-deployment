@@ -20,7 +20,7 @@ variable "environment" {
 
 variable "resource_name_prefix" {
   description = "resource name prefix"
-  type = string
+  type        = string
 }
 
 variable "aks_kube_config" {
