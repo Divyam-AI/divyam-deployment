@@ -42,7 +42,7 @@ helm_charts:
 
   clickhouse:
     chart: "clickhouse"
-    version: "0.2.62"
+    version: "0.2.64"
     namespace_prefix: "clickhouse"
     az_secret_inject:
       # No chart variable for click house user
@@ -159,7 +159,7 @@ helm_charts:
 
   divyam_route_selector:
     chart: "divyam-route-selector"
-    version: "0.0.63-azure"
+    version: "0.0.80-azure"
     name: "route-selector-chart"
     namespace_prefix: "route-selector"
     image_override:
@@ -170,7 +170,7 @@ helm_charts:
 
   divyam_selector_training:
     chart: "selector-training"
-    version: "0.0.18-azure"
+    version: "0.0.33-azure"
     name: "selector-training"
     namespace_prefix: "selector-training"
     uai_client_id_name: "selector_training_uai_client_id"
@@ -186,7 +186,7 @@ helm_charts:
 
   divyam_router_controller:
     chart: "router-controller"
-    version: "0.1.161-azure"
+    version: "0.1.162-azure"
     name: "router-controller-chart"
     namespace_prefix: "router-controller"
     uai_client_id_name: "router_controller_uai_client_id"

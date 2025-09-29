@@ -8,14 +8,9 @@ variable "common_tags" {
   type        = map(string)
 }
 
-variable "aks_cluster_name" {
-  description = "AKS  Cluster name"
-  type        = string
-}
-
 variable "aks_kube_config" {
   description = "Map of AKS cluster names and their kube configs"
-  type        = map(map(string))
+  type        = map(string)
 }
 
 variable "azure_key_vault_id" {

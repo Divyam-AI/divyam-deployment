@@ -24,10 +24,10 @@ locals {
 }
 
 provider "kubernetes" {
-  host                   = var.aks_kube_config[var.aks_cluster_name].host
-  client_certificate     = base64decode(var.aks_kube_config[var.aks_cluster_name].client_certificate)
-  client_key             = base64decode(var.aks_kube_config[var.aks_cluster_name].client_key)
-  cluster_ca_certificate = base64decode(var.aks_kube_config[var.aks_cluster_name].cluster_ca_certificate)
+  host                   = var.aks_kube_config.host
+  client_certificate     = base64decode(var.aks_kube_config.client_certificate)
+  client_key             = base64decode(var.aks_kube_config.client_key)
+  cluster_ca_certificate = base64decode(var.aks_kube_config.cluster_ca_certificate)
 }
 
 # Create the namespaces

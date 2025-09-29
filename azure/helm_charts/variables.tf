@@ -18,14 +18,14 @@ variable "environment" {
   type        = string
 }
 
-variable "aks_cluster_name" {
-  description = "AKS  Cluster name"
-  type        = string
+variable "resource_name_prefix" {
+  description = "resource name prefix"
+  type = string
 }
 
 variable "aks_kube_config" {
-  description = "Map of AKS cluster names and their kube configs"
-  type        = map(map(string))
+  description = "AKS cluster kube configs"
+  type        = map(string)
 }
 
 variable "azure_workload_identity_version" {
@@ -60,7 +60,7 @@ variable "artifacts_path" {
 }
 
 variable "values_dir_path" {
-  description = "Path to values file for the heml charts"
+  description = "Path to values file for the helm charts"
   type        = string
 }
 

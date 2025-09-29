@@ -104,18 +104,18 @@ data "external" "gcp_token" {
 }
 
 provider "kubernetes" {
-  host                   = var.aks_kube_config[var.aks_cluster_name].host
-  client_certificate     = base64decode(var.aks_kube_config[var.aks_cluster_name].client_certificate)
-  client_key             = base64decode(var.aks_kube_config[var.aks_cluster_name].client_key)
-  cluster_ca_certificate = base64decode(var.aks_kube_config[var.aks_cluster_name].cluster_ca_certificate)
+  host                   = var.aks_kube_config.host
+  client_certificate     = base64decode(var.aks_kube_config.client_certificate)
+  client_key             = base64decode(var.aks_kube_config.client_key)
+  cluster_ca_certificate = base64decode(var.aks_kube_config.cluster_ca_certificate)
 }
 
 provider "helm" {
   kubernetes = {
-    host                   = var.aks_kube_config[var.aks_cluster_name].host
-    client_certificate     = base64decode(var.aks_kube_config[var.aks_cluster_name].client_certificate)
-    client_key             = base64decode(var.aks_kube_config[var.aks_cluster_name].client_key)
-    cluster_ca_certificate = base64decode(var.aks_kube_config[var.aks_cluster_name].cluster_ca_certificate)
+    host                   = var.aks_kube_config.host
+    client_certificate     = base64decode(var.aks_kube_config.client_certificate)
+    client_key             = base64decode(var.aks_kube_config.client_key)
+    cluster_ca_certificate = base64decode(var.aks_kube_config.cluster_ca_certificate)
   }
 
   registries = [
@@ -165,7 +165,7 @@ resource "helm_release" "divyam_deploy" {
         tags = {
           for key, value in local.common_tags :
           key => templatestring(value, {
-            resource_name  = "divyam_k8s_resource"
+            resource_name = "${replace(var.resource_name_prefix, "-", "_")}_k8s_resource"
             location       = var.location
             resource_group = var.resource_group_name
             environment    = var.environment

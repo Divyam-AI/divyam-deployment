@@ -74,7 +74,6 @@ resource "azurerm_network_security_rule" "allow_ssh" {
   network_security_group_name = azurerm_network_security_group.bastion_nsg.name
 }
 
-# Not using azure bastion due to limited connectivity and options.
 resource "azurerm_linux_virtual_machine" "bastion" {
   name                = var.bastion_name
   resource_group_name = var.resource_group_name
@@ -108,7 +107,7 @@ resource "azurerm_linux_virtual_machine" "bastion" {
   }
 
   custom_data = base64encode(templatefile("${path.module}/scripts/init.tpl", {
-    kube_config_map = var.aks_kube_config_raw
+    kube_config_map = { (var.aks_cluster_name) = var.aks_kube_config_raw}
     admin_username  = var.admin_username
   }))
   tags = {

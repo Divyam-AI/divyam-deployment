@@ -14,7 +14,7 @@ locals {
     if !(contains(var.exclude_charts, chart_name))
   ]
 
-  name_prefix = keys(var.aks_oidc_issuer_urls)[0]
+  name_prefix = var.aks_cluster_name
 
   # The chart information.
   charts = { for pair in local.filtered_charts : pair.chart_name => pair.chart }
@@ -22,22 +22,19 @@ locals {
   # Convert the filtered map from UAI name to a list of {oidc_issuer_url, namespace,
   # service account} objects creating federated identity credentials.
   identity_maps = flatten([
-    for cluster, aks_oidc_issuer_url in var.aks_oidc_issuer_urls : [
       for chart_name, chart in local.charts : (
         lookup(chart, "uai_client_id_name", null) != null && lookup(chart, "uai_federated_ksa_pattern", null) != null ?
         [{
           key = chart.uai_client_id_name
           value = {
-            cluster         = cluster
-            oidc_issuer_url = aks_oidc_issuer_url
+            oidc_issuer_url = var.aks_oidc_issuer_url
             namespace       = lookup(chart, "namespace", null) != null ? chart["namespace"] : "${chart["namespace_prefix"]}-${var.environment}-ns"
             service_account = replace(chart.uai_federated_ksa_pattern, "$${env}", var.environment)
           }
         }] :
         []
       )
-    ]
-  ])
+    ])
 
   federated_identity_grouped_temp = {
     for k in toset([for i in local.identity_maps : i.key]) :
@@ -48,7 +45,7 @@ locals {
 
   federated_identity_grouped = {
     for k, v in local.federated_identity_grouped_temp : k => {
-      for o in v : "${o.cluster}-${o.namespace}-${o.service_account}" => o
+      for o in v : "${var.aks_cluster_name}-${o.namespace}-${o.service_account}" => o
     }
   }
 }
