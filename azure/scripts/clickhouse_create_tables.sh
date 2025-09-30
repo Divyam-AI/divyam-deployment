@@ -30,13 +30,16 @@ if [[ "$confirm" != "y" ]]; then
   exit 1
 fi
 
-CLUSTER_LABEL="clickhouse.altinity.com/chi=$CLUSTER_NAME"
+CLUSTER_LABEL="clickhouse.altinity.com/chi=clk-dev"
 DATABASE="divyam_router_logs"
 KAFKA_BROKER_LIST="kafka-dev-cluster-kafka-bootstrap.kafka-dev-ns.svc.cluster.local:9092"
 
 # Collect ClickHouse pod names
 PODS=$(kubectl get pods -n "$NAMESPACE" -l "$CLUSTER_LABEL" -o jsonpath='{.items[*].metadata.name}')
 FIRST_POD=$(echo "$PODS" | awk '{print $1}')
+
+echo "PODS: $PODS"
+echo "FIRST_POD: $FIRST_POD"
 
 run_query_all_pods() {
   local query="$1"
@@ -47,7 +50,7 @@ run_query_all_pods() {
 
   for POD in $PODS; do
     echo ">>> Executing on pod: $POD"
-    if ! echo kubectl exec -n "$NAMESPACE" -i "$POD" -- \
+    if ! kubectl exec -n "$NAMESPACE" -i "$POD" -- \
       clickhouse-client --multiquery --query "$query"; then
       echo "❌ ERROR: Query failed on pod $POD"
       exit 1
@@ -62,7 +65,7 @@ run_query_any_pod() {
   echo "$query"
   echo "-------------------------------------------------------------------"
 
-  if ! echo kubectl exec -n "$NAMESPACE" -i "$FIRST_POD" -- \
+  if ! kubectl exec -n "$NAMESPACE" -i "$FIRST_POD" -- \
     clickhouse-client --multiquery --query "$query"; then
     echo "❌ ERROR: Query failed on pod $FIRST_POD"
     exit 1
@@ -75,7 +78,7 @@ verify_table() {
   echo "🔎 Verifying $db.$tbl exists on all pods..."
   for POD in $PODS; do
     echo ">>> Checking on pod: $POD"
-    if ! echo kubectl exec -n "$NAMESPACE" -i "$POD" -- \
+    if ! kubectl exec -n "$NAMESPACE" -i "$POD" -- \
       clickhouse-client --query "EXISTS TABLE $db.$tbl FORMAT TabSeparated" | grep -q "1"; then
       echo "❌ ERROR: Table $db.$tbl not found on $POD"
       exit 1

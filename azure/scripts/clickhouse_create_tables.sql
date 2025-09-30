@@ -1,5 +1,5 @@
 -- 0. Database creation 
-CREATE DATABASE IF NOT EXISTS {{ .Values.database }} ON CLUSTER '{{ include "clickhouse.clustername" . }}';
+-- CREATE DATABASE IF NOT EXISTS {{ .Values.database }} ON CLUSTER '{{ include "clickhouse.clustername" . }}';
 
 -- 1. Kafka engine table for metering data (LATEST as of 2025-07-25)
 CREATE TABLE IF NOT EXISTS {{ .Values.database }}.divyam_metering_data_kafka ON CLUSTER '{{ include "clickhouse.clustername" . }}'
