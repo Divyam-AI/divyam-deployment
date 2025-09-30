@@ -42,7 +42,7 @@ helm_charts:
 
   clickhouse:
     chart: "clickhouse"
-    version: "0.2.64"
+    version: "0.2.65"
     namespace_prefix: "clickhouse"
     az_secret_inject:
       # No chart variable for click house user
