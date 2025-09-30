@@ -78,14 +78,14 @@ verify_table() {
   local db="$1"
   local tbl="$2"
   echo "🔎 Verifying $db.$tbl exists on all pods..."
-#   for POD in $PODS; do
-#     echo ">>> Checking on pod: $POD"
-#     if ! kubectl exec -n "$NAMESPACE" -i "$POD" -- \
-#       clickhouse-client --query "EXISTS TABLE $db.$tbl FORMAT TabSeparated" | grep -q "1"; then
-#       echo "❌ ERROR: Table $db.$tbl not found on $POD"
-#       exit 1
-#     fi
-#   done
+  for POD in $PODS; do
+    echo ">>> Checking on pod: $POD"
+    if ! kubectl exec -n "$NAMESPACE" -i "$POD" -- \
+      clickhouse-client --query "EXISTS TABLE $db.$tbl FORMAT TabSeparated" | grep -q "1"; then
+      echo "❌ ERROR: Table $db.$tbl not found on $POD"
+      exit 1
+    fi
+  done
   echo "✅ Verified: $db.$tbl exists on all pods"
 }
 
