@@ -1,6 +1,6 @@
 #!/bin/bash
 # This script creates tables in a ClickHouse cluster.
-# e.g. ./create_clickhouse_tables.sh clickhouse-prod-ns clk-prod
+# e.g. ./create_clickhouse_tables.sh clickhouse-dev-ns clickhouse-dev
 set -euo pipefail
 
 if [[ $# -lt 2 ]]; then
