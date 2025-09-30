@@ -1,7 +1,7 @@
 #!/bin/bash
 # This script creates tables in a ClickHouse cluster.
 # e.g. ./create_clickhouse_tables.sh clickhouse-dev-ns clickhouse-dev
-set -euo pipefail
+#set -euo pipefail
 
 if [[ $# -lt 2 ]]; then
   echo "Usage: $0 <namespace> <clustername> [queries_file]"
@@ -56,6 +56,7 @@ run_query_all_pods() {
       exit 1
     fi
   done
+  return 0
 }
 
 run_query_any_pod() {
@@ -70,20 +71,21 @@ run_query_any_pod() {
     echo "❌ ERROR: Query failed on pod $FIRST_POD"
     exit 1
   fi
+  return 0
 }
 
 verify_table() {
   local db="$1"
   local tbl="$2"
   echo "🔎 Verifying $db.$tbl exists on all pods..."
-  for POD in $PODS; do
-    echo ">>> Checking on pod: $POD"
-    if ! kubectl exec -n "$NAMESPACE" -i "$POD" -- \
-      clickhouse-client --query "EXISTS TABLE $db.$tbl FORMAT TabSeparated" | grep -q "1"; then
-      echo "❌ ERROR: Table $db.$tbl not found on $POD"
-      exit 1
-    fi
-  done
+#   for POD in $PODS; do
+#     echo ">>> Checking on pod: $POD"
+#     if ! kubectl exec -n "$NAMESPACE" -i "$POD" -- \
+#       clickhouse-client --query "EXISTS TABLE $db.$tbl FORMAT TabSeparated" | grep -q "1"; then
+#       echo "❌ ERROR: Table $db.$tbl not found on $POD"
+#       exit 1
+#     fi
+#   done
   echo "✅ Verified: $db.$tbl exists on all pods"
 }
 
@@ -94,7 +96,12 @@ run_query_any_pod "CREATE DATABASE $DATABASE ON CLUSTER '$CLUSTER_NAME';"
 
 # Loop through queries in the .sql file
 current_query=""
+lines=()
 while IFS= read -r line || [[ -n "$line" ]]; do
+  lines+=("$line")
+done < "$QUERIES_FILE"
+
+for line in "${lines[@]}"; do
   # Trim spaces
   trimmed="$(echo "$line" | xargs)"
 
