@@ -42,7 +42,7 @@ helm_charts:
 
   clickhouse:
     chart: "clickhouse"
-    version: "0.2.64"
+    version: "0.2.65"
     namespace_prefix: "clickhouse"
     az_secret_inject:
       # No chart variable for click house user
@@ -170,7 +170,7 @@ helm_charts:
 
   divyam_selector_training:
     chart: "selector-training"
-    version: "0.0.33-azure"
+    version: "0.0.34-azure"
     name: "selector-training"
     namespace_prefix: "selector-training"
     uai_client_id_name: "selector_training_uai_client_id"

@@ -28,6 +28,11 @@ resource "azurerm_key_vault" "divyam" {
   # TODO: Figure this config.
   purge_protection_enabled   = true
   soft_delete_retention_days = 7
+
+  # Prevent terraform destroy
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "azurerm_key_vault_access_policy" "divyam" {
