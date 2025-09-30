@@ -39,7 +39,8 @@ inputs = merge(local.merged_inputs,
     azure_key_vault_id             = dependency.azure_key_vault.outputs.azure_key_vault_id
     router_logs_storage_account_id = dependency.azure_blob_storage.outputs.router_logs_storage_account_id
     aks_kube_config                = dependency.aks.outputs.aks_kube_config
-    aks_oidc_issuer_urls           = dependency.aks.outputs.aks_oidc_issuer_urls
+    aks_oidc_issuer_url            = dependency.aks.outputs.aks_oidc_issuer_url
+    aks_cluster_name            = dependency.aks.outputs.aks_cluster_name
   }
 )
 

@@ -24,9 +24,8 @@ locals {
 }
 
 inputs = merge(local.merged_inputs, {
-  aks_cluster_name                            = include.root.locals.install_config.helm_charts.aks_cluster_name
-  azure_monitor_workspace_name                     = dependency.aks.outputs.monitor_workspace_names[include.root.locals.install_config.helm_charts.aks_cluster_name]
-  azure_monitor_workspace_id                     = dependency.aks.outputs.monitor_workspace_ids[include.root.locals.install_config.helm_charts.aks_cluster_name]
+  azure_monitor_workspace_name  = dependency.aks.outputs.monitor_workspace_name
+  azure_monitor_workspace_id    = dependency.aks.outputs.monitor_workspace_id
 })
 
 skip = !local.merged_inputs.enabled

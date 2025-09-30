@@ -5,16 +5,6 @@ locals {
     key => replace(value, "/@\\{([^}]+)\\}/", "$${$1}")
   }
 
-  flattened_additional_node_pools = flatten([
-    for cluster_name, cluster in var.clusters : [
-      for pool_name, pool in cluster.additional_node_pools : {
-        cluster_name = cluster_name
-        pool_name    = pool_name
-        pool         = pool
-      }
-    ]
-  ])
-
   nat_gateway_cidr = var.nat_gateway_ip == null ? null : (
     strcontains(var.nat_gateway_ip, ":") ? "${var.nat_gateway_ip}/128" : "${var.nat_gateway_ip}/32"
   )
@@ -65,14 +55,14 @@ locals {
 # AGIC access setup
 # ---------------------------
 resource "azurerm_user_assigned_identity" "agic_uami" {
-  name                = "${keys(var.clusters)[0]}-agic-identity"
+  name                = "${var.cluster.name}-agic-identity"
   location            = var.location
   resource_group_name = var.resource_group_name
 
   tags = {
     for key, value in local.common_tags :
     key => templatestring(value, {
-      resource_name  = "${keys(var.clusters)[0]}-agic-identity"
+      resource_name  = "${var.cluster.name}-agic-identity"
       location       = var.location
       resource_group = var.resource_group_name
       environment    = var.environment
@@ -121,23 +111,22 @@ resource "azurerm_role_assignment" "agic_subnet_permissions" {
 # AKS clusters
 # ---------------------------
 resource "azurerm_kubernetes_cluster" "aks_cluster" {
-  for_each            = var.clusters
-  name                = each.key
+  name                = var.cluster.name
   location            = var.location
   resource_group_name = var.resource_group_name
-  dns_prefix          = each.value.dns_prefix
+  dns_prefix          = var.cluster.dns_prefix
 
-  kubernetes_version = each.value.kubernetes_version
+  kubernetes_version = var.cluster.kubernetes_version
 
   default_node_pool {
     name                 = "system"
-    vnet_subnet_id       = var.subnet_ids[each.value.vnet_subnet_name]
-    vm_size              = each.value.default_node_pool.vm_size
-    node_count           = !each.value.default_node_pool.auto_scaling ? each.value.default_node_pool.count : null
-    auto_scaling_enabled = each.value.default_node_pool.auto_scaling
-    min_count            = each.value.default_node_pool.auto_scaling ? each.value.default_node_pool.min_count : null
-    max_count            = each.value.default_node_pool.auto_scaling ? each.value.default_node_pool.max_count : null
-    tags = merge(each.value.default_node_pool.tags, {
+    vnet_subnet_id       = var.subnet_ids[var.cluster.vnet_subnet_name]
+    vm_size              = var.cluster.default_node_pool.vm_size
+    node_count           = !var.cluster.default_node_pool.auto_scaling ? var.cluster.default_node_pool.count : null
+    auto_scaling_enabled = var.cluster.default_node_pool.auto_scaling
+    min_count            = var.cluster.default_node_pool.auto_scaling ? var.cluster.default_node_pool.min_count : null
+    max_count            = var.cluster.default_node_pool.auto_scaling ? var.cluster.default_node_pool.max_count : null
+    tags = merge(var.cluster.default_node_pool.tags, {
       for key, value in local.common_tags :
       key => templatestring(value, {
         resource_name  = "system"
@@ -147,8 +136,8 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
       })
     })
 
-    node_labels                 = each.value.default_node_pool.node_labels
-    temporary_name_for_rotation = each.value.default_node_pool.temporary_name_for_rotation
+    node_labels                 = var.cluster.default_node_pool.node_labels
+    temporary_name_for_rotation = var.cluster.default_node_pool.temporary_name_for_rotation
   }
 
   identity {
@@ -160,45 +149,45 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
   oidc_issuer_enabled       = true
   workload_identity_enabled = true
 
-  private_cluster_enabled = each.value.private_cluster_enabled
+  private_cluster_enabled = var.cluster.private_cluster_enabled
   dynamic "api_server_access_profile" {
-    for_each = each.value.private_cluster_enabled ? [] : [1]
+    for_each = var.cluster.private_cluster_enabled ? [] : [1]
     content {
       authorized_ip_ranges = concat(
         # Add the application gateway public IP, else node pool creation fails
         # for public clusters.
         local.nat_gateway_cidr != null ? [local.nat_gateway_cidr] : [],
         values(var.subnet_prefixes),
-        each.value.api_server_authorized_ip_ranges
+        var.cluster.api_server_authorized_ip_ranges
       )
     }
   }
 
   network_profile {
-    network_plugin = each.value.network_plugin
-    network_policy = each.value.network_policy
-    service_cidr   = each.value.service_cidr
-    dns_service_ip = each.value.dns_service_ip
+    network_plugin = var.cluster.network_plugin
+    network_policy = var.cluster.network_policy
+    service_cidr   = var.cluster.service_cidr
+    dns_service_ip = var.cluster.dns_service_ip
   }
 
   dynamic "oms_agent" {
-    for_each = var.enable_log_collection ? [1] : []
+    for_each = var.enable_log_collection ? { "enabled" = true } : {}
 
     content {
-      log_analytics_workspace_id      = azurerm_log_analytics_workspace.log_analytics_workspace[each.key].id
+      log_analytics_workspace_id      = azurerm_log_analytics_workspace.log_analytics_workspace["enabled"].id
       msi_auth_for_monitoring_enabled = true
     }
   }
 
   dynamic "monitor_metrics" {
-    for_each = var.enable_metrics_collection ? [1] : []
+    for_each = var.enable_metrics_collection ? { "enabled" = true } : {}
     content {}
   }
 
   tags = {
     for key, value in local.common_tags :
     key => templatestring(value, {
-      resource_name  = each.key
+      resource_name  = var.cluster.name
       location       = var.location
       resource_group = var.resource_group_name
       environment    = var.environment
@@ -216,31 +205,29 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
 
 # Additional node pool
 resource "azurerm_kubernetes_cluster_node_pool" "additional_node_pools" {
-  for_each = tomap({
-    for pool in local.flattened_additional_node_pools : "${pool.pool_name}.${pool.cluster_name}" => pool
-  })
+  for_each = var.cluster.additional_node_pools
 
-  name                  = each.value.pool_name
-  kubernetes_cluster_id = azurerm_kubernetes_cluster.aks_cluster[each.value.cluster_name].id
-  vnet_subnet_id        = var.subnet_ids[each.value.pool.vnet_subnet_name != null ? each.value.pool.vnet_subnet_name : var.clusters[each.value.cluster_name].vnet_subnet_name]
-  vm_size               = each.value.pool.vm_size
-  gpu_driver            = each.value.pool.gpu_driver
-  node_count            = !each.value.pool.auto_scaling ? each.value.pool.count : null
-  auto_scaling_enabled  = each.value.pool.auto_scaling
-  min_count             = each.value.pool.auto_scaling ? each.value.pool.min_count : null
-  max_count             = each.value.pool.auto_scaling ? each.value.pool.max_count : null
-  node_taints           = each.value.pool.node_taints
-  tags = merge(each.value.pool.tags, {
+  name                  = each.key
+  kubernetes_cluster_id = azurerm_kubernetes_cluster.aks_cluster.id
+  vnet_subnet_id        = var.subnet_ids[each.value.vnet_subnet_name != null ? each.value.vnet_subnet_name : var.cluster.vnet_subnet_name]
+  vm_size               = each.value.vm_size
+  gpu_driver            = each.value.gpu_driver
+  node_count            = !each.value.auto_scaling ? each.value.count : null
+  auto_scaling_enabled  = each.value.auto_scaling
+  min_count             = each.value.auto_scaling ? each.value.min_count : null
+  max_count             = each.value.auto_scaling ? each.value.max_count : null
+  node_taints           = each.value.node_taints
+  tags = merge(each.value.tags, {
     for key, value in local.common_tags :
     key => templatestring(value, {
-      resource_name  = each.value.pool_name
+      resource_name  = each.key
       location       = var.location
       resource_group = var.resource_group_name
       environment    = var.environment
     })
   })
 
-  node_labels = each.value.pool.node_labels
+  node_labels = each.value.node_labels
 
   lifecycle {
     ignore_changes = [
@@ -253,16 +240,16 @@ resource "azurerm_kubernetes_cluster_node_pool" "additional_node_pools" {
 # Container Logs collection
 # ---------------------------
 resource "azurerm_log_analytics_workspace" "log_analytics_workspace" {
-  for_each = var.enable_log_collection ? var.clusters : {}
+  for_each = var.enable_log_collection ? { "enabled" = true } : {}
 
-  name                = "${each.key}-log-workspace"
+  name                = "${var.cluster.name}-log-workspace"
   location            = var.location
   resource_group_name = var.resource_group_name
   sku                 = "PerGB2018"
   tags = {
     for key, value in local.common_tags :
     key => templatestring(value, {
-      resource_name  = "${each.key}-log-workspace"
+      resource_name  = "${var.cluster.name}-log-workspace"
       location       = var.location
       resource_group = var.resource_group_name
       environment    = var.environment
@@ -271,16 +258,16 @@ resource "azurerm_log_analytics_workspace" "log_analytics_workspace" {
 }
 
 resource "azurerm_monitor_data_collection_rule" "aks_logs" {
-  for_each = var.enable_log_collection ? var.clusters : {}
+  for_each = var.enable_log_collection ? { "enabled" = true } : {}
 
-  name                = "${each.key}-aks-dcr"
+  name                = "${var.cluster.name}-aks-dcr"
   resource_group_name = var.resource_group_name
   location            = var.location
 
   destinations {
     log_analytics {
       name                  = "law-destination"
-      workspace_resource_id = azurerm_log_analytics_workspace.log_analytics_workspace[each.key].id
+      workspace_resource_id = azurerm_log_analytics_workspace.log_analytics_workspace["enabled"].id
     }
   }
 
@@ -316,7 +303,7 @@ resource "azurerm_monitor_data_collection_rule" "aks_logs" {
   tags = {
     for key, value in local.common_tags :
     key => templatestring(value, {
-      resource_name  = "${each.key}-aks-dcr"
+      resource_name  = "${var.cluster.name}-aks-dcr"
       location       = var.location
       resource_group = var.resource_group_name
       environment    = var.environment
@@ -325,27 +312,27 @@ resource "azurerm_monitor_data_collection_rule" "aks_logs" {
 }
 
 resource "azurerm_monitor_data_collection_rule_association" "aks_dcr_assoc" {
-  for_each = var.enable_log_collection ? var.clusters : {}
+  for_each = var.enable_log_collection ? { "enabled" = true } : {}
 
-  name                    = "${each.key}-aks-dcr-assoc"
-  target_resource_id      = azurerm_kubernetes_cluster.aks_cluster[each.key].id
-  data_collection_rule_id = azurerm_monitor_data_collection_rule.aks_logs[each.key].id
+  name                    = "${var.cluster.name}-aks-dcr-assoc"
+  target_resource_id      = azurerm_kubernetes_cluster.aks_cluster.id
+  data_collection_rule_id = azurerm_monitor_data_collection_rule.aks_logs["enabled"].id
 }
 
 # ---------------------------
 # Managed metrics collection
 # ---------------------------
 resource "azurerm_monitor_workspace" "prometheus" {
-  for_each = var.enable_metrics_collection ? var.clusters : {}
+  for_each = var.enable_metrics_collection ? { "enabled" = true } : {}
 
-  name                = "${join("", [for p in split("-", each.key) : substr(p, 0, 3)])}-amw"
+  name                = "${join("", [for p in split("-", var.cluster.name) : substr(p, 0, 3)])}-amw"
   location            = var.location
   resource_group_name = var.resource_group_name
 
   tags = {
     for key, value in local.common_tags :
     key => templatestring(value, {
-      resource_name  = "${join("", [for p in split("-", each.key) : substr(p, 0, 3)])}-amw"
+      resource_name  = "${join("", [for p in split("-", var.cluster.name) : substr(p, 0, 3)])}-amw"
       location       = var.location
       resource_group = var.resource_group_name
       environment    = var.environment
@@ -354,15 +341,15 @@ resource "azurerm_monitor_workspace" "prometheus" {
 }
 
 resource "azurerm_monitor_data_collection_rule" "aks_prometheus" {
-  for_each = var.enable_metrics_collection ? var.clusters : {}
+  for_each = var.enable_metrics_collection ? { "enabled" = true } : {}
 
-  name                = "${each.key}-aks-prom-dcr"
+  name                = "${var.cluster.name}-aks-prom-dcr"
   location            = var.location
   resource_group_name = var.resource_group_name
 
   destinations {
     monitor_account {
-      monitor_account_id = azurerm_monitor_workspace.prometheus[each.key].id
+      monitor_account_id = azurerm_monitor_workspace.prometheus["enabled"].id
       name               = "prometheus-dest"
     }
   }
@@ -384,7 +371,7 @@ resource "azurerm_monitor_data_collection_rule" "aks_prometheus" {
   tags = {
     for key, value in local.common_tags :
     key => templatestring(value, {
-      resource_name  = "${each.key}-aks-prom-dcr"
+      resource_name  = "${var.cluster.name}-aks-prom-dcr"
       location       = var.location
       resource_group = var.resource_group_name
       environment    = var.environment
@@ -393,24 +380,24 @@ resource "azurerm_monitor_data_collection_rule" "aks_prometheus" {
 }
 
 resource "azurerm_monitor_data_collection_rule_association" "aks_assoc" {
-  for_each = var.enable_metrics_collection ? var.clusters : {}
+  for_each = var.enable_metrics_collection ? { "enabled" = true } : {}
 
-  name                    = "${each.key}-aks-prometheus-assoc"
-  target_resource_id      = azurerm_kubernetes_cluster.aks_cluster[each.key].id
-  data_collection_rule_id = azurerm_monitor_data_collection_rule.aks_prometheus[each.key].id
+  name                    = "${var.cluster.name}-aks-prometheus-assoc"
+  target_resource_id      = azurerm_kubernetes_cluster.aks_cluster.id
+  data_collection_rule_id = azurerm_monitor_data_collection_rule.aks_prometheus["enabled"].id
 }
 
 
 resource "azurerm_dashboard_grafana" "grafana" {
-  for_each = var.enable_metrics_collection ? var.clusters : {}
+  for_each = var.enable_metrics_collection ? { "enabled" = true } : {}
 
-  name                  = "${join("", [for p in split("-", each.key) : substr(p, 0, 3)])}-gf"
+  name                  = "${join("", [for p in split("-", var.cluster.name) : substr(p, 0, 3)])}-gf"
   resource_group_name   = var.resource_group_name
   location              = var.location
   grafana_major_version = 11
 
   azure_monitor_workspace_integrations {
-    resource_id = azurerm_monitor_workspace.prometheus[each.key].id
+    resource_id = azurerm_monitor_workspace.prometheus["enabled"].id
   }
 
   identity {
@@ -420,7 +407,7 @@ resource "azurerm_dashboard_grafana" "grafana" {
   tags = {
     for key, value in local.common_tags :
     key => templatestring(value, {
-      resource_name  = "${join("", [for p in split("-", each.key) : substr(p, 0, 3)])}-gf"
+      resource_name  = "${join("", [for p in split("-", var.cluster.name) : substr(p, 0, 3)])}-gf"
       location       = var.location
       resource_group = var.resource_group_name
       environment    = var.environment
@@ -429,11 +416,11 @@ resource "azurerm_dashboard_grafana" "grafana" {
 }
 
 resource "azurerm_role_assignment" "grafana_reader" {
-  for_each = var.enable_metrics_collection ? var.clusters : {}
+  for_each = var.enable_metrics_collection ? { "enabled" = true } : {}
 
-  scope                = azurerm_monitor_workspace.prometheus[each.key].id
+  scope                = azurerm_monitor_workspace.prometheus["enabled"].id
   role_definition_name = "Monitoring Data Reader"
-  principal_id         = azurerm_dashboard_grafana.grafana[each.key].identity[0].principal_id
+  principal_id         = azurerm_dashboard_grafana.grafana["enabled"].identity[0].principal_id
 }
 
 # ---------------------------
@@ -441,31 +428,29 @@ resource "azurerm_role_assignment" "grafana_reader" {
 # service connect
 # ---------------------------
 resource "azurerm_federated_identity_credential" "agic" {
-  for_each            = var.clusters
-  name                = "${each.key}-agic-fic"
+  name                = "${var.cluster.name}-agic-fic"
   resource_group_name = azurerm_user_assigned_identity.agic_uami.resource_group_name
   parent_id           = azurerm_user_assigned_identity.agic_uami.id
-  issuer              = azurerm_kubernetes_cluster.aks_cluster[each.key].oidc_issuer_url
-  subject             = "system:serviceaccount:kube-system:${each.key}-ingress-azure"
+  issuer              = azurerm_kubernetes_cluster.aks_cluster.oidc_issuer_url
+  subject             = "system:serviceaccount:kube-system:${var.cluster.name}-ingress-azure"
   audience            = ["api://AzureADTokenExchange"]
 }
 
 provider "helm" {
-  # TODO: First cluster.. maybe we should just generate one aks cluster per helm chart.. will simplify
   kubernetes = {
-    host                   = values(azurerm_kubernetes_cluster.aks_cluster)[0].kube_config[0].host
-    client_certificate     = base64decode(values(azurerm_kubernetes_cluster.aks_cluster)[0].kube_config[0].client_certificate)
-    client_key             = base64decode(values(azurerm_kubernetes_cluster.aks_cluster)[0].kube_config[0].client_key)
-    cluster_ca_certificate = base64decode(values(azurerm_kubernetes_cluster.aks_cluster)[0].kube_config[0].cluster_ca_certificate)
+    host                   = azurerm_kubernetes_cluster.aks_cluster.kube_config[0].host
+    client_certificate     = base64decode(azurerm_kubernetes_cluster.aks_cluster.kube_config[0].client_certificate)
+    client_key             = base64decode(azurerm_kubernetes_cluster.aks_cluster.kube_config[0].client_key)
+    cluster_ca_certificate = base64decode(azurerm_kubernetes_cluster.aks_cluster.kube_config[0].cluster_ca_certificate)
   }
 }
 
 resource "helm_release" "agic" {
-  name       = "${keys(var.clusters)[0]}-ingress-azure"
+  name       = "${var.cluster.name}-ingress-azure"
   repository = "oci://mcr.microsoft.com/azure-application-gateway/charts/"
   chart      = "ingress-azure"
   namespace  = "kube-system"
-  version    = "1.8.1"
+  version    = var.agic_helm_version
 
   replace = true
 

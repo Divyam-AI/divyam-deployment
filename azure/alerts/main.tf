@@ -15,8 +15,7 @@ locals {
 }
 
 resource "azurerm_monitor_action_group" "alerts" {
-  # TODO: Generate all prexies based on org and env centrally.
-  name                = "${var.resource_name_prefix}-${var.environment}-alerts-action-group"
+  name                = "${var.resource_name_prefix}-alerts-action-group"
   resource_group_name = var.resource_group_name
   short_name          = "alerts"
 
@@ -49,7 +48,7 @@ resource "azurerm_monitor_action_group" "alerts" {
   tags = {
     for key, value in local.common_tags :
     key => templatestring(value, {
-      resource_name  = "${var.resource_name_prefix}-${var.environment}-alerts-action-group"
+      resource_name  = "${var.resource_name_prefix}-alerts-action-group"
       location       = var.location
       resource_group = var.resource_group_name
       environment    = var.environment

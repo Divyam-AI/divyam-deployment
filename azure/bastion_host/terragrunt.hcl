@@ -33,6 +33,7 @@ inputs = merge(local.merged_inputs, {
   subnet_ids          = dependency.vnet.outputs.subnet_ids
   subnet_names        = dependency.vnet.outputs.subnet_names
   subnet_prefixes     = dependency.vnet.outputs.subnet_prefixes
+  aks_cluster_name = dependency.aks.outputs.aks_cluster_name
   aks_kube_config_raw = dependency.aks.outputs.aks_kube_config_raw
 })
 

@@ -164,6 +164,15 @@ Azure and the deployment environment.
     - prod
     - A custom environment can be created as well
 
+## Create a deployment configuration
+Use [this sample](./envs/dev/sample-terragrunt.hcl) as a starting point.
+
+```shell
+mkdir -p acme-divyam/dev
+cd acme-deployment/dev
+touch terragrunt.hcl
+```
+
 ```shell
 # Service principal credentials.
 export ARM_CLIENT_ID="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
@@ -176,7 +185,8 @@ export LOCATION=centralindia
 
 # Deployment environment selects the configuration and the components and 
 # versions to deploy
-export ENV=dev 
+export ENV=dev
+export ENV_DIR=<path to directory containing the dev environment folder> 
 ```
 
 ## Setup secrets

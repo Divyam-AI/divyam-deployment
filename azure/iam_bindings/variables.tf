@@ -28,9 +28,14 @@ variable "router_logs_storage_account_id" {
   type        = string
 }
 
-variable "aks_oidc_issuer_urls" {
-  description = "The AKS cluster oidc issuer urls"
-  type        = map(string)
+variable "aks_oidc_issuer_url" {
+  description = "The AKS cluster oidc issuer url"
+  type        = string
+}
+
+variable "aks_cluster_name" {
+  description = "The AKS cluster name"
+  type        = string
 }
 
 variable "artifacts_path" {

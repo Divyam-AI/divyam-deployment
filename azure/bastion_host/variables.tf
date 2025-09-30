@@ -66,8 +66,13 @@ variable "vnet_subnet_name" {
   type        = string
 }
 
+variable "aks_cluster_name" {
+  description = "AKS cluster name"
+  type        = string
+}
+
 variable "aks_kube_config_raw" {
-  description = "Map of AKS cluster names and their raw kube configs"
-  type        = map(string)
+  description = "AKS cluster raw kube configs"
+  type        = string
 }
 

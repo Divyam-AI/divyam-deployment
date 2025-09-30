@@ -18,9 +18,10 @@ variable "environment" {
   type        = string
 }
 
-variable "clusters" {
+variable "cluster" {
   description = "A map of AKS cluster configurations. The key is the cluster name."
-  type = map(object({
+  type = object({
+    name                            = string
     kubernetes_version              = string
     api_server_authorized_ip_ranges = optional(list(string), null)
     private_cluster_enabled         = optional(bool, true)
@@ -45,19 +46,19 @@ variable "clusters" {
     })
 
     additional_node_pools = optional(map(object({
-      vm_size      = string
-      gpu_driver   = optional(string, "Install")
-      auto_scaling = bool
-      count        = optional(number, null)
-      min_count    = optional(number, null)
-      max_count    = optional(number, null)
-      mode         = optional(string, "User")
-      node_taints  = optional(list(string), [])
-      tags         = optional(map(string), {})
-      node_labels  = optional(map(string), {})
-      vnet_subnet_name   = optional(string, null)
+      vm_size          = string
+      gpu_driver       = optional(string, "Install")
+      auto_scaling     = bool
+      count            = optional(number, null)
+      min_count        = optional(number, null)
+      max_count        = optional(number, null)
+      mode             = optional(string, "User")
+      node_taints      = optional(list(string), [])
+      tags             = optional(map(string), {})
+      node_labels      = optional(map(string), {})
+      vnet_subnet_name = optional(string, null)
     })), {})
-  }))
+  })
 }
 
 variable "vnet_id" {
@@ -125,5 +126,10 @@ variable "exclude_charts" {
 
 variable "artifacts_path" {
   description = "Path to artifacts.yaml file"
+  type        = string
+}
+
+variable "agic_helm_version" {
+  description = "Version of AGIC helm chart"
   type        = string
 }

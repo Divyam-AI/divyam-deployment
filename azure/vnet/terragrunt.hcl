@@ -4,7 +4,7 @@ include "root" {
 }
 
 terraform {
-  source = "../aks"
+  source = "../vnet"
 }
 
 # Note: Local state because storing to azure blob store create a dependency on

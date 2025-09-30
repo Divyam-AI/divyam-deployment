@@ -1,19 +1,21 @@
+#----------------------------------------------
+# Generate deployment configuration for all
+# Divyam components.
+#----------------------------------------------
 locals {
-  env_name = get_env("ENV", "dev")
-  install_config = read_terragrunt_config("${get_repo_root()}/azure/envs/${local.env_name}/terragrunt.hcl").locals
-
-  # Convert the values to terraform templates.
-  # Terragrunt miss-processes $${var}, so use @{var} for template variables.
+  install_config = read_terragrunt_config("${get_repo_root()}/azure/config/config-merge.hcl").locals.install_config
   common_tags = try(local.install_config.common_tags, {})
 
-  location            = local.install_config.location
-  resource_group_name = local.install_config.resource_group_name
-  storage_container_name = try(local.install_config.tf_state_storage_container_name, "tfstate")
-  tfstate_storage_account_name = try(local.install_config.tf_state_storage_account_name, "divyam${local.env_name}tfstate")
+  location                     = local.install_config.location
+  resource_group_name          = local.install_config.resource_group_name
+  storage_container_name       = local.install_config.tfstate_azure_blob_storage.storage_container_name
+  tfstate_storage_account_name = local.install_config.tfstate_azure_blob_storage.storage_account_name
+  resource_name_prefix         = local.install_config.resource_name_prefix
+  environment = local.install_config.environment
 
   # Shared remote backend config
   azure_backend = {
-    resource_group_name  = "${local.install_config.resource_group_name}"
+    resource_group_name  = "${local.resource_group_name}"
     storage_account_name = "${local.tfstate_storage_account_name}"
     container_name       = "${local.storage_container_name}"
     key                  = "${local.install_config.env_name}/${local.location}/${path_relative_to_include()}/terraform.tfstate"
@@ -61,6 +63,7 @@ inputs = {
   location               = local.location
   resource_group_name    = local.resource_group_name
   storage_container_name = local.storage_container_name
-  environment            = local.env_name
-  common_tags = local.common_tags
+  environment            = local.environment
+  resource_name_prefix   = local.resource_name_prefix
+  common_tags            = local.common_tags
 }
