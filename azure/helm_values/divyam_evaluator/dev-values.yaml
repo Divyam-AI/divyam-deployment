@@ -12,7 +12,7 @@ resources:
 mpi_db:
   host: "mysql-dev-svc.mysql-dev-ns.svc.cluster.local"
   port: 3306
-  db: "divyam_dev"
+  db_name: "divyam_dev"
 
 raw_logs_db:
   host: "clickhouse-clk-dev.clickhouse-dev-ns.svc.cluster.local"
