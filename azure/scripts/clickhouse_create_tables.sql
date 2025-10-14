@@ -196,8 +196,8 @@ CREATE TABLE IF NOT EXISTS {{ .Values.database }}.model_rate_cards_replicated ON
     `provider`           String,
     `model`              String,
     `currency`           String,
-    `input_token_rate`   Decimal(24, 6),
-    `output_token_rate`  Decimal(24, 6),
+    `input_token_rate`   Float32,
+    `output_token_rate`  Float32,
     `per_n_tokens`       Decimal(24, 6),
     `update_timestamp`   DateTime64
 )
