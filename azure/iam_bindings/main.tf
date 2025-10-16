@@ -80,6 +80,16 @@ resource "azurerm_role_assignment" "prometheus_monitoring_metrics" {
   scope                = data.azurerm_resource_group.selected.id
   role_definition_name = "Monitoring Metrics Publisher"
   principal_id         = azurerm_user_assigned_identity.prometheus.principal_id
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      name,
+      role_definition_name,
+      principal_id,
+      scope,
+    ]
+  }
 }
 
 resource "azurerm_federated_identity_credential" "prometheus_k8s_federation" {
@@ -116,6 +126,16 @@ resource "azurerm_role_assignment" "kafka_storage_admin" {
   scope                = var.router_logs_storage_account_id
   role_definition_name = "Storage Blob Data Owner"
   principal_id         = azurerm_user_assigned_identity.kafka_connect.principal_id
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      name,
+      role_definition_name,
+      principal_id,
+      scope,
+    ]
+  }
 }
 
 resource "azurerm_federated_identity_credential" "kafka_connect_k8s_federation" {
@@ -151,12 +171,32 @@ resource "azurerm_role_assignment" "billing_storage_reader" {
   scope                = var.router_logs_storage_account_id
   role_definition_name = "Storage Blob Data Reader"
   principal_id         = azurerm_user_assigned_identity.billing.principal_id
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      name,
+      role_definition_name,
+      principal_id,
+      scope,
+    ]
+  }
 }
 
 resource "azurerm_role_assignment" "billing_key_vault" {
   scope                = var.azure_key_vault_id
   role_definition_name = "Key Vault Secrets User"
   principal_id         = azurerm_user_assigned_identity.billing.principal_id
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      name,
+      role_definition_name,
+      principal_id,
+      scope,
+    ]
+  }
 }
 
 resource "azurerm_federated_identity_credential" "billing_k8s_federation" {
@@ -192,12 +232,32 @@ resource "azurerm_role_assignment" "router_controller_reader" {
   scope                = data.azurerm_resource_group.selected.id
   role_definition_name = "Reader"
   principal_id         = azurerm_user_assigned_identity.router_controller.principal_id
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      name,
+      role_definition_name,
+      principal_id,
+      scope,
+    ]
+  }
 }
 
 resource "azurerm_role_assignment" "router_controller_key_vault" {
   scope                = var.azure_key_vault_id
   role_definition_name = "Key Vault Secrets User"
   principal_id         = azurerm_user_assigned_identity.router_controller.principal_id
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      name,
+      role_definition_name,
+      principal_id,
+      scope,
+    ]
+  }
 }
 
 resource "azurerm_key_vault_access_policy" "router_controller_key_vault_policy" {
@@ -246,12 +306,32 @@ resource "azurerm_role_assignment" "eval_reader" {
   scope                = data.azurerm_resource_group.selected.id
   role_definition_name = "Reader"
   principal_id         = azurerm_user_assigned_identity.eval.principal_id
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      name,
+      role_definition_name,
+      principal_id,
+      scope,
+    ]
+  }
 }
 
 resource "azurerm_role_assignment" "eval_key_vault" {
   scope                = var.azure_key_vault_id
   role_definition_name = "Key Vault Secrets User"
   principal_id         = azurerm_user_assigned_identity.eval.principal_id
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      name,
+      role_definition_name,
+      principal_id,
+      scope,
+    ]
+  }
 }
 
 resource "azurerm_key_vault_access_policy" "eval_key_vault_policy" {
@@ -299,12 +379,32 @@ resource "azurerm_role_assignment" "selector_training_key_vault" {
   scope                = var.azure_key_vault_id
   role_definition_name = "Key Vault Secrets User"
   principal_id         = azurerm_user_assigned_identity.selector_training.principal_id
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      name,
+      role_definition_name,
+      principal_id,
+      scope,
+    ]
+  }
 }
 
 resource "azurerm_role_assignment" "selector_training_storage_admin" {
   scope                = var.router_logs_storage_account_id
   role_definition_name = "Storage Blob Data Owner"
   principal_id         = azurerm_user_assigned_identity.selector_training.principal_id
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      name,
+      role_definition_name,
+      principal_id,
+      scope,
+    ]
+  }
 }
 
 resource "azurerm_federated_identity_credential" "selector_training_k8s_federation" {
