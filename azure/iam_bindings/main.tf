@@ -411,8 +411,37 @@ resource "azurerm_federated_identity_credential" "selector_training_k8s_federati
   for_each            = lookup(local.federated_identity_grouped, "selector_training_uai_client_id", {})
   name                = "${each.key}-k8s-workload"
   resource_group_name = var.resource_group_name
-  parent_id           = azurerm_user_assigned_identity.eval.id
+  parent_id           = azurerm_user_assigned_identity.selector_training.id
   audience            = ["api://AzureADTokenExchange"]
   issuer              = each.value.oidc_issuer_url
   subject             = "system:serviceaccount:${each.value.namespace}:${each.value.service_account}"
+}
+
+resource "azurerm_role_assignment" "selector_training_reader" {
+  scope                = data.azurerm_resource_group.selected.id
+  role_definition_name = "Reader"
+  principal_id         = azurerm_user_assigned_identity.selector_training.principal_id
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      name,
+      role_definition_name,
+      principal_id,
+      scope,
+    ]
+  }
+}
+
+resource "azurerm_key_vault_access_policy" "selector_training_key_vault_policy" {
+  key_vault_id = var.azure_key_vault_id # The Key Vault ID
+
+  tenant_id = data.azurerm_client_config.current.tenant_id
+  object_id = azurerm_user_assigned_identity.selector_training.principal_id # Principal ID of the user-assigned identity
+
+  secret_permissions = [
+    "Get",
+    "List",
+    "Set"
+  ]
 }
