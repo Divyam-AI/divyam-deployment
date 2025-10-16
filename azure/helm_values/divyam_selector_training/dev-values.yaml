@@ -13,7 +13,7 @@ env_config:
     port: 6333
 
   clickhousedb_destination:
-    host: clickhouse-dev-clk.clickhouse-dev-ns.svc.cluster.local
+    host: clickhouse-clk-dev.clickhouse-dev-ns.svc.cluster.local
     port: 8123
     database: divyam_router_logs
     user: default
@@ -51,7 +51,7 @@ defaults:
         use_cache: true
       eval:
         eval_split_from_train_ratio: 0.3
-    
+
     stages:
       enrichment:
         run: true
