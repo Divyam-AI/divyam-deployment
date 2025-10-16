@@ -35,7 +35,7 @@ defaults:
   nodeSelector: {}
   tolerations: []
   affinity: {}
-  schedule: "0 2 * * *" # Example cron schedule for defaults
+  schedule: "*/10 * * * *"
   training_interval_days: 7
 
   run_config:
