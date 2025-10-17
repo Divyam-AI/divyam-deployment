@@ -11,11 +11,11 @@ status_topic: connect-status
 
 worker_replica: 1
 resources:
-  cpu: 1
-  memory: 1Gi
+  cpu: 4
+  memory: 8Gi
 
 topics: "router-raw-logs" #Comma separated string
 dlq_topic: "connect-dlq"
 
-file_max_records: 10
-flush_interval: 6000
+file_max_records: 10000
+flush_interval: 3600000
