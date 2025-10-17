@@ -170,7 +170,7 @@ helm_charts:
 
   divyam_selector_training:
     chart: "selector-training"
-    version: "0.0.35-azure"
+    version: "0.0.36-azure"
     name: "selector-training"
     namespace_prefix: "selector-training"
     uai_client_id_name: "selector_training_uai_client_id"
