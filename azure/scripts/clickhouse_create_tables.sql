@@ -309,3 +309,61 @@ ENGINE = Distributed('{{ include "clickhouse.clustername" . }}',
                     {{ .Values.database }},
                     shadow_raw_logs_replicated,
                     rand())
+
+-- 18. Table for Cost Metrics
+CREATE TABLE IF NOT EXISTS {{ .Values.database }}.cost_metrics_replicated ON CLUSTER '{{ include "clickhouse.clustername" . }}'
+(
+    `org_id` Int32 DEFAULT 0,
+    `svc_acct_id` String DEFAULT '',
+    `id` String DEFAULT '',
+    `timestamp` DateTime DEFAULT now(),
+    `traffic_bucket` String DEFAULT '',
+    `is_shadow` UInt8 DEFAULT 0,
+    `total_requests` Int32 DEFAULT 0,
+    `total_prompt_tokens` Int32 DEFAULT 0,
+    `total_completion_tokens` Int32 DEFAULT 0,
+    `total_tokens` Int32 DEFAULT 0,
+    `total_ttft_ms` Int32 DEFAULT 0,
+    `total_ttlt_ms` Int32 DEFAULT 0,
+    `requested_models_cost` Float64 DEFAULT 0.0,
+    `selected_models_cost` Float64 DEFAULT 0.0,
+    `cost_savings` Float64 DEFAULT 0.0,
+    `model_selection_override_requests_count` Int32 DEFAULT 0
+)
+ENGINE = ReplicatedReplacingMergeTree('/clickhouse/tables/{shard}/{database}/cost_metrics_v1', '{replica}', timestamp)
+PARTITION BY toYYYYMM(timestamp)
+ORDER BY (org_id, svc_acct_id, id);
+
+CREATE TABLE IF NOT EXISTS {{ .Values.database }}.cost_metrics_dist ON CLUSTER '{{ include "clickhouse.clustername" . }}'
+AS {{ .Values.database }}.cost_metrics_replicated
+ENGINE = Distributed('{{ include "clickhouse.clustername" . }}',
+                    {{ .Values.database }},
+                    cost_metrics_replicated,
+                    rand());
+
+
+-- 19. New Table for multiple Evaluation Metrics
+CREATE TABLE IF NOT EXISTS {{ .Values.database }}.quality_scores_replicated ON CLUSTER '{{ include "clickhouse.clustername" . }}'
+(
+    `org_id` Int32 DEFAULT 0,
+    `svc_acct_id` String DEFAULT '',
+    `eval_granularity` String DEFAULT 'LLM_REQUEST_RESPONSE',
+    `id` String DEFAULT '',
+    `timestamp` DateTime DEFAULT now(),
+    `traffic_bucket` String DEFAULT '',
+    `is_shadow` UInt8 DEFAULT 0,
+    `total_requests` Int32 DEFAULT 0,
+    `model_selection_override_requests_count` Int32 DEFAULT 0,
+    `eval_id` Int32 DEFAULT 0,
+    `eval_score` Float64 DEFAULT 0.0
+)
+ENGINE = ReplicatedReplacingMergeTree('/clickhouse/tables/{shard}/{database}/quality_scores_v1', '{replica}', timestamp)
+PARTITION BY toYYYYMM(timestamp)
+ORDER BY (org_id, svc_acct_id, eval_id, id);
+
+CREATE TABLE IF NOT EXISTS {{ .Values.database }}.quality_scores_dist ON CLUSTER '{{ include "clickhouse.clustername" . }}'
+AS {{ .Values.database }}.quality_scores_replicated
+ENGINE = Distributed('{{ include "clickhouse.clustername" . }}',
+                    {{ .Values.database }},
+                    quality_scores_replicated,
+                    rand());
