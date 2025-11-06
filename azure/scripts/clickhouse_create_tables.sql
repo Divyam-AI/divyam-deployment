@@ -359,7 +359,7 @@ CREATE TABLE IF NOT EXISTS {{ .Values.database }}.quality_scores_replicated ON C
 )
 ENGINE = ReplicatedReplacingMergeTree('/clickhouse/tables/{shard}/{database}/quality_scores_v1', '{replica}', timestamp)
 PARTITION BY toYYYYMM(timestamp)
-ORDER BY (org_id, svc_acct_id, id);
+ORDER BY (org_id, svc_acct_id, eval_id, id);
 
 CREATE TABLE IF NOT EXISTS {{ .Values.database }}.quality_scores_dist ON CLUSTER '{{ include "clickhouse.clustername" . }}'
 AS {{ .Values.database }}.quality_scores_replicated
