@@ -138,7 +138,7 @@ helm_charts:
 
   divyam_evaluator:
     chart: "divyam-evaluator"
-    version: "0.1.39-azure"
+    version: "0.1.40-azure"
     name: "divyam-evaluator-chart"
     namespace_prefix: "eval"
     uai_client_id_name: "eval_uai_client_id"
@@ -170,7 +170,7 @@ helm_charts:
 
   divyam_selector_training:
     chart: "selector-training"
-    version: "0.0.33-azure"
+    version: "0.0.35-azure"
     name: "selector-training"
     namespace_prefix: "selector-training"
     uai_client_id_name: "selector_training_uai_client_id"

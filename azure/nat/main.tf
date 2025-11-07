@@ -53,7 +53,7 @@ resource "azurerm_nat_gateway_public_ip_association" "nat_ip_assoc" {
 }
 
 resource "azurerm_subnet_nat_gateway_association" "subnet_assoc" {
-  for_each = var.subnet_ids
+  for_each = var.create ? var.subnet_ids : {}
 
   subnet_id      = var.subnet_ids[each.key]
   nat_gateway_id = azurerm_nat_gateway.nat[0].id

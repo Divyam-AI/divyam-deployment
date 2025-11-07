@@ -12,7 +12,7 @@ resources:
 mpi_db:
   host: "mysql-dev-svc.mysql-dev-ns.svc.cluster.local"
   port: 3306
-  db: "divyam_dev"
+  db_name: "divyam_dev"
 
 raw_logs_db:
   host: "clickhouse-clk-dev.clickhouse-dev-ns.svc.cluster.local"
@@ -27,7 +27,8 @@ output_db:
   port: 8123
   db_name: "divyam_router_logs"
   username: "default"
-  eval_results_table: "evaluation_metrics_dist"
+  cost_metrics_table: "cost_metrics_dist"
+  quality_eval_results_table: "quality_scores_dist"
   batch_size: 1000
 
 add_shadow_selector_logs:

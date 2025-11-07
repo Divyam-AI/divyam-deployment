@@ -75,6 +75,16 @@ resource "azurerm_role_assignment" "agic_appgw_access" {
   scope                = var.app_gateway_id
   role_definition_name = "Contributor"
   principal_id         = azurerm_user_assigned_identity.agic_uami.principal_id
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      name,
+      role_definition_name,
+      principal_id,
+      scope,
+    ]
+  }
 }
 
 # Giver read perms on the resource group
@@ -87,6 +97,16 @@ resource "azurerm_role_assignment" "agic_identity_assigner" {
   scope                = data.azurerm_resource_group.selected.id
   role_definition_name = "Managed Identity Operator"
   principal_id         = azurerm_user_assigned_identity.agic_uami.principal_id
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      name,
+      role_definition_name,
+      principal_id,
+      scope,
+    ]
+  }
 }
 
 data "azurerm_application_gateway" "app_gw" {
@@ -98,6 +118,16 @@ resource "azurerm_role_assignment" "resource_group_role" {
   scope                = data.azurerm_resource_group.selected.id
   role_definition_name = "Reader"
   principal_id         = azurerm_user_assigned_identity.agic_uami.principal_id
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      name,
+      role_definition_name,
+      principal_id,
+      scope,
+    ]
+  }
 }
 
 # Allow AKS cluster's to have ingress join the app gw subnet.
@@ -105,6 +135,16 @@ resource "azurerm_role_assignment" "agic_subnet_permissions" {
   scope                = data.azurerm_application_gateway.app_gw.gateway_ip_configuration[0].subnet_id
   role_definition_name = "Network Contributor"
   principal_id         = azurerm_user_assigned_identity.agic_uami.principal_id
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      name,
+      role_definition_name,
+      principal_id,
+      scope,
+    ]
+  }
 }
 
 # ---------------------------
@@ -421,6 +461,16 @@ resource "azurerm_role_assignment" "grafana_reader" {
   scope                = azurerm_monitor_workspace.prometheus["enabled"].id
   role_definition_name = "Monitoring Data Reader"
   principal_id         = azurerm_dashboard_grafana.grafana["enabled"].identity[0].principal_id
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      name,
+      role_definition_name,
+      principal_id,
+      scope,
+    ]
+  }
 }
 
 # ---------------------------
