@@ -26,11 +26,13 @@ logs_topics:
     partitions: 1
     replicas: 1
     retentionMs: 2592000000  # 30 days
+    retentionBytes: 2147483648 # 2 GB
     segmentBytes: 1073741824 # 1 GB
   - name: router-raw-logs
     partitions: 1
     replicas: 1
     retentionMs: 2592000000  # 30 days
+    retentionBytes: 5368709120 # 5 GB
     segmentBytes: 1073741824 # 1 GB
 
 connect_topics:
@@ -38,22 +40,26 @@ connect_topics:
     partitions: 1
     replicas: 1
     retentionMs: 2592000000  # 30 days
+    retentionBytes: 100000000 # 100 MB
     segmentBytes: 10000000 # 10 MB
 
   offsets:
     partitions: 1
     replicas: 1
     retentionMs: 2592000000  # 30 days
+    retentionBytes: 1073741824 # 1 GB
     segmentBytes: 1073741824 # 1 GB
 
   status:
     partitions: 1
     replicas: 1
     retentionMs: 2592000000  # 30 days
+    retentionBytes: 1073741824 # 1 GB
     segmentBytes: 1073741824 # 1 GB
 
   dlq:
     partitions: 1
     replicas: 1
     retentionMs: 2592000000  # 30 days
+    retentionBytes: 1073741824 # 1 GB
     segmentBytes: 1073741824 # 1 GB

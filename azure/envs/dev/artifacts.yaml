@@ -80,7 +80,7 @@ helm_charts:
 
   kafka_cluster:
     chart: "kafka_cluster"
-    version: "0.1.76-kraft"
+    version: "0.1.77-kraft"
     namespace_prefix: "kafka"
 
   kafka_connect_azblob:
