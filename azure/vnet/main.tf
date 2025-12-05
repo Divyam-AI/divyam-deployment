@@ -71,6 +71,20 @@ resource "azurerm_subnet" "subnets" {
   address_prefixes     = [each.value.subnet_ip]
   service_endpoints    = ["Microsoft.Storage"]
 
+  dynamic "delegation" {
+    for_each = each.key == lookup(var.app_gw, "vnet_subnet_name", "") ? [1] : []
+    content {
+      name = "application_gateway_delegation"
+
+      service_delegation {
+        name = "Microsoft.Network/applicationGateways"
+        actions = [
+          "Microsoft.Network/virtualNetworks/subnets/join/action"
+        ]
+      }
+    }
+  }
+
   lifecycle {
     ignore_changes = [
       name
