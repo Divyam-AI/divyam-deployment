@@ -17,22 +17,22 @@ route_selector:
   resources:
     requests:
       memory: 2Gi
-      cpu: 1
+      cpu: 4
     limits:
       memory: 2Gi
-      cpu: 1
+      cpu: 4
 
   infinity_host: "infinity-dev-svc.infinity-dev-ns.svc.cluster.local"
   infinity_port: 80
   qdrant_host: "qdrant-dev-svc.qdrant-dev-ns.svc.cluster.local"
   qdrant_port: 6333
-  embed: "sentence-transformers/all-MiniLM-L6-v2"
+  embed_model: "sentence-transformers/all-MiniLM-L6-v2"
   k: 20
   embedder_read_timeout_secs: 5
   embedder_connect_timeout_secs: 2
   vectordb_timeout_secs: 5
 
-  logging_level: "DEBUG"
+  logging_level: "INFO"
 
   readinessProbe:
     initialDelaySeconds: 10

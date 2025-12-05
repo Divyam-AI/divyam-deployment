@@ -367,3 +367,62 @@ ENGINE = Distributed('{{ include "clickhouse.clustername" . }}',
                     {{ .Values.database }},
                     quality_scores_replicated,
                     rand());
+
+-- 20. Table for Model 
+CREATE TABLE IF NOT EXISTS {{ .Values.database }}.dim_models_mysql ON CLUSTER '{{ include "clickhouse.clustername" . }}'
+(
+    `id` Int32,
+    `name` String
+) ENGINE = MySQL('{{ .Values.mysql_integration.host }}', '{{ .Values.mysql_integration.source_database }}', 'models', '{{ .Values.mysql_integration.username }}', '{{ .Values.mysql_integration.password }}');
+
+-- 21. Table for Model Provider
+CREATE TABLE IF NOT EXISTS {{ .Values.database }}.dim_model_provider_mysql ON CLUSTER '{{ include "clickhouse.clustername" . }}'
+(
+    `id` Int32,
+    `name` String
+) ENGINE = MySQL('{{ .Values.mysql_integration.host }}', '{{ .Values.mysql_integration.source_database }}', 'model_providers', '{{ .Values.mysql_integration.username }}', '{{ .Values.mysql_integration.password }}');
+
+-- 22. Table for Evals
+CREATE TABLE IF NOT EXISTS {{ .Values.database }}.dim_evals_mysql ON CLUSTER '{{ include "clickhouse.clustername" . }}'
+(
+    `id` Int32,
+    `name` String
+) ENGINE = MySQL('{{ .Values.mysql_integration.host }}', '{{ .Values.mysql_integration.source_database }}', 'evals', '{{ .Values.mysql_integration.username }}', '{{ .Values.mysql_integration.password }}');
+
+
+-- 23. Table for Model Provider Info
+CREATE TABLE IF NOT EXISTS {{ .Values.database }}.dim_mpi_mysql ON CLUSTER '{{ include "clickhouse.clustername" . }}'
+( 
+`id` Int32, `org_id` Int32, 
+`service_account_id` String, 
+`provider_id` Int32, 
+`model_id` Int32, 
+`encrypted_model_api_key` String, 
+`endpoint` String, 
+`model_configs` String, 
+`supported_modalities` String, 
+`text_input_price` Float32, 
+`text_output_price` Float32, 
+`currency` String, 
+`per_n_tokens` Int32, 
+`is_active` UInt8, 
+`is_selection_enabled` UInt8 
+)
+ENGINE = MySQL('{{ .Values.mysql_integration.host }}', '{{ .Values.mysql_integration.source_database }}', 'model_provider_info', '{{ .Values.mysql_integration.username }}', '{{ .Values.mysql_integration.password }}');
+
+-- 24. View for Model Rate Card
+CREATE VIEW IF NOT EXISTS {{ .Values.database }}.dim_model_rate_card_mysql_view
+ON CLUSTER '{{ include "clickhouse.clustername" . }}' AS
+SELECT
+    provider.name AS provider,
+    model.name AS model,
+    mpi.currency AS currency,
+    CAST(mpi.text_input_price AS Decimal(6,3)) AS input_token_rate,
+    CAST(mpi.text_output_price AS Decimal(6,3)) AS output_token_rate,
+    mpi.per_n_tokens AS per_n_tokens
+FROM {{ .Values.database }}.dim_mpi_mysql AS mpi
+JOIN {{ .Values.database }}.dim_model_providers_mysql AS provider
+    ON mpi.provider_id = provider.id
+JOIN {{ .Values.database }}.dim_models_mysql AS model
+    ON mpi.model_id = model.id;
+s

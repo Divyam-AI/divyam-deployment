@@ -54,3 +54,9 @@ variable "subnets" {
   # Leave empty if existing vnet is used.
   default = []
 }
+
+variable "app_gw" {
+  description = "Application gateway configuration"
+  type = map(string)
+  default = {}
+}
