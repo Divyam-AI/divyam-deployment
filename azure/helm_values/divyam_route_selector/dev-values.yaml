@@ -17,10 +17,10 @@ route_selector:
   resources:
     requests:
       memory: 2Gi
-      cpu: 1
+      cpu: 2
     limits:
       memory: 2Gi
-      cpu: 1
+      cpu: 2
 
   infinity_host: "infinity-dev-svc.infinity-dev-ns.svc.cluster.local"
   infinity_port: 80
@@ -32,7 +32,7 @@ route_selector:
   embedder_connect_timeout_secs: 2
   vectordb_timeout_secs: 5
 
-  logging_level: "DEBUG"
+  logging_level: "INFO"
 
   readinessProbe:
     initialDelaySeconds: 10
