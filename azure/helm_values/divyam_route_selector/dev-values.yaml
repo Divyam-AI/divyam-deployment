@@ -17,10 +17,10 @@ route_selector:
   resources:
     requests:
       memory: 2Gi
-      cpu: 2
+      cpu: 4
     limits:
       memory: 2Gi
-      cpu: 2
+      cpu: 4
 
   infinity_host: "infinity-dev-svc.infinity-dev-ns.svc.cluster.local"
   infinity_port: 80
