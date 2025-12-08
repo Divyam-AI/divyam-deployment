@@ -10,15 +10,15 @@ router:
 
   # The container listens on this port (this value is used as the ROUTER_PORT)
   containerPort: 8000
-  otelEndpoint: "grpc://otel-collector-dev-svc.otel-collector-dev-ns.svc.cluster.local:4617"
+  otelEndpoint: "grpc://otel-collector-dev-svc.otel-collector-dev-ns:4617"
   otel_timeout_secs: 1
-  selectorEndpoint: "http://route-selector-dev-svc.route-selector-dev-ns.svc.cluster.local"
+  selectorEndpoint: "http://route-selector-dev-svc.route-selector-dev-ns"
   corsAllowOrigins: "http://127.0.0.1:8888,http://localhost:8888,http://divyam-dashboard:8888"
   forwardedAllowIps: 35.244.238.149
   mock_selector: false
   mock_model: false
   uvicornLogLevel: "info"
-  dbHost: "mysql-dev-svc.mysql-dev-ns.svc.cluster.local"
+  dbHost: "mysql-dev-svc.mysql-dev-ns"
   dbPort: 3306
   dbDatabase: "divyam_dev"
 
