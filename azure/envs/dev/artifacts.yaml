@@ -31,7 +31,7 @@ helm_charts:
 
   infinity:
     chart: "infinity"
-    version: "0.0.75-azure"
+    version: "0.0.76-azure"
     namespace_prefix: "infinity"
 
   clickhouse_operator:
