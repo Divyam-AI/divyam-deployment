@@ -1,0 +1,19 @@
+{
+    "name": "router_elb_5xx_errors",
+    "display_name": "Router Controller ELB HTTPs 5xx Rate High",
+    "combiner": "OR",
+    "severity": "CRITICAL",
+    "condition": {
+      "display_name": "HTTP 5xx Error Rate Condition",
+      "query": "(100 * sum(rate(loadbalancing_googleapis_com:https_request_count{project_id='{{project_id}}',monitored_resource='https_lb_rule',response_code_class='500',forwarding_rule_name=~'.*router.*'}[5m]))/sum(rate(loadbalancing_googleapis_com:https_request_count{project_id='{{project_id}}',monitored_resource='https_lb_rule',forwarding_rule_name=~'.*router.*'}[5m]))) > 5",
+      "duration": "60s",
+      "evaluation_interval": "60s",
+      "alert_rule": "AlwaysOn",
+      "rule_group": "External_LB"
+    },
+    "alert_strategy": {
+      "auto_close": "1800s",
+      "notification_prompts": ["CLOSED", "OPENED"]
+    }
+  }
+  
