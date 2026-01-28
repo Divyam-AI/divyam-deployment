@@ -1,0 +1,101 @@
+# Helm charts to deploy along with versions in order of deployment dependency.
+# The key in this map is used to look for values in the configured values directory.
+# {env}-values.yaml and values.yaml if present will be picked up from the chart directory.
+helm_charts:
+  divyam-persistent-storage:
+    chart: "divyam-persistent-storage"
+    version: "0.1.0"
+    namespace: "kube-system"
+
+  divyam-redis:
+    chart: "divyam-redis"
+    version: "0.1.1"
+    namespace_prefix: "divyam-redis"
+
+  kube_prometheus_stack:
+    repository: "https://prometheus-community.github.io/helm-charts"
+    chart: "kube-prometheus-stack"
+    namespace: "observability"
+    version: "56.0.0"
+
+  qdrant:
+    chart: "qdrant"
+    version: "2.0.74"
+    namespace_prefix: "qdrant"
+
+  infinity:
+    chart: "infinity"
+    version: "0.0.76"
+    namespace_prefix: "infinity"
+
+  clickhouse_operator:
+    repository: "https://docs.altinity.com/clickhouse-operator"
+    chart: "altinity-clickhouse-operator"
+    version: "0.25.1"
+    namespace_prefix: "clickhouse"
+
+  clickhouse:
+    chart: "clickhouse"
+    version: "0.2.65"
+    namespace_prefix: "clickhouse"
+
+  otel_collector:
+    chart: "otel_collector"
+    version: "0.0.85"
+    namespace_prefix: "otel-collector"
+
+  mysql:
+    chart: "mysql"
+    version: "0.1.72"
+    namespace_prefix: "mysql"
+
+  kafka_operator:
+    repository: "https://strimzi.io/charts/"
+    chart: "strimzi-kafka-operator"
+    version: "0.47.0"
+    namespace_prefix: "kafka"
+
+  kafka_cluster:
+    chart: "kafka_cluster"
+    version: "0.1.77-kraft"
+    namespace_prefix: "kafka"
+
+  superset_postgresql:
+    chart: "superset_postgresql"
+    version: "0.0.72"
+    namespace_prefix: "superset"
+
+  superset:
+    chart: "superset"
+    version: "0.14.46"
+    namespace_prefix: "superset"
+
+  divyam_bill_tracker:
+    chart: "divyam-bill-tracker"
+    version: "0.1.23"
+    name: "billing-chart"
+    namespace_prefix: "billing"
+
+  divyam_evaluator:
+    chart: "divyam-evaluator"
+    version: "0.1.40"
+    name: "divyam-evaluator-chart"
+    namespace_prefix: "eval"
+
+  divyam_route_selector:
+    chart: "divyam-route-selector"
+    version: "0.0.80"
+    name: "route-selector-chart"
+    namespace_prefix: "route-selector"
+
+  divyam_selector_training:
+    chart: "selector-training"
+    version: "0.0.35"
+    name: "selector-training"
+    namespace_prefix: "selector-training"
+
+  divyam_router_controller:
+    chart: "router-controller"
+    version: "0.1.162"
+    name: "router-controller-chart"
+    namespace_prefix: "router-controller"
