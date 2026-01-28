@@ -30,6 +30,7 @@ scripts are run from:
 - `curl`
 - `unzip`
 - `jq` (for JSON parsing)
+- `python` 
 
 ### Bastion Host
 
