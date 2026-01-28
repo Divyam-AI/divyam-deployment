@@ -1,0 +1,19 @@
+{
+    "name": "pvc_usage_high",
+    "display_name": "PVC Usage High",
+    "combiner": "OR",
+    "severity": "WARNING",
+    "condition": {
+      "display_name": "PVC Usage High Condition",
+      "query": "(kubelet_volume_stats_used_bytes{project_id='{{project_id}}', cluster='{{cluster_id}}'} * 100 / kubelet_volume_stats_capacity_bytes{project_id='{{project_id}}', cluster='{{cluster_id}}'}) > 60",
+      "duration": "60s",
+      "evaluation_interval": "60s",
+      "alert_rule": "AlwaysOn",
+      "rule_group": "Kubernetes"
+    },
+    "alert_strategy": {
+      "auto_close": "1800s",
+      "notification_prompts": ["CLOSED", "OPENED"]
+    }
+  }
+  

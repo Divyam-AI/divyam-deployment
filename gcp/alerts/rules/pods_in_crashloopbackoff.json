@@ -1,0 +1,18 @@
+{
+  "name": "pods_in_crashloopbackoff",
+  "display_name": "Pods in CrashLoopBackOff",
+  "combiner": "OR",
+  "severity": "CRITICAL",
+  "condition": {
+    "display_name": "Pods in CrashLoopBackOff Condition",
+    "query": "(kube_pod_container_status_waiting_reason{reason='CrashLoopBackOff', project_id='{{project_id}}', cluster='{{cluster_id}}'}) > 0",
+    "duration": "120s",
+    "evaluation_interval": "60s",
+    "alert_rule": "AlwaysOn",
+    "rule_group": "Kubernetes"
+  },
+  "alert_strategy": {
+    "auto_close": "1800s",
+    "notification_prompts": ["CLOSED", "OPENED"]
+  }
+}
