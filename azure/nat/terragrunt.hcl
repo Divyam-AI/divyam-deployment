@@ -9,11 +9,17 @@ terraform {
 
 # To ensure the state backend storage is setup.
 dependency "tfstate_azure_blob_storage" {
-  config_path = "../tfstate_azure_blob_storage"
+  config_path  = "../tfstate_azure_blob_storage"
+  skip_outputs = true
 }
 
 dependency "vnet" {
   config_path = "../vnet"
+
+  mock_outputs = {
+    subnet_ids = {}
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
 }
 
 locals {

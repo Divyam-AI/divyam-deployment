@@ -9,11 +9,18 @@ terraform {
 
 # To ensure the state backend storage is setup.
 dependency "tfstate_azure_blob_storage" {
-  config_path = "../tfstate_azure_blob_storage"
+  config_path  = "../tfstate_azure_blob_storage"
+  skip_outputs = true
 }
 
 dependency "aks" {
   config_path = "../aks"
+
+  mock_outputs = {
+    monitor_workspace_name = null
+    monitor_workspace_id   = null
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
 }
 
 locals {

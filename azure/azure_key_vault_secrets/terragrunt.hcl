@@ -8,11 +8,17 @@ terraform {
 }
 # To ensure the state backend storage is setup.
 dependency "tfstate_azure_blob_storage" {
-  config_path = "../tfstate_azure_blob_storage"
+  config_path  = "../tfstate_azure_blob_storage"
+  skip_outputs = true
 }
 
 dependency "azure_key_vault" {
   config_path = "../azure_key_vault"
+
+  mock_outputs = {
+    azure_key_vault_id = "/subscriptions/mock/resourceGroups/mock/providers/Microsoft.KeyVault/vaults/mock"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
 }
 
 locals {

@@ -9,19 +9,42 @@ terraform {
 
 # To ensure the state backend storage is setup.
 dependency "tfstate_azure_blob_storage" {
-  config_path = "../tfstate_azure_blob_storage"
+  config_path  = "../tfstate_azure_blob_storage"
+  skip_outputs = true
 }
 
 dependency "azure_key_vault" {
   config_path = "../azure_key_vault"
+
+  mock_outputs = {
+    azure_key_vault_id = "/subscriptions/mock/resourceGroups/mock/providers/Microsoft.KeyVault/vaults/mock"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
 }
 
 dependency "azure_blob_storage" {
   config_path = "../azure_blob_storage"
+
+  mock_outputs = {
+    router_logs_storage_account_id = "/subscriptions/mock/resourceGroups/mock/providers/Microsoft.Storage/storageAccounts/mock"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
 }
 
 dependency "aks" {
   config_path = "../aks"
+
+  mock_outputs = {
+    aks_kube_config = {
+      client_certificate     = ""
+      client_key             = ""
+      cluster_ca_certificate = ""
+      host                   = "https://mock-host"
+    }
+    aks_oidc_issuer_url = "https://mock-oidc-issuer"
+    aks_cluster_name    = "mock-aks"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
 }
 
 locals {

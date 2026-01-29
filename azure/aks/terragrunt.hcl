@@ -9,19 +9,42 @@ terraform {
 
 # To ensure the state backend storage is setup.
 dependency "tfstate_azure_blob_storage" {
-  config_path = "../tfstate_azure_blob_storage"
+  config_path  = "../tfstate_azure_blob_storage"
+  skip_outputs = true
 }
 
 dependency "vnet" {
   config_path = "../vnet"
+
+  mock_outputs = {
+    vnet_id         = "/subscriptions/mock/resourceGroups/mock/providers/Microsoft.Network/virtualNetworks/mock"
+    subnet_ids      = {}
+    subnet_names    = []
+    subnet_prefixes = {}
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
 }
 
 dependency "app_gw" {
   config_path = "../app_gw"
+
+  mock_outputs = {
+    app_gateway_name        = "mock-appgw"
+    app_gateway_id          = "/subscriptions/mock/resourceGroups/mock/providers/Microsoft.Network/applicationGateways/mock"
+    agic_identity_id        = "/subscriptions/mock/resourceGroups/mock/providers/Microsoft.ManagedIdentity/userAssignedIdentities/mock"
+    agic_identity_client_id = "00000000-0000-0000-0000-000000000000"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
 }
 
 dependency "nat" {
   config_path = "../nat"
+
+  mock_outputs = {
+    nat_gateway_enabled = false
+    nat_gateway_ip      = null
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
 }
 
 locals {
