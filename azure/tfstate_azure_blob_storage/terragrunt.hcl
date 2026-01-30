@@ -9,6 +9,11 @@ terraform {
 
 dependency "vnet" {
   config_path = "../vnet"
+
+  mock_outputs = {
+    subnet_ids = {}
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "apply"]
 }
 
 # Note: Local state because storing to azure blob store cannot happen until this

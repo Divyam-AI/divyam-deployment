@@ -119,6 +119,7 @@ locals {
   }
 
   alerts = {
-    enabled = true
+    enabled      = true
+    exclude_list = []
   }
 }

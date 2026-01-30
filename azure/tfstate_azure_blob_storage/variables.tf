@@ -20,7 +20,7 @@ variable "common_tags" {
 
 variable "create" {
   description = "Indicates if storage account and container need to be created"
-  type        = string
+  type        = bool
   default     = true
 }
 
