@@ -24,7 +24,7 @@ dependency "aks" {
       host                   = "https://mock-host"
     }
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
 }
 
 dependency "azure_key_vault" {
@@ -33,7 +33,7 @@ dependency "azure_key_vault" {
   mock_outputs = {
     azure_key_vault_id = "/subscriptions/mock/resourceGroups/mock/providers/Microsoft.KeyVault/vaults/mock"
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
 }
 dependency "azure_key_vault_secrets" {
   config_path  = "../azure_key_vault_secrets"

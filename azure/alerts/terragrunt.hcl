@@ -20,7 +20,7 @@ dependency "aks" {
     monitor_workspace_name = null
     monitor_workspace_id   = null
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
 }
 
 locals {

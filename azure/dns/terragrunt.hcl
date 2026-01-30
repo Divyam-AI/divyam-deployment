@@ -19,7 +19,7 @@ dependency "vnet" {
   mock_outputs = {
     vnet_id = "/subscriptions/mock/resourceGroups/mock/providers/Microsoft.Network/virtualNetworks/mock"
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
 }
 
 dependency "app_gw" {
@@ -30,7 +30,7 @@ dependency "app_gw" {
     app_gateway_id   = "/subscriptions/mock/resourceGroups/mock/providers/Microsoft.Network/applicationGateways/mock"
     load_balancer_ip = "10.0.0.1"
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
 }
 
 locals {

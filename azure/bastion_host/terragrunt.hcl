@@ -22,7 +22,7 @@ dependency "vnet" {
     subnet_names    = []
     subnet_prefixes = {}
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
 }
 
 dependency "aks" {
@@ -32,7 +32,7 @@ dependency "aks" {
     aks_cluster_name    = "mock-aks"
     aks_kube_config_raw = "{}"
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
 }
 
 locals {

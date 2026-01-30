@@ -24,7 +24,7 @@ dependency "vnet" {
     subnet_names             = []
     subnet_prefixes          = {}
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
 }
 
 dependency "tls_certs" {
@@ -34,7 +34,7 @@ dependency "tls_certs" {
     tls_enabled           = false
     certificate_secret_id = null
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
 }
 
 dependency "azure_key_vault" {
@@ -43,7 +43,7 @@ dependency "azure_key_vault" {
   mock_outputs = {
     azure_key_vault_id = "/subscriptions/mock/resourceGroups/mock/providers/Microsoft.KeyVault/vaults/mock"
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
 }
 
 locals {

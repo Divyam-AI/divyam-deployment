@@ -22,7 +22,7 @@ dependency "vnet" {
     subnet_names    = []
     subnet_prefixes = {}
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
 }
 
 dependency "app_gw" {
@@ -34,7 +34,7 @@ dependency "app_gw" {
     agic_identity_id        = "/subscriptions/mock/resourceGroups/mock/providers/Microsoft.ManagedIdentity/userAssignedIdentities/mock"
     agic_identity_client_id = "00000000-0000-0000-0000-000000000000"
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
 }
 
 dependency "nat" {
@@ -44,7 +44,7 @@ dependency "nat" {
     nat_gateway_enabled = false
     nat_gateway_ip      = null
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
 }
 
 locals {

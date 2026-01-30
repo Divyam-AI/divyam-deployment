@@ -22,7 +22,7 @@ dependency "azure_blob_storage" {
     router_logs_storage_account_name              = "mockstorageaccount"
     router_logs_container_names                   = ["mock-container"]
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
 }
 
 dependency "aks" {
@@ -36,7 +36,7 @@ dependency "aks" {
       host                   = "https://mock-host"
     }
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
 }
 
 dependency "azure_key_vault" {
@@ -46,7 +46,7 @@ dependency "azure_key_vault" {
     azure_key_vault_id  = "/subscriptions/mock/resourceGroups/mock/providers/Microsoft.KeyVault/vaults/mock"
     azure_key_vault_uri = "https://mock-vault.vault.azure.net/"
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
 }
 
 dependency "azure_key_vault_secrets" {
@@ -65,7 +65,7 @@ dependency "iam_bindings" {
   mock_outputs = {
     uai_client_ids = {}
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
 }
 
 dependency "dns" {
@@ -75,7 +75,7 @@ dependency "dns" {
     router_dns_zone    = "mock-router.local"
     dashboard_dns_zone = "mock-dashboard.local"
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
 }
 
 dependency "app_gw" {
@@ -85,7 +85,7 @@ dependency "app_gw" {
     app_gateway_tls_enabled      = false
     app_gateway_certificate_name = null
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
 }
 
 locals {
