@@ -5,7 +5,6 @@ include "root" {
 
 dependency "gke" {
   config_path  = "../gke"
-  skip_outputs = !include.root.locals.install_config.cloud_enabled
   mock_outputs = {
     cluster_endpoints       = { (include.root.locals.install_config.derived_vars.k8s_cluster_name) = "10.0.0.1" }
     cluster_ca_certificates = { (include.root.locals.install_config.derived_vars.k8s_cluster_name) = "dGVzdC1jZXJ0aWZpY2F0ZQo=" }

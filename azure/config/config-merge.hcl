@@ -3,17 +3,14 @@
 # interpolates config for Divyam components.
 #
 # Load order (later takes precedence):
-# 1. Global defaults: /config/defaults.hcl
+# 1. Global defaults: /common.hcl
 # 2. Azure defaults: /azure/config/defaults.hcl
 # 3. Common env config: /envs/{env}/common.hcl
 # 4. Azure env config: /envs/{env}/azure.hcl
 #----------------------------------------------
 locals {
-  # Cloud gate - only enable Azure modules when CLOUD=azure (or not set)
-  cloud_enabled = get_env("CLOUD", "azure") == "azure"
-
   # Load defaults
-  global_defaults_file = "${get_repo_root()}/config/defaults.hcl"
+  global_defaults_file = "${get_repo_root()}/common.hcl"
   azure_defaults_file  = "${get_repo_root()}/azure/config/defaults.hcl"
 
   global_defaults = try(read_terragrunt_config(local.global_defaults_file).locals, {})
@@ -159,7 +156,6 @@ locals {
     storage_account_name_prefix = local.storage_account_name_prefix
     resource_group_name         = "${local.resource_name_prefix}-rg"
 
-
     tfstate_azure_blob_storage = {
       storage_account_name = "${local.storage_account_name_prefix}tfstate"
       storage_container_name = try(local.defaults_applied_config.tf_state_storage_container_name, "tfstate")
@@ -256,80 +252,9 @@ locals {
     )
   }
 
-  # Base install config before cloud gate
-  install_config_base = {
+  # Final install config
+  install_config = {
     for k, v in local.install_config_json_decode_partial :
     k => jsondecode(v)
   }
-
-  # Apply cloud gate to all module enabled flags
-  # When CLOUD != azure, all modules are disabled
-  install_config = merge(local.install_config_base, {
-    cloud_enabled = local.cloud_enabled
-    env_name      = local.env_name
-
-    resource_group = merge(try(local.install_config_base.resource_group, {}), {
-      enabled = local.cloud_enabled && try(local.install_config_base.resource_group.enabled, false)
-    })
-
-    tfstate_azure_blob_storage = merge(try(local.install_config_base.tfstate_azure_blob_storage, {}), {
-      enabled = local.cloud_enabled && try(local.install_config_base.tfstate_azure_blob_storage.enabled, false)
-    })
-
-    azure_blob_storage = merge(try(local.install_config_base.azure_blob_storage, {}), {
-      enabled = local.cloud_enabled && try(local.install_config_base.azure_blob_storage.enabled, false)
-    })
-
-    vnet = merge(try(local.install_config_base.vnet, {}), {
-      enabled = local.cloud_enabled && try(local.install_config_base.vnet.enabled, false)
-    })
-
-    aks = merge(try(local.install_config_base.aks, {}), {
-      enabled = local.cloud_enabled && try(local.install_config_base.aks.enabled, false)
-    })
-
-    bastion_host = merge(try(local.install_config_base.bastion_host, {}), {
-      enabled = local.cloud_enabled && try(local.install_config_base.bastion_host.enabled, false)
-    })
-
-    helm_charts = merge(try(local.install_config_base.helm_charts, {}), {
-      enabled = local.cloud_enabled && try(local.install_config_base.helm_charts.enabled, false)
-    })
-
-    app_gw = merge(try(local.install_config_base.app_gw, {}), {
-      enabled = local.cloud_enabled && try(local.install_config_base.app_gw.enabled, false)
-    })
-
-    nat = merge(try(local.install_config_base.nat, {}), {
-      enabled = local.cloud_enabled && try(local.install_config_base.nat.enabled, false)
-    })
-
-    azure_key_vault = merge(try(local.install_config_base.azure_key_vault, {}), {
-      enabled = local.cloud_enabled && try(local.install_config_base.azure_key_vault.enabled, false)
-    })
-
-    azure_key_vault_secrets = merge(try(local.install_config_base.azure_key_vault_secrets, {}), {
-      enabled = local.cloud_enabled && try(local.install_config_base.azure_key_vault_secrets.enabled, false)
-    })
-
-    aks_namespaces = merge(try(local.install_config_base.aks_namespaces, {}), {
-      enabled = local.cloud_enabled && try(local.install_config_base.aks_namespaces.enabled, false)
-    })
-
-    iam_bindings = merge(try(local.install_config_base.iam_bindings, {}), {
-      enabled = local.cloud_enabled && try(local.install_config_base.iam_bindings.enabled, false)
-    })
-
-    dns = merge(try(local.install_config_base.dns, {}), {
-      enabled = local.cloud_enabled && try(local.install_config_base.dns.enabled, false)
-    })
-
-    tls_certs = merge(try(local.install_config_base.tls_certs, {}), {
-      enabled = local.cloud_enabled && try(local.install_config_base.tls_certs.enabled, false)
-    })
-
-    alerts = merge(try(local.install_config_base.alerts, {}), {
-      enabled = local.cloud_enabled && try(local.install_config_base.alerts.enabled, false)
-    })
-  })
 }

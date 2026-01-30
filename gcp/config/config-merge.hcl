@@ -3,17 +3,14 @@
 # interpolates config for Divyam GCP components.
 #
 # Load order (later takes precedence):
-# 1. Global defaults: /config/defaults.hcl
+# 1. Global defaults: /common.hcl
 # 2. GCP defaults: /gcp/config/defaults.hcl
 # 3. Common env config: /envs/{env}/common.hcl
 # 4. GCP env config: /envs/{env}/gcp.hcl
 #----------------------------------------------
 locals {
-  # Cloud gate - only enable GCP modules when CLOUD=gcp
-  cloud_enabled = get_env("CLOUD", "azure") == "gcp"
-
   # Load defaults
-  global_defaults_file = "${get_repo_root()}/config/defaults.hcl"
+  global_defaults_file = "${get_repo_root()}/common.hcl"
   gcp_defaults_file    = "${get_repo_root()}/gcp/config/defaults.hcl"
 
   global_defaults = try(read_terragrunt_config(local.global_defaults_file).locals, {})
@@ -90,99 +87,17 @@ locals {
     k => jsondecode(v)
   }
 
-  # Apply cloud gate to all module enabled flags
-  # When CLOUD != gcp, all modules are disabled
-  install_config = {
-    common_vars    = local.merged_config.common_vars
-    derived_vars   = try(local.merged_config.derived_vars, {})
-    common_tags    = try(local.merged_config.common_tags, {})
-    env_name       = local.env_name
-    cloud_enabled  = local.cloud_enabled
+  # Pass through merged config with defaults for required fields
+  install_config = merge(local.merged_config, {
+    env_name     = local.env_name
+    common_vars  = local.merged_config.common_vars
+    derived_vars = try(local.merged_config.derived_vars, {})
+    common_tags  = try(local.merged_config.common_tags, {})
 
     gcs_remote_state = try(local.merged_config.gcs_remote_state, {
       bucket   = ""
       project  = ""
       location = "asia-south1"
     })
-
-    cloud_apis = merge(try(local.merged_config.cloud_apis, {}), {
-      enabled = local.cloud_enabled && try(local.merged_config.cloud_apis.enabled, false)
-    })
-
-    shared_vpc = merge(try(local.merged_config.shared_vpc, {}), {
-      enabled = local.cloud_enabled && try(local.merged_config.shared_vpc.enabled, false)
-    })
-
-    bastion_host = merge(try(local.merged_config.bastion_host, {}), {
-      enabled = local.cloud_enabled && try(local.merged_config.bastion_host.enabled, false)
-    })
-
-    cloudsql = merge(try(local.merged_config.cloudsql, {}), {
-      enabled = local.cloud_enabled && try(local.merged_config.cloudsql.enabled, false)
-    })
-
-    secrets = merge(try(local.merged_config.secrets, {}), {
-      enabled = local.cloud_enabled && try(local.merged_config.secrets.enabled, false)
-    })
-
-    static_addr = merge(try(local.merged_config.static_addr, {}), {
-      enabled = local.cloud_enabled && try(local.merged_config.static_addr.enabled, false)
-    })
-
-    nat = merge(try(local.merged_config.nat, {}), {
-      enabled = local.cloud_enabled && try(local.merged_config.nat.enabled, false)
-    })
-
-    ssl_cert = merge(try(local.merged_config.ssl_cert, {}), {
-      enabled = local.cloud_enabled && try(local.merged_config.ssl_cert.enabled, false)
-    })
-
-    security = merge(try(local.merged_config.security, {}), {
-      enabled = local.cloud_enabled && try(local.merged_config.security.enabled, false)
-    })
-
-    gcs = merge(try(local.merged_config.gcs, {}), {
-      enabled = local.cloud_enabled && try(local.merged_config.gcs.enabled, false)
-    })
-
-    elb = merge(try(local.merged_config.elb, {}), {
-      enabled = local.cloud_enabled && try(local.merged_config.elb.enabled, false)
-    })
-
-    log_storage = merge(try(local.merged_config.log_storage, {}), {
-      enabled = local.cloud_enabled && try(local.merged_config.log_storage.enabled, false)
-    })
-
-    proxy_subnet = merge(try(local.merged_config.proxy_subnet, {}), {
-      enabled = local.cloud_enabled && try(local.merged_config.proxy_subnet.enabled, false)
-    })
-
-    gke = merge(try(local.merged_config.gke, {}), {
-      enabled = local.cloud_enabled && try(local.merged_config.gke.enabled, false)
-    })
-
-    iam_bindings = merge(try(local.merged_config.iam_bindings, {}), {
-      enabled = local.cloud_enabled && try(local.merged_config.iam_bindings.enabled, false)
-    })
-
-    cloud_build = merge(try(local.merged_config.cloud_build, {}), {
-      enabled = local.cloud_enabled && try(local.merged_config.cloud_build.enabled, false)
-    })
-
-    alerts = merge(try(local.merged_config.alerts, {}), {
-      enabled = local.cloud_enabled && try(local.merged_config.alerts.enabled, false)
-    })
-
-    notification_channels = merge(try(local.merged_config.notification_channels, {}), {
-      enabled = local.cloud_enabled && try(local.merged_config.notification_channels.enabled, false)
-    })
-
-    helm_charts = merge(try(local.merged_config.helm_charts, {}), {
-      enabled = local.cloud_enabled && try(local.merged_config.helm_charts.enabled, false)
-    })
-
-    shared_vpc_service_project = merge(try(local.merged_config.shared_vpc_service_project, {}), {
-      enabled = local.cloud_enabled && try(local.merged_config.shared_vpc_service_project.enabled, false)
-    })
-  }
+  })
 }

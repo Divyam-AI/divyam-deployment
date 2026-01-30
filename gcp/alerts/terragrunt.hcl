@@ -5,7 +5,6 @@ include "root" {
 
 dependency "notification_channels" {
   config_path  = "../notification_channels"
-  skip_outputs = !include.root.locals.install_config.cloud_enabled
   mock_outputs = {
     notification_channel_email       = ""
     notification_channel_webhook     = ""
@@ -15,7 +14,6 @@ dependency "notification_channels" {
 
 dependency "gke" {
   config_path  = "../gke"
-  skip_outputs = !include.root.locals.install_config.cloud_enabled
   mock_outputs = {
     cluster_endpoints       = {}
     cluster_ca_certificates = {}

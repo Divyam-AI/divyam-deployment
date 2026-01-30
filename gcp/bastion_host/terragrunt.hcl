@@ -5,7 +5,6 @@ include "root" {
 
 dependency "shared_vpc" {
   config_path  = "../shared_vpc"
-  skip_outputs = !include.root.locals.install_config.cloud_enabled
   mock_outputs = {
     network_name         = ""
     network_self_link    = ""
