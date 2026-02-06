@@ -220,8 +220,8 @@ The environment has two files
 ## Deploy entire stack
 
 The deployment is organized into three layers that must be deployed in order:
-- **0-foundation**: Core infrastructure (resource group, tfstate storage, vnet)
-- **1-platform**: Platform services (AKS, key vault, DNS, etc.)
+- **0-foundation**: Prerequisities (resource group, tfstate storage, vnet)
+- **1-platform**: Core Infrastructure (AKS, key vault, DNS, etc.)
 - **2-app**: Application layer (namespaces, helm charts)
 
 ### Deploy Foundation Layer (0-foundation)
