@@ -219,21 +219,43 @@ The environment has two files
 
 ## Deploy entire stack
 
-Initialize terraform
-```shell
-terragrunt run-all init
-```
-Deploy
+The deployment is organized into three layers that must be deployed in order:
+- **0-foundation**: Core infrastructure (resource group, tfstate storage, vnet)
+- **1-platform**: Platform services (AKS, key vault, DNS, etc.)
+- **2-app**: Application layer (namespaces, helm charts)
 
+### Deploy Foundation Layer (0-foundation)
 ```shell
-terragrunt run-all apply
+# Plan
+terragrunt run --all plan --queue-include-dir "0-foundation/**"
+
+# Apply
+terragrunt run --all apply --queue-include-dir "0-foundation/**"
 ```
 
-At time some helm charts fail because of timeouts. They need to be 
+### Deploy Platform Layer (1-platform)
+```shell
+# Plan
+terragrunt run --all plan --queue-include-dir "1-platform/**"
+
+# Apply
+terragrunt run --all apply --queue-include-dir "1-platform/**"
+```
+
+### Deploy Application Layer (2-app)
+```shell
+# Plan
+terragrunt run --all plan --queue-include-dir "2-app/**"
+
+# Apply
+terragrunt run --all apply --queue-include-dir "2-app/**"
+```
+
+At times some helm charts fail because of timeouts. They need to be
 retried. To retry and reinstall failed helm charts run
 
 ```shell
-cd helm_charts
+cd 2-app/helm_charts
 
 terragrunt apply
 ```
