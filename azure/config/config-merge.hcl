@@ -12,7 +12,7 @@ locals {
   env_name = get_env("ENV", "dev")
   default_env_dir = "${get_repo_root()}/azure/envs/"
   custom_env_dir = get_env("ENV_DIR", local.default_env_dir)
-  custom_helm_values_dir = get_env("HELM_VALUES_DIR", "${get_repo_root()}/azure/helm_values")
+  custom_helm_values_dir = get_env("HELM_VALUES_DIR", "${local.custom_env_dir}/${local.env_name}/helm_values")
 
   env_config_path = (
     fileexists("${local.custom_env_dir}/${local.env_name}/terragrunt.hcl") ?
