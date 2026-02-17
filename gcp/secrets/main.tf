@@ -15,6 +15,54 @@ resource "google_secret_manager_secret_version" "db_secret_name_secret_version" 
   secret_data_wo = "${var.divyam_db_user_name}:${var.divyam_db_password}"
 }
 
+resource "google_secret_manager_secret" "divyam-db-user-name" {
+  secret_id = "divyam-db-user-name"
+  replication {
+    auto {}
+  }
+}
+
+resource "google_secret_manager_secret_version" "divyam-db-user-name-secret-version" {
+  secret      = google_secret_manager_secret.divyam-db-user-name.id
+  secret_data_wo = "${var.divyam_db_user_name}"
+}
+
+resource "google_secret_manager_secret" "divyam-db-password" {
+  secret_id = "divyam-db-password"
+  replication {
+    auto {}
+  }
+}
+
+resource "google_secret_manager_secret_version" "divyam-db-password-secret-version" {
+  secret      = google_secret_manager_secret.divyam-db-password.id
+  secret_data_wo = "${var.divyam_db_password}"
+}
+
+resource "google_secret_manager_secret" "divyam-analytics-db-user-name" {
+  secret_id = "divyam-analytics-db-user-name"
+  replication {
+    auto {}
+  }
+}
+
+resource "google_secret_manager_secret_version" "divyam-analytics-db-user-name-secret-version" {
+  secret      = google_secret_manager_secret.divyam-analytics-db-user-name.id
+  secret_data_wo = "${var.divyam_clickhouse_user_name}"
+}
+
+resource "google_secret_manager_secret" "divyam-analytics-db-password" {
+  secret_id = "divyam-analytics-db-password"
+  replication {
+    auto {}
+  }
+}
+
+resource "google_secret_manager_secret_version" "divyam-analytics-db-password-secret-version" {
+  secret      = google_secret_manager_secret.divyam-analytics-db-password.id
+  secret_data_wo = "${var.divyam_clickhouse_password}"
+}
+
 resource "google_secret_manager_secret" "billing_secret_name" {
   secret_id = "divyam_billing_secrets"
   replication {

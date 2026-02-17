@@ -193,8 +193,11 @@ export ENV_DIR=<path to directory containing the dev environment folder>
 ## Setup secrets
 
 ```shell
-export TF_VAR_divyam_db_password="XXXXXXX"
+export TF_VAR_divyam_db_username="XXXXXXX"        # Optional, will pick:  divyam
+export TF_VAR_divyam_clickhouse_username="XXXXXX" # Optional, will pick : default
 
+export TF_VAR_divyam_db_password="XXXXXXX"
+export TF_VAR_divyam_clickhouse_password="XXXXXX"
 export TF_VAR_divyam_jwt_secret_key="XXXXXXX"
 export TF_VAR_divyam_provider_keys_encryption_key="XXXXXXX"
 export TF_VAR_divyam_openai_billing_admin_api_key="XXXXXXX"
