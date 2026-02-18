@@ -193,8 +193,8 @@ export ENV_DIR=<path to directory containing the dev environment folder>
 ## Setup secrets
 
 ```shell
-export TF_VAR_divyam_db_username="XXXXXXX"        # Optional, will pick:  divyam
-export TF_VAR_divyam_clickhouse_username="XXXXXX" # Optional, will pick : default
+export TF_VAR_divyam_db_user_name="XXXXXXX"        # Optional, will pick:  divyam
+export TF_VAR_divyam_clickhouse_user_name="XXXXXX" # Optional, will pick : default
 
 export TF_VAR_divyam_db_password="XXXXXXX"
 export TF_VAR_divyam_clickhouse_password="XXXXXX"
