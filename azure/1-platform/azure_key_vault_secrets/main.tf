@@ -29,10 +29,10 @@ locals {
     "divyam-db-user-name-password-secret"  = "${var.divyam_db_user_name}:${var.divyam_db_password}"
     "divyam-db-password"                   = var.divyam_db_password
     "divyam-db-user-name"                  = var.divyam_db_user_name
-    "divyam-clickhouse-password"           = var.divyam_clickhouse_password
+    "divyam-analytics-db-user-name"        = var.divyam_clickhouse_user_name
+    "divyam-analytics-db-password"         = var.divyam_clickhouse_password
     "divyam-superset-pg-password"          = local.superset_pg_password
     "divyam-superset-pg-superset-password" = local.superset_pg_superset_password
-    "divyam-clickhouse-user-name"          = var.divyam_clickhouse_user_name
     "divyam-jwt-secret-key"                = var.divyam_jwt_secret_key
     "divyam-provider-keys-encryption-key"  = var.divyam_provider_keys_encryption_key
     "divyam-openai-billing-admin-api-key"  = var.divyam_openai_billing_admin_api_key
