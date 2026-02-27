@@ -209,6 +209,157 @@ resource "azurerm_federated_identity_credential" "billing_k8s_federation" {
   subject             = "system:serviceaccount:${each.value.namespace}:${each.value.service_account}"
 }
 
+
+# -----------------------------------------------
+# Clickhouse Secrets IAM Setup
+# -----------------------------------------------
+
+resource "azurerm_user_assigned_identity" "clickhouse" {
+  name                = "${local.name_prefix}-clickhouse-uai"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  tags = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = "${local.name_prefix}-clickhouse-uai"
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
+  }
+}
+
+resource "azurerm_role_assignment" "clickhouse_reader" {
+  scope                = data.azurerm_resource_group.selected.id
+  role_definition_name = "Reader"
+  principal_id         = azurerm_user_assigned_identity.clickhouse.principal_id
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      name,
+      role_definition_name,
+      principal_id,
+      scope,
+    ]
+  }
+}
+
+resource "azurerm_role_assignment" "clickhouse_key_vault" {
+  scope                = var.azure_key_vault_id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = azurerm_user_assigned_identity.clickhouse.principal_id
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      name,
+      role_definition_name,
+      principal_id,
+      scope,
+    ]
+  }
+}
+
+resource "azurerm_key_vault_access_policy" "clickhouse_key_vault_policy" {
+  key_vault_id = var.azure_key_vault_id # The Key Vault ID
+
+  tenant_id = data.azurerm_client_config.current.tenant_id
+  object_id = azurerm_user_assigned_identity.clickhouse.principal_id # Principal ID of the user-assigned identity
+
+  secret_permissions = [
+    "Get",
+    "List",
+    "Set"
+  ]
+}
+
+resource "azurerm_federated_identity_credential" "clickhouse_k8s_federation" {
+  for_each            = lookup(local.federated_identity_grouped, "clickhouse_uai_client_id", {})
+  name                = "${each.key}-k8s-workload"
+  resource_group_name = var.resource_group_name
+  parent_id           = azurerm_user_assigned_identity.clickhouse.id
+  audience            = ["api://AzureADTokenExchange"]
+  issuer              = each.value.oidc_issuer_url
+  subject             = "system:serviceaccount:${each.value.namespace}:${each.value.service_account}"
+}
+
+
+
+# -----------------------------------------------
+# DB Upgrades Secrets IAM Setup
+# -----------------------------------------------
+
+resource "azurerm_user_assigned_identity" "db_upgrades" {
+  name                = "${local.name_prefix}-db_upgrades-uai"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  tags = {
+    for key, value in local.common_tags :
+    key => templatestring(value, {
+      resource_name  = "${local.name_prefix}-db_upgrades-uai"
+      location       = var.location
+      resource_group = var.resource_group_name
+      environment    = var.environment
+    })
+  }
+}
+
+resource "azurerm_role_assignment" "db_upgrades_reader" {
+  scope                = data.azurerm_resource_group.selected.id
+  role_definition_name = "Reader"
+  principal_id         = azurerm_user_assigned_identity.db_upgrades.principal_id
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      name,
+      role_definition_name,
+      principal_id,
+      scope,
+    ]
+  }
+}
+
+resource "azurerm_role_assignment" "db_upgrades_key_vault" {
+  scope                = var.azure_key_vault_id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = azurerm_user_assigned_identity.db_upgrades.principal_id
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      name,
+      role_definition_name,
+      principal_id,
+      scope,
+    ]
+  }
+}
+
+resource "azurerm_key_vault_access_policy" "db_upgrades_key_vault_policy" {
+  key_vault_id = var.azure_key_vault_id # The Key Vault ID
+
+  tenant_id = data.azurerm_client_config.current.tenant_id
+  object_id = azurerm_user_assigned_identity.db_upgrades.principal_id # Principal ID of the user-assigned identity
+
+  secret_permissions = [
+    "Get",
+    "List",
+    "Set"
+  ]
+}
+
+resource "azurerm_federated_identity_credential" "db_upgrades_k8s_federation" {
+  for_each            = lookup(local.federated_identity_grouped, "db_upgrades_uai_client_id", {})
+  name                = "${each.key}-k8s-workload"
+  resource_group_name = var.resource_group_name
+  parent_id           = azurerm_user_assigned_identity.db_upgrades.id
+  audience            = ["api://AzureADTokenExchange"]
+  issuer              = each.value.oidc_issuer_url
+  subject             = "system:serviceaccount:${each.value.namespace}:${each.value.service_account}"
+}
+
 # -----------------------------------------------
 # Router Controller IAM Setup
 # -----------------------------------------------

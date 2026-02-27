@@ -135,6 +135,24 @@ data "azurerm_key_vault_secret" "secrets" {
   key_vault_id = var.azure_key_vault_id
 }
 
+resource "helm_release" "external_secrets" {
+  name             = "external-secrets"
+  repository       = "https://charts.external-secrets.io"
+  chart            = "external-secrets"
+  namespace        = "external-secrets-${var.environment}-ns"
+  create_namespace = true
+
+  # optional but recommended
+  version = "0.10.5"   # example, pin version for stability
+
+  # Example values override (optional)
+  values = [
+    yamlencode({
+      installCRDs = true
+    })
+  ]
+}
+
 resource "helm_release" "divyam_deploy" {
   for_each   = local.charts
   name       = "${replace((lookup(each.value, "name", null) != null ? each.value["name"] : each.key), "_", "-")}-${var.environment}"
