@@ -1,0 +1,246 @@
+# Helmfile for divyam-helm-charts
+# Usage:
+#   helmfile apply
+#   helmfile diff
+#   helmfile -l name=mysql apply
+#   helmfile destroy
+
+helmDefaults:
+  createNamespace: true
+  wait: true
+  timeout: 600
+  atomic: true
+
+repositories:
+  - name: external-secrets
+    url: https://charts.external-secrets.io
+
+###############################################################################
+# 1. Load and Merge Values
+###############################################################################
+
+{{- $valuesDir := env "HELMFILE_VALUES_DIR" | default "./values" }}
+{{- $envVals := readFile (printf "%s/env.yaml" $valuesDir) | fromYaml }}
+{{- $resources := readFile (printf "%s/resources.yaml" $valuesDir) | fromYaml }}
+{{- $artifacts := readFile (printf "%s/artifacts.yaml" $valuesDir) | fromYaml }}
+
+{{- $global := merge ($envVals | default dict) }}
+{{- $charts := merge ($resources.charts | default dict) ($artifacts | default dict) }}
+
+{{- $values := merge $resources (dict
+  "global" $global
+  "charts" $charts
+) }}
+
+{{- $env := $values.global.environment | default "dev" }}
+{{- $base := $values.global.chartBasePath }}
+{{- $clusterDomain := $values.global.clusterDomain }}
+{{- $externalSecretsChartName := "external-secrets/external-secrets" }}
+
+###############################################################################
+# 2. Namespace Group Map
+###############################################################################
+{{- $namespaceGroupMap := dict
+  "altinity-clickhouse-operator" "clickhouse"
+  "clickhouse"                   "clickhouse"
+
+  "strimzi-kafka-operator"       "kafka"
+  "kafka-cluster"                "kafka"
+  "kafka-connect"                "kafka"
+
+  "superset-postgres"            "superset"
+  "superset"                     "superset"
+  "superset-ingress"             "superset"
+-}}
+
+###############################################################################
+# 3. Dependency Map
+###############################################################################
+{{- $dependencyMap := dict
+  "altinity-clickhouse-operator" (list)
+  "clickhouse"                   (list "altinity-clickhouse-operator" "external-secrets-operator" "kafka-cluster")
+  "external-secrets-operator"    (list)
+  "strimzi-kafka-operator"       (list)
+  "kafka-cluster"                (list "strimzi-kafka-operator")
+  "kafka-connect"                (list "kafka-cluster")
+  "otel-collector"               (list "kafka-cluster")
+  "mysql"                        (list "external-secrets-operator")
+  "divyam-redis"                 (list)
+  "superset-postgres"            (list "external-secrets-operator")
+  "superset"                     (list "superset-postgres")
+  "superset-ingress"             (list "superset")
+  "infinity"                     (list)
+  "qdrant"                       (list)
+  "divyam-route-selector"        (list "infinity" "qdrant")
+  "selector-training"            (list "mysql" "divyam-redis" "qdrant" "clickhouse")
+  "divyam-evaluator"             (list "mysql" "clickhouse")
+  "router-controller"            (list "otel-collector" "mysql" "divyam-route-selector")
+  "router-controller-ingress"    (list "router-controller")
+-}}
+
+###############################################################################
+# 4. Service Override Map
+###############################################################################
+{{- $serviceOverrideMap := dict
+  "kafka-cluster" "kafka-%s-cluster-kafka-bootstrap"
+-}}
+
+###############################################################################
+# 5. Namespace Helper
+###############################################################################
+{{- define "namespace" -}}
+{{- $explicit := .namespace -}}
+{{- $name := .name -}}
+{{- $env := .env -}}
+{{- $map := .namespaceGroupMap -}}
+
+{{- if $explicit -}}
+{{- $explicit -}}
+{{- else if hasKey $map $name -}}
+{{- printf "%s-%s-ns" (index $map $name) $env -}}
+{{- else -}}
+{{- printf "%s-%s-ns" $name $env -}}
+{{- end -}}
+{{- end }}
+
+###############################################################################
+# 6. Service Name Helper
+###############################################################################
+{{- define "serviceName" -}}
+{{- $svc := .service | default dict -}}
+{{- $name := .name -}}
+{{- $env := .env -}}
+{{- $overrideMap := .serviceOverrideMap -}}
+
+{{- if index $svc "name" -}}
+{{- index $svc "name" -}}
+{{- else if hasKey $overrideMap $name -}}
+{{- printf (index $overrideMap $name) $env -}}
+{{- else -}}
+{{- printf "%s-%s-svc" $name $env -}}
+{{- end -}}
+{{- end }}
+
+###############################################################################
+# 7. Releases
+###############################################################################
+releases:
+
+{{- range $name, $rawCfg := $values.charts }}
+  {{- $cfg := merge (dict "enabled" true "values" dict "namespace" nil) ($rawCfg | default dict) }}
+
+  {{- if $cfg.enabled }}
+
+    {{- $chart := printf "%s/%s" $base $name }}
+    {{- if eq $name "external-secrets-operator" }}
+      {{- $chart = $externalSecretsChartName }}
+    {{- end }}
+
+    {{- $needs := index $dependencyMap $name | default (list) }}
+
+    {{- $ns := include "namespace" (dict
+        "namespace" $cfg.namespace
+        "name" $name
+        "env" $env
+        "namespaceGroupMap" $namespaceGroupMap
+      ) }}
+
+    {{- $svc := include "serviceName" (dict
+        "service" (index $cfg.values "service" | default dict)
+        "name" $name
+        "env" $env
+        "serviceOverrideMap" $serviceOverrideMap
+      ) }}
+
+    ###########################################################################
+    # Dependency DNS Map
+    ###########################################################################
+    {{- $depDnsMap := dict }}
+
+    {{- range $depName := $needs }}
+
+      {{- $depRaw := index $values.charts $depName | default dict }}
+      {{- $depCfg := merge (dict "enabled" true "values" dict "namespace" nil) $depRaw }}
+
+      {{- if $depCfg.enabled }}        
+
+        {{- $depNs := include "namespace" (dict
+            "namespace" $depCfg.namespace
+            "name" $depName
+            "env" $env
+            "namespaceGroupMap" $namespaceGroupMap
+          ) }}
+
+        {{- $depSvc := include "serviceName" (dict
+            "service" (index $depCfg.values "service" | default dict)
+            "name" $depName
+            "env" $env
+            "serviceOverrideMap" $serviceOverrideMap
+          ) }}
+
+        {{- $_ := set $depDnsMap $depName
+              (printf "%s.%s.%s" $depSvc $depNs $clusterDomain | trimSuffix ".")
+        }}
+
+      {{- end }}
+    {{- end }}
+
+- name: {{ $name }}
+  namespace: {{ $ns }}
+  chart: {{ $chart }}
+
+  {{- if $needs }}
+  needs:
+    {{- range $dep := $needs }}
+
+      {{- $depRaw := index $values.charts $dep | default dict }}
+      {{- $depCfg := merge (dict "enabled" true "values" dict "namespace" nil) $depRaw }}
+
+      {{- if $depCfg.enabled }}
+
+        {{- $depNs := include "namespace" (dict
+            "namespace" $depCfg.namespace
+            "name" $dep
+            "env" $env
+            "namespaceGroupMap" $namespaceGroupMap
+          ) }}
+
+    - {{ printf "%s/%s" $depNs $dep }}
+
+      {{- end }}
+    {{- end }}
+  {{- end }}
+
+  values:
+    - platform:
+        provider: {{ $values.global.platform.provider }}
+
+    - environment: {{ $env }}
+
+    - dependencies:
+{{ $depDnsMap | toYaml | indent 8 }}
+
+    {{- if $cfg.values }}
+    - {{ toYaml $cfg.values | nindent 6 }}
+    {{- end }}
+
+    {{- $mysqlNs := include "namespace" (dict
+        "namespace" $values.charts.mysql.namespace
+        "name" "mysql"
+        "env" $env
+        "namespaceGroupMap" $namespaceGroupMap
+    ) }}
+
+    {{- $mysqlSvc := include "serviceName" (dict
+        "service" (index $values.charts.mysql.values "service" | default dict)
+        "name" "mysql"
+        "env" $env
+        "serviceOverrideMap" $serviceOverrideMap
+      ) }}
+    - mysql_integration:
+        host: {{ $values.databases.mysql.host | default (printf "%s.%s.%s" $mysqlSvc $mysqlNs $clusterDomain | trimSuffix ".") }}
+        port: {{ $values.databases.mysql.port | default 3306 }}
+        database: {{ $values.databases.mysql.database | default (printf "divyam-%s" $env) }}
+
+  {{- end }}
+{{- end }}
