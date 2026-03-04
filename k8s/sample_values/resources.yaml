@@ -1,0 +1,250 @@
+# Database config and per-chart values (resources, nodeSelector, persistence, etc.)
+# Merged with cloud.yaml and artifacts.yaml via helmfile
+# Generated from preprod-values.yaml in each chart under deployment/charts
+
+databases:
+  mysql:
+    host: "10.25.0.3"
+    port: 3306
+    database: "divyam_preprod"
+
+charts:
+  altinity-clickhouse-operator:
+    namespace: ""
+    values:
+      metrics:
+        enabled: true
+        resources: {}
+      nodeSelector:
+        cloud.google.com/gke-spot: "true"
+      operator:
+        resources: {}
+
+  clickhouse:
+    namespace: ""
+    values:
+      clickhouse:
+        resources:
+          requests:
+            cpu: "4"
+            memory: "4Gi"
+          limits:
+            cpu: "4"
+            memory: "4Gi"
+        nodeSelector:
+          cloud.google.com/gke-spot: "true"
+        persistence:
+          size: 20Gi
+          storageClass: "standard-rwo"
+      keeper:
+        resources:
+          requests:
+            cpu: "1"
+            memory: "1Gi"
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+        nodeSelector:
+          cloud.google.com/gke-spot: "true"
+        localStorage:
+          size: 10Gi
+          storageClass: "standard-rwo"
+
+  strimzi-kafka-operator:
+    namespace: ""
+    values:
+      nodeSelector:
+        cloud.google.com/gke-spot: "true"
+      resources:
+        limits:
+          memory: 1Gi
+          cpu: 1
+        requests:
+          memory: 1Gi
+          cpu: 1
+
+  kafka-cluster:
+    namespace: ""
+    values:
+      nodeSelectorConfig:
+        kafka:
+          cloud.google.com/gke-spot: "true"
+        zookeeper:
+          cloud.google.com/gke-spot: "true"
+        kafkaExporter:
+          cloud.google.com/gke-spot: "true"
+        entityOperator:
+          cloud.google.com/gke-spot: "true"
+      storage:
+        brokerStorageSize: 20Gi
+        zookeeperStorageSize: 2Gi
+        class: "standard-rwo"
+      broker_resources:
+        cpu: 2
+        memory: 4Gi
+      zookeeper_resources:
+        cpu: 1
+        memory: 2Gi
+
+  otel-collector:
+    namespace: ""
+    values:
+      resources:
+        requests:
+          memory: "1Gi"
+          cpu: 1
+        limits:
+          memory: "1Gi"
+          cpu: 1
+      nodeSelector:
+        cloud.google.com/gke-spot: "true"
+      storage:
+        size: 10Gi
+
+  mysql:
+    namespace: ""
+    values:
+      mysql:
+        persistence:
+          storageClass: "standard-rwo"
+          size: 5Gi
+        nodeSelector:
+          cloud.google.com/gke-spot: "true"
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "2"
+          limits:
+            memory: "2Gi"
+            cpu: "2"
+      adminer:
+        deploy: true
+        nodeSelector:
+          cloud.google.com/gke-spot: "true"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+
+  divyam-redis:
+    namespace: ""
+    values:
+      persistence:
+        storageClass: "standard-rwo"
+        size: 10Gi
+        enabled: true
+      service:
+      nodeSelector:
+        cloud.google.com/gke-spot: "true"
+      resources: {}
+
+  superset-postgres:
+    namespace: ""
+    values:
+      storage_class: standard-rwo
+      storage: 5Gi
+      service:
+        annotations: {}
+      nodeSelector:
+        cloud.google.com/gke-spot: "true"
+      resources:
+        requests:
+          cpu: 2
+          memory: 2Gi
+        limits:
+          cpu: 2
+          memory: 2Gi
+
+  infinity:
+    namespace: ""
+    values:
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-l4
+        cloud.google.com/gke-spot: "true"
+      resources:
+        requests:
+          memory: 12Gi
+          cpu: 3
+          nvidia.com/gpu: 1
+        limits:
+          memory: 12Gi
+          cpu: 3
+          nvidia.com/gpu: 1
+      replicaCount: 1
+
+  qdrant:
+    namespace: ""
+    values:
+      persistence:
+        storageClassName: "standard-rwo"
+        size: 10Gi
+        accessModes: ["ReadWriteOnce"]
+      service:
+      nodeSelector:
+        cloud.google.com/gke-spot: "true"
+      resources:
+        limits:
+          cpu: 2
+          memory: 4Gi
+        requests:
+          cpu: 2
+          memory: 4Gi
+      replicaCount: 2
+
+  external-secrets-operator:
+    namespace: ""
+    values:
+      installCRDs: true
+      resources:
+        requests:
+          cpu: 100m
+          memory: 512Mi
+        limits:
+          cpu: 100m
+          memory: 512Mi
+      nodeSelector: {}
+
+  kafka-connect:
+    namespace: ""
+    values:
+      storage_configs:
+        gcp:
+          storage:
+            bucket: "divyam-preprod-gcs-router-raw-logs"
+      nodeSelector:
+        cloud.google.com/gke-spot: "true"
+      resources:
+        cpu: 2
+        memory: 4Gi
+      worker_replica: 2
+
+  superset:
+    namespace: ""
+    values:
+      nodeSelector:
+        cloud.google.com/gke-spot: "true"
+      supersetNode:
+        replicas:
+          enabled: true
+          replicaCount: 2
+        resources:
+          limits:
+            cpu: 1
+            memory: 2Gi
+          requests:
+            cpu: 1
+            memory: 2Gi
+      supersetWorker:
+        replicas:
+          enabled: true
+          replicaCount: 2
+        resources:
+          limits:
+            cpu: 1
+            memory: 2Gi
+          requests:
+            cpu: 1
+            memory: 2Gi
