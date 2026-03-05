@@ -4,7 +4,6 @@
 # Set via env: ARM_SUBSCRIPTION_ID, ARM_TENANT_ID
 #----------------------------------------------
 locals {
-  cloud_provider = "azure"
 
   subscription_id = get_env("ARM_SUBSCRIPTION_ID")
   tenant_id       = get_env("ARM_TENANT_ID")

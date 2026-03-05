@@ -16,17 +16,17 @@ locals {
 
   merged = merge(local.default_locals, local.cloud_locals)
 
-  tfstate_storage_account_name = "${replace(local.merged.deployment_prefix, "-", "")}tfstate"
-  resource_group_name            = local.merged.resource_scope.name
-  storage_container_name         = local.merged.tfstate.container_name
+  tfstate_storage_account_name    = "${replace(local.merged.deployment_prefix, "-", "")}tfstate"
+  resource_scope_name             = local.merged.resource_scope.name
+  tfstate_storage_container_name  = local.merged.tfstate.container_name
   resource_name_prefix            = local.merged.deployment_prefix
-  environment                    = local.merged.env_name
-  common_tags                    = try(local.merged.common_tags, {})
+  environment                     = local.merged.env_name
+  common_tags                     = try(local.merged.common_tags, {})
 
   azure_backend = {
-    resource_group_name  = local.resource_group_name
+    resource_group_name  = local.resource_scope_name
     storage_account_name = local.tfstate_storage_account_name
-    container_name       = local.storage_container_name
+    container_name       = local.tfstate_storage_container_name
     key                  = "${local.merged.env_name}/${local.merged.region}/${path_relative_to_include()}/terraform.tfstate"
   }
 
@@ -51,7 +51,9 @@ locals {
 
 # Default: run resource-scope from repo root. Children override with their own source.
 terraform {
-  source = local.at_repo_root ? "0-foundation/0-resource_scope/${local.cloud_provider}" : "."
+#  source = local.at_repo_root ? "0-foundation/0-resource_scope/${local.cloud_provider}" : "."
+    source = local.at_repo_root ? "0-foundation/1-vnet/${local.cloud_provider}" : "."
+#   source = local.at_repo_root ? "0-foundation/2-terraform_state_blob_storage/${local.cloud_provider}" : "."
 }
 
 generate "provider" {
