@@ -35,5 +35,6 @@ fi
 export ORG_NAME="${ORG_NAME:-}"
 
 echo "ENV=$ENV CLOUD_PROVIDER=$CLOUD_PROVIDER REGION=$REGION ZONE=$ZONE ORG_NAME=$ORG_NAME"
-echo "Running terragrunt plan..."
-exec terragrunt plan
+echo "Running terragrunt run-all plan in 0-foundation (cloud=${CLOUD_PROVIDER} only)..."
+# --filter limits run to this cloud's folders (e.g. 0-foundation/**/azure or /**/gcp)
+exec bash -c "cd \"$REPO_ROOT/0-foundation\" && terragrunt run --all plan --filter './**/${CLOUD_PROVIDER}'"

@@ -16,31 +16,6 @@ locals {
 
   merged = merge(local.default_locals, local.cloud_locals)
 
-  tfstate_storage_account_name    = "${replace(local.merged.deployment_prefix, "-", "")}tfstate"
-  resource_scope_name             = local.merged.resource_scope.name
-  tfstate_storage_container_name  = local.merged.tfstate.container_name
-  resource_name_prefix            = local.merged.deployment_prefix
-  environment                     = local.merged.env_name
-  common_tags                     = try(local.merged.common_tags, {})
-
-  azure_backend = {
-    resource_group_name  = local.resource_scope_name
-    storage_account_name = local.tfstate_storage_account_name
-    container_name       = local.tfstate_storage_container_name
-    key                  = "${local.merged.env_name}/${local.merged.region}/${path_relative_to_include()}/terraform.tfstate"
-  }
-
-  # GCP GCS backend: bucket from values or default; prefix built from path
-  gcp_tfstate_bucket = coalesce(try(local.merged.tfstate_bucket, ""), "${replace(local.merged.deployment_prefix, "-", "")}tfstate")
-  gcp_backend = {
-    bucket = local.gcp_tfstate_bucket
-    prefix = "${local.merged.env_name}/${local.merged.region}/${path_relative_to_include()}"
-  }
-
-  # Remote state: from values/azure or values/gcp. 0-resource_scope and 1-terraform_state_* override to local in their terragrunt.hcl.
-  remote_state_backend = try(local.merged.remote_state.backend, "azurerm")
-  remote_state_config  = local.remote_state_backend == "gcs" ? local.gcp_backend : local.azure_backend
-
   # Provider block comes from values/<cloud>/defaults.hcl so only the active cloud's
   # config is loaded (no Azure subscription_id/tenant_id when CLOUD_PROVIDER=gcp).
   effective_provider_content = try(local.merged.provider_block, "")
@@ -56,31 +31,33 @@ terraform {
     source = local.at_repo_root ? "0-foundation/2-terraform_state_blob_storage/${local.cloud_provider}" : "."
 }
 
-generate "provider" {
-  path      = "provider.tf"
-  if_exists = "overwrite"
-  contents  = local.effective_provider_content
-}
-
-# Remote state: backend and config from values/<cloud>/defaults.hcl (azure -> azurerm, gcp -> gcs).
-# 0-resource_scope and 1-terraform_state_* override to local in their terragrunt.hcl (bootstrap chicken-egg).
+# Remote state: config from values/defaults.hcl tfstate + resource_scope; backend type by CLOUD_PROVIDER.
+# (Terragrunt allows only one level of include, so this cannot live in values/<cloud>/backend.hcl.)
 remote_state {
-  backend = local.at_repo_root ? "local" : local.remote_state_backend
+  backend = local.at_repo_root ? "local" : (coalesce(local.cloud_provider, "azure") == "gcp" ? "gcs" : "azurerm")
   generate = {
     path      = "backend.tf"
     if_exists = "overwrite"
   }
   config = local.at_repo_root ? {
     path = "terraform.tfstate"
-  } : (local.remote_state_backend == "gcs" ? {
-    bucket = local.remote_state_config.bucket
-    prefix = local.remote_state_config.prefix
-  } : {
-    resource_group_name  = local.remote_state_config.resource_group_name
-    storage_account_name = local.remote_state_config.storage_account_name
-    container_name       = local.remote_state_config.container_name
-    key                  = local.remote_state_config.key
-  })
+  } : (coalesce(local.cloud_provider, "azure") == "gcp" ? merge(
+    { bucket = local.merged.tfstate.bucket_name },
+    { prefix = "${local.merged.env_name}/${local.merged.region}/${path_relative_to_include()}" }
+  ) : merge(
+    {
+      resource_group_name  = local.merged.resource_scope.name
+      storage_account_name = local.merged.tfstate.bucket_name
+      container_name       = local.merged.tfstate.bucket_name
+    },
+    { key = "${local.merged.env_name}/${local.merged.region}/${path_relative_to_include()}/terraform.tfstate" }
+  ))
+}
+
+generate "provider" {
+  path      = "provider.tf"
+  if_exists = "overwrite"
+  contents  = local.effective_provider_content
 }
 
 generate "tagging" {

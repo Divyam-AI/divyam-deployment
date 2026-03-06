@@ -33,7 +33,7 @@ locals {
 # --- Resource Scope ---
 # Azure: resource_group_name | GCP: project_id
   resource_scope = {
-    create  = false
+    create  = true
     name    = "${local.deployment_prefix}-rg"
     #name   =  "rg-sudhir-4084" # Azure
     #name   = "prod-benchmarking" # GCP
@@ -59,14 +59,16 @@ locals {
 
 # --- Blob / Object Storage ---
 # Azure: Resource Group -> Storage Account -> Container | GCP: Project -> GCS bucket(s)
-  # --- Terraform State Backend ---  
+  # --- Terraform State Backend ---
+  # bucket_name: cloud-agnostic logical name for state store (Azure: container + storage account; GCP: bucket).
+  # Override in values/azure/defaults.hcl or values/gcp/defaults.hcl if needed (e.g. storage_account_name, container_name for Azure).
   tfstate = {
     create         = true
     region         = "${local.region}"
     zone           = "${local.zone}"
     scope_name     = "${local.resource_scope}"                              # Azure Resource Group or GCP Project
     storage_name   = "storage"                                              # Azure Storage Account or GCP - empty
-    container_name = "${replace(local.deployment_prefix, "-", "")}tfstate"  # Azure Container or GCP Bucket
+    bucket_name    = "${replace(local.deployment_prefix, "-", "")}tfstate" # Azure container + storage account name; GCP bucket name
   }
 
   # --- Divyam Data ---

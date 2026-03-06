@@ -12,9 +12,6 @@ locals {
   #folder_id      = get_env("FOLDER_ID")
   #billing_account = get_env("BILLING_ACCOUNT_ID")
 
-  # GCS bucket for Terraform state (must exist; created by 1-terraform_state_* or manually)
-  #tfstate_bucket = var.TFSTATE_BUCKET
-
   # Remote state backend for all modules except 0-resource_scope and 1-terraform_state_*
   # (those use local state; prefix is built in root from path_relative_to_include())
   remote_state = {
