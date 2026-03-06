@@ -52,8 +52,8 @@ locals {
 # Default: run resource-scope from repo root. Children override with their own source.
 terraform {
 #  source = local.at_repo_root ? "0-foundation/0-resource_scope/${local.cloud_provider}" : "."
-    source = local.at_repo_root ? "0-foundation/1-vnet/${local.cloud_provider}" : "."
-#   source = local.at_repo_root ? "0-foundation/2-terraform_state_blob_storage/${local.cloud_provider}" : "."
+#   source = local.at_repo_root ? "0-foundation/1-vnet/${local.cloud_provider}" : "."
+    source = local.at_repo_root ? "0-foundation/2-terraform_state_blob_storage/${local.cloud_provider}" : "."
 }
 
 generate "provider" {
@@ -113,7 +113,7 @@ generate "tagging" {
         k => replace(
           v,
           "/#\\{([^}]+)\\}/",
-          lookup(var.tag_globals, regex("#\\{([^}]+)\\}", v)[0], "")
+          lookup(local.tag_context, regex("#\\{([^}]+)\\}", v)[0], "")
         )
       }
     }    
@@ -131,6 +131,9 @@ inputs = merge(
       resource_group = local.merged.resource_scope.name
       region      = local.merged.region
       org         = local.merged.org_name
+    }
+    tag_context = {
+      resource_name = local.merged.resource_scope.name
     }
   }
 )
