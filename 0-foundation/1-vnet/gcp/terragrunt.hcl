@@ -30,15 +30,14 @@ locals {
   }
 }
 
+# Pass vnet + tagging inputs (common_tags, tag_globals, tag_context) like 0-resource_scope so root generate "tagging" works.
 inputs = merge(
   {
-    vnet = local.vnet_config
+    vnet        = local.vnet_config
     common_tags = try(local.root.common_tags, {})
-    tag_globals = {
-      environment    = local.root.env_name
-      resource_group = local.root.resource_scope.name
-      region         = local.root.region
-      org            = try(local.root.org_name, "")
+    tag_globals = try(include.root.inputs.tag_globals, {})
+    tag_context = {
+      resource_name = local.root.vnet.name
     }
   }
 )
