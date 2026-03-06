@@ -1,5 +1,5 @@
 include "root" {
-  path = "${get_repo_root()}/terragrunt.hcl"
+  path   = find_in_parent_folders("terragrunt.hcl")
   expose = true
 }
 
@@ -20,13 +20,16 @@ locals {
   root = include.root.locals.merged
   # Map values/* (resource_scope + GCP defaults) to Terraform inputs; create = false uses data source only
   inputs = {
-    resource_group_name = coalesce(try(local.root.project_id, null), local.root.resource_scope.name)
-    org_id              = try(local.root.org_id, "")
-    folder_id           = try(local.root.folder_id, "")
-    billing_account     = try(local.root.billing_account, "")
-    environment         = local.root.env_name
-    labels              = try(local.root.common_tags, {})
-    create              = local.root.resource_scope.create
+    resource_scope = local.root.resource_scope
+    org_id         = try(local.root.org_id, "")
+    folder_id      = try(local.root.folder_id, "")
+    billing_account = try(local.root.billing_account, "")
+    env_name       = local.root.env_name
+    common_tags    = try(local.root.common_tags, {})
+    tag_globals    = try(include.root.inputs.tag_globals, {})
+    tag_context = {
+      resource_name = local.root.resource_scope.name
+    }
   }
 }
 
