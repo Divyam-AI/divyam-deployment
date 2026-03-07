@@ -11,6 +11,9 @@ locals {
   cloud_provider = get_env("CLOUD_PROVIDER")
   at_repo_root   = get_terragrunt_dir() == local.repo_root
 
+  # Set TG_USE_LOCAL_BACKEND=1 (or true) to use local state for all modules — no remote backend, no state download. Useful for testing.
+  use_local_backend = get_env("TG_USE_LOCAL_BACKEND", "0") != "0"
+
   default_locals = read_terragrunt_config("${local.repo_root}/values/defaults.hcl").locals
   cloud_locals   = read_terragrunt_config("${local.repo_root}/values/${local.cloud_provider}/defaults.hcl").locals
 
@@ -33,13 +36,14 @@ terraform {
 
 # Remote state: config from values/defaults.hcl tfstate + resource_scope; backend type by CLOUD_PROVIDER.
 # (Terragrunt allows only one level of include, so this cannot live in values/<cloud>/backend.hcl.)
+# Use TG_USE_LOCAL_BACKEND=1 to force local backend for all modules (no remote state, for testing).
 remote_state {
-  backend = local.at_repo_root ? "local" : (coalesce(local.cloud_provider, "azure") == "gcp" ? "gcs" : "azurerm")
+  backend = (local.use_local_backend || local.at_repo_root) ? "local" : (coalesce(local.cloud_provider, "azure") == "gcp" ? "gcs" : "azurerm")
   generate = {
     path      = "backend.tf"
     if_exists = "overwrite"
   }
-  config = local.at_repo_root ? {
+  config = (local.use_local_backend || local.at_repo_root) ? {
     path = "terraform.tfstate"
   } : (coalesce(local.cloud_provider, "azure") == "gcp" ? merge(
     { bucket = local.merged.tfstate.bucket_name },

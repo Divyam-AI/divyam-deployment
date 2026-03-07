@@ -72,12 +72,13 @@ locals {
   }
 
   # --- Divyam Data ---
-  divyam_object_storage = {
-    create = true
-    scope_name       = "${local.resource_scope}"                        # Azure Resource Group or GCP Project
-    storage_name     = "storage"                                        # Azure Storage Account or GCP - empty
-    container_name   = "${replace(local.deployment_prefix, "-", "")}"   # Azure Container or GCP Bucket
-  }
+  divyam_object_storages = [{
+    create               = true
+    type                 = "router-requests-logs"                                      # Identifies this storage for router-requests-logs; used for backward-compat outputs
+    scope_name           = "${local.resource_scope}"                               # Azure Resource Group or GCP Project
+    storage_account_name = "${replace(local.deployment_prefix, "-", "")}storage"   # Full Azure storage account name (no dashes). Not for GCP; used for grouping
+    container_name       = "${replace(local.deployment_prefix, "-", "")}container" # Azure Container or GCP Bucket
+  }]
 
   # --- Kubernetes Cluster ---
   # Azure: AKS | GCP: GKE
