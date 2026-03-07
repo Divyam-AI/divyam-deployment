@@ -18,6 +18,13 @@ locals {
       for c in acc.container_names : "${acc_key}/${c}" => { account_key = acc_key, container_name = c }
     }
   ]...) : {}
+
+  # Per-resource tags so each storage account gets its actual name in tags (not a generic one).
+  rendered_tags_for = {
+    for k, v in local.to_create : k => {
+      for tag_k, tag_v in var.common_tags : tag_k => replace(tag_v, "/#\\{([^}]+)\\}/", (lookup(merge(local.tag_context, { resource_name = v.name }), try(regex("#\\{([^}]+)\\}", tag_v)[0], ""), "")))
+    }
+  }
 }
 
 # Look up vnet and subnets in Azure by name (from defaults.hcl vnet -> subnets -> subnet_name). VNet must exist (e.g. 0-foundation/1-vnet applied or pre-created).
@@ -49,7 +56,7 @@ resource "azurerm_storage_account" "this" {
     virtual_network_subnet_ids = values(local.subnet_ids)
   }
 
-  tags = local.rendered_tags
+  tags = local.rendered_tags_for[each.key]
 
   lifecycle {
     ignore_changes = [

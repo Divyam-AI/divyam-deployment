@@ -41,23 +41,19 @@ locals {
 
 # --- Virtual Network ---
   # Azure: VNet | GCP: Shared VPC
+  # When create = true (e.g. GCP): create network and subnets. When false: look up existing by name.
   vnet = {
     create          = false
+    # TODO: Remove these temp values
     #name            = "${local.deployment_prefix}-vnet"
     name            = local.cloud_provider == "azure" ? "rg-sudhir-4084-vnet" : "default" # Azure | GCP
     scope_name      = "${local.resource_scope.name}" # Azure Resource Group or GCP Project where this vnet is to be created/present
     region          = "${local.region}"
     zone            = "${local.zone}"
     address_space   = ["10.0.0.0/16"]
-    subnets         = [
-        #{ create = true, subnet_name = "${local.deployment_prefix}-subnet", subnet_ip = "10.0.0.0/21" } # (2048 IPs)
-        { create = false, subnet_name = local.cloud_provider == "azure" ? "rg-sudhir-4084-subnet" : "default" } # (2048 IPs)
-      ]
-    app_gw_subnet   = local.cloud_provider == "azure" ? [
-        # (32 IPs)  - Required only for Azure App Gateway. Ignore for rest
-        #{ create = true, subnet_name = "${local.deployment_prefix}-subnet-app-gw", subnet_ip = "10.0.8.0/27" }
-        { create = false, subnet_name = local.cloud_provider == "azure" ? "rg-sudhir-4084-subnet-app-gw" : "default" } # (2048 IPs)
-      ]: []
+    # TODO: Remove these temp values
+    subnet          = { create = false, subnet_ip = "10.0.0.0/21", name = local.cloud_provider == "azure" ? "rg-sudhir-4084-subnet" : "default"  } # "${local.deployment_prefix}-subnet" (2048 IPs)
+    app_gw_subnet   = { create = false, subnet_ip = "10.0.8.0/27", name = local.cloud_provider == "azure" ? "rg-sudhir-4084-app-gw-subnet" : "default-app-gw-subnet" } # "${local.deployment_prefix}-subnet-app-gw" (32 IPs)  - Required for Azure App Gateway or GCP Proxy
   }
 
 # --- Blob / Object Storage ---
@@ -89,10 +85,48 @@ locals {
     create_vault   = true   # Azure only: if false, use store_name to look up existing Key Vault
     create_secrets = true   # if false, do not create or update secrets in the vault
     scope_name     = "${local.resource_scope.name}"       # Azure Resource Group or GCP Project
-    store_name     = "${local.deployment_prefix}-vault"   # Azure Key Vault name (create or lookup)
+    # TODO: Change the defaults
+    # store_name     = "${local.deployment_prefix}-vault"   # Azure Key Vault name (create or lookup)
+    store_name     = local.cloud_provider == "azure" ? "divyam-dev-vault-4048" : "${local.deployment_prefix}-vault"   # Azure Key Vault name (create or lookup). Not required for GCP
+    
   }
 
-#################### Application ##########################
+  # -- Load Balancer (static IP, DNS, TLS) ---
+  divyam_load_balancer = {
+    create_ip = true
+    # Private IP (internal LB only): address and optional resource name.
+    ip               = "10.0.8.10"  # Reserved private IP in VNET app_gw_subnet (ignored when public = true)
+    private_ip_name  = "${local.deployment_prefix}-private-ip"  # Name for the private IP resource (e.g. GCP internal address)
+
+    public = false
+    create_public_ip = true  # When true and public = true, create new public IP; when false, use existing by public_ip_name    
+    public_ip_name  = "${local.deployment_prefix}-ip"  # Name for new public IP, or name of existing if create_public_ip = false
+
+    service_name         = "${local.deployment_prefix}-service"
+    backend_service_name = "${local.deployment_prefix}-service-backend"
+
+    tls_enabled     = true
+    create_ssl_cert = true  # Used only if tls_enabled is true. When false, use external cert (certificate_secret_id).
+    ssl_cert_name   = "${local.deployment_prefix}-lb-ssl-cert"
+
+    # DNS names for TLS SANs and for DNS A records (IP mapping: these names resolve to LB IP — public when public=true, private when false).
+    create_dns_records = true  # When true, create Private DNS A records mapping router_dns/dashboard_dns to LB IP.
+    router_dns = (local.org_name != "" ?
+      "api.${local.env_name}.${local.org_name}.divyam.local" :
+      "api.${local.env_name}.divyam.local")
+    dashboard_dns = (local.org_name != "" ?
+      "dashboard.${local.env_name}.${local.org_name}.divyam.local" :
+      "${local.env_name}.dashboard.divyam.local")
+
+    waf_enabled = true
+    create_waf  = true   # When true, create WAF/Cloud Armor policy in-module; when false and waf_enabled, fetch existing by waf_policy_name and attach
+    waf_policy_name = "${local.deployment_prefix}-waf"  # Name for created policy or name of existing to fetch when create_waf = false
+
+    # WAF deny/allow lists (applied when create_waf = true). Empty = no rule.
+    waf_deny_ip_ranges  = []  # IP/CIDR to block (e.g. ["203.0.113.0/24"])
+    waf_allow_ip_ranges = []  # If non-empty: only these IP/CIDR allowed (allowlist); still apply deny list first
+  }
+
   # --- Kubernetes Cluster ---
   # Azure: AKS | GCP: GKE
   k8s = {
@@ -100,9 +134,10 @@ locals {
     name   = "${local.deployment_prefix}-cluster"
   }
 
-  # -- Static IP for Load Balancer ---
-  divyam_static_ip_load_balancer = {
-    create = true
-    ip     = ""
+  iam_bindings = {
+    create = false
   }
+
+#################### Application ##########################
+
 }

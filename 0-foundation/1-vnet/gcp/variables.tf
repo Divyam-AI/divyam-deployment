@@ -1,5 +1,5 @@
 variable "vnet" {
-  description = "Configuration for VPC (GCP equivalent of Azure VNet) and its subnets. app_gw_subnet is ignored on GCP."
+  description = "Configuration for VPC (GCP) and its subnets. Single subnet and single app_gw_subnet (source of truth: values/defaults.hcl)."
 
   type = object({
 
@@ -11,18 +11,16 @@ variable "vnet" {
 
     address_space = optional(list(string), [])
 
-    subnets = optional(list(object({
-      subnet_name = string
-      subnet_ip   = optional(string, null)
-      create      = optional(bool, true)
-    })), [])
+    subnet = object({
+      name      = string
+      subnet_ip = optional(string, null)
+      create    = optional(bool, true)
+    })
 
-    # App Gateway subnets are Azure-only; ignored for GCP. Optional for variable compatibility.
-    app_gw_subnet = optional(list(object({
-      subnet_name = string
-      subnet_ip   = optional(string, null)
-      create      = optional(bool, true)
-    })), [])
-
+    app_gw_subnet = object({
+      name      = string
+      subnet_ip = optional(string, null)
+      create    = optional(bool, true)
+    })
   })
 }

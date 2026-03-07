@@ -30,6 +30,7 @@ inputs = merge(
     environment                    = local.root.env_name
     buckets                        = local.buckets
     router_requests_logs_storage_key = local.router_requests_logs_storage_key
+    common_tags                    = try(local.root.common_tags, {})
     tag_globals                    = try(include.root.inputs.tag_globals, {})
     tag_context = {
       resource_name = local.root.deployment_prefix

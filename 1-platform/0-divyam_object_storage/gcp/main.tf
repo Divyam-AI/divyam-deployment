@@ -15,6 +15,13 @@ locals {
       for b in acc.bucket_names : "${acc_key}/${b}" => { account_key = acc_key, bucket_name = b }
     }
   ]...) : {}
+
+  # Per-resource labels so each bucket gets its actual name in labels (not a generic one).
+  rendered_tags_for = {
+    for k, v in local.buckets_flat_created : k => {
+      for tag_k, tag_v in var.common_tags : tag_k => replace(tag_v, "/#\\{([^}]+)\\}/", (lookup(merge(local.tag_context, { resource_name = v.bucket_name }), try(regex("#\\{([^}]+)\\}", tag_v)[0], ""), "")))
+    }
+  }
 }
 
 # --- Create path ---
@@ -42,7 +49,7 @@ resource "google_storage_bucket" "this" {
     }
   }
 
-  labels = local.rendered_tags
+  labels = local.rendered_tags_for[each.key]
 
   lifecycle {
     prevent_destroy = true
