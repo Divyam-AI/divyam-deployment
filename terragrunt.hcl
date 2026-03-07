@@ -35,8 +35,8 @@ terraform {
 }
 
 # Remote state: config from values/defaults.hcl tfstate + resource_scope; backend type by CLOUD_PROVIDER.
-# (Terragrunt allows only one level of include, so this cannot live in values/<cloud>/backend.hcl.)
-# Use TG_USE_LOCAL_BACKEND=1 to force local backend for all modules (no remote state, for testing).
+# Applies to all modules that include this root (e.g. 1-platform/0-*, 0-foundation/*, 2-app/*).
+# path_relative_to_include() gives each module its own state key/prefix. Use TG_USE_LOCAL_BACKEND=1 for local state.
 remote_state {
   backend = (local.use_local_backend || local.at_repo_root) ? "local" : (coalesce(local.cloud_provider, "azure") == "gcp" ? "gcs" : "azurerm")
   generate = {

@@ -43,8 +43,3 @@ locals {
 }
 
 inputs = local.inputs
-
-exclude {
-  if      = !local.root.tfstate.create
-  actions = ["all"]
-}

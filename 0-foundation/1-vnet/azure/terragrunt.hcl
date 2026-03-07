@@ -41,8 +41,3 @@ inputs = merge(
     }
   }
 )
-
-exclude {
-  if      = !local.root.vnet.create
-  actions = ["all"]
-}

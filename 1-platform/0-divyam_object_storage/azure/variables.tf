@@ -50,7 +50,21 @@ variable "storage_account_ip_rules" {
   description = "List of public IP or CIDR addresses to allow access from."
 }
 
-variable "subnet_ids" {
-  description = "Map of subnet resource IDs to allow for storage"
-  type        = map(string)
+# Vnet lookup: subnet IDs are resolved in Azure by vnet name + subnet names from config (defaults.hcl vnet.subnets[].subnet_name).
+variable "vnet_name" {
+  description = "Name of the virtual network to look up (from defaults.hcl vnet.name). When empty, vnet_subnet_names should be empty and no subnet rules are applied."
+  type        = string
+  default     = ""
+}
+
+variable "vnet_resource_group_name" {
+  description = "Resource group containing the vnet (from defaults.hcl vnet.scope_name)."
+  type        = string
+  default     = ""
+}
+
+variable "vnet_subnet_names" {
+  description = "List of subnet names to allow for storage (from defaults.hcl vnet.subnets[].subnet_name). Looked up in Azure to get subnet IDs."
+  type        = list(string)
+  default     = []
 }

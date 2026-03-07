@@ -7,11 +7,6 @@ terraform {
   source = "./"
 }
 
-dependency "tfstate_gcs" {
-  config_path  = "../../../0-foundation/2-terraform_state_blob_storage/gcp"
-  skip_outputs = true
-}
-
 locals {
   root     = include.root.locals.merged
   storages = try(local.root.divyam_object_storages, [])

@@ -74,7 +74,7 @@ locals {
   # --- Divyam Data ---
   divyam_object_storages = [{
     create               = true
-    type                 = "router-requests-logs"                                      # Identifies this storage for router-requests-logs; used for backward-compat outputs
+    type                 = "router-requests-logs"                                  # Identifies this storage for router-requests-logs
     scope_name           = "${local.resource_scope}"                               # Azure Resource Group or GCP Project
     storage_account_name = "${replace(local.deployment_prefix, "-", "")}storage"   # Full Azure storage account name (no dashes). Not for GCP; used for grouping
     container_name       = "${replace(local.deployment_prefix, "-", "")}container" # Azure Container or GCP Bucket
@@ -95,8 +95,9 @@ locals {
 
   # -- Secrets ---
   divyam_secrets = {
-    create = true
-    scope_name = "${local.resource_scope.name}"       # Azure Resource Group or GCP Project
-    store_name = "${local.deployment_prefix}-vault"   # Azure Key Vault or GCP - Ignored    
+    create_vault   = true   # Azure only: if false, use store_name to look up existing Key Vault
+    create_secrets = true   # if false, do not create or update secrets in the vault
+    scope_name     = "${local.resource_scope.name}"       # Azure Resource Group or GCP Project
+    store_name     = "${local.deployment_prefix}-vault"   # Azure Key Vault name (create or lookup)
   }
 }

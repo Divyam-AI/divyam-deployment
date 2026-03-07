@@ -7,24 +7,13 @@ terraform {
   source = "./"
 }
 
-dependency "tfstate_azure_blob_storage" {
-  config_path  = "../../../0-foundation/2-terraform_state_blob_storage/azure"
-  skip_outputs = true
-}
-
-dependency "vnet" {
-  config_path = "../../../0-foundation/1-vnet/azure"
-
-  mock_outputs = {
-    subnet_ids = {}
-  }
-
-  # Use mocks when vnet dependency has no outputs (e.g. first run before vnet is applied).
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply"]
-}
-
 locals {
   root     = include.root.locals.merged
+  # Subnet names from defaults.hcl vnet.subnets[].subnet_name (and app_gw_subnet if present) for Azure lookup.
+  vnet_subnet_names = concat(
+    [for s in try(local.root.vnet.subnets, []) : s.subnet_name],
+    [for s in try(local.root.vnet.app_gw_subnet, []) : s.subnet_name]
+  )
   storages = try(local.root.divyam_object_storages, [])
   # Group by storage_account_name; each distinct storage_account_name -> one account (full name from config) and container names.
   storage_accounts = length(local.storages) > 0 ? {
@@ -41,16 +30,18 @@ locals {
   router_requests_logs_storage_key = try([for k, v in local.storage_accounts : k if v.type == "router-requests-logs"][0], null)
 }
 
-# Pass divyam_object_storage config from defaults + tagging (tag_globals, tag_context) like 1-vnet.
+# Pass divyam_object_storage config from defaults + tagging. Subnet IDs are looked up in Azure using vnet.name + vnet.subnets[].subnet_name from defaults.
 inputs = merge(
   {
-    location                        = local.root.region
-    environment                     = local.root.env_name
-    resource_group_name             = local.scope_name
-    storage_accounts                = local.storage_accounts
+    location                         = local.root.region
+    environment                      = local.root.env_name
+    resource_group_name              = local.scope_name
+    storage_accounts                 = local.storage_accounts
     router_requests_logs_storage_key = local.router_requests_logs_storage_key
-    subnet_ids                      = dependency.vnet.outputs.subnet_ids
-    tag_globals                     = try(include.root.inputs.tag_globals, {})
+    vnet_name                        = local.root.vnet.name
+    vnet_resource_group_name        = local.root.vnet.scope_name
+    vnet_subnet_names                = local.vnet_subnet_names
+    tag_globals                      = try(include.root.inputs.tag_globals, {})
     tag_context = {
       resource_name = local.root.deployment_prefix
     }

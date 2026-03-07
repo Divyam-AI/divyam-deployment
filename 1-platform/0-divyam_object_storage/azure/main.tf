@@ -2,6 +2,9 @@ locals {
   to_create = { for k, v in var.storage_accounts : k => v if try(v.create, true) }
   to_lookup  = { for k, v in var.storage_accounts : k => v if !try(v.create, true) }
 
+  # Subnet IDs: look up in Azure by vnet name + subnet names from config (vnet.subnets[].subnet_name). When subnet_names is empty, no network rules.
+  subnet_ids = length(var.vnet_subnet_names) > 0 ? { for name in var.vnet_subnet_names : name => data.azurerm_subnet.vnet_subnets[name].id } : {}
+
   # Flat set of containers for accounts we create: "account_key/container_name" -> { account_key, container_name }
   containers_flat_created = length(local.to_create) > 0 ? merge([
     for acc_key, acc in local.to_create : {
@@ -17,6 +20,20 @@ locals {
   ]...) : {}
 }
 
+# Look up vnet and subnets in Azure by name (from defaults.hcl vnet -> subnets -> subnet_name). VNet must exist (e.g. 0-foundation/1-vnet applied or pre-created).
+data "azurerm_virtual_network" "vnet" {
+  count               = length(var.vnet_subnet_names) > 0 ? 1 : 0
+  name                = var.vnet_name
+  resource_group_name = var.vnet_resource_group_name
+}
+
+data "azurerm_subnet" "vnet_subnets" {
+  for_each             = length(var.vnet_subnet_names) > 0 ? toset(var.vnet_subnet_names) : toset([])
+  name                 = each.key
+  virtual_network_name = var.vnet_name
+  resource_group_name  = var.vnet_resource_group_name
+}
+
 # --- Create path ---
 resource "azurerm_storage_account" "this" {
   for_each             = local.to_create
@@ -29,7 +46,7 @@ resource "azurerm_storage_account" "this" {
   network_rules {
     default_action             = "Deny"
     ip_rules                   = var.storage_account_ip_rules
-    virtual_network_subnet_ids = values(var.subnet_ids)
+    virtual_network_subnet_ids = values(local.subnet_ids)
   }
 
   tags = local.rendered_tags

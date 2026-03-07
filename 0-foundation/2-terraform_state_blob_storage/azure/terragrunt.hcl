@@ -51,8 +51,3 @@ inputs = merge(
     subnet_ids = dependency.vnet.outputs.subnet_ids
   }
 )
-
-exclude {
-  if      = !local.root.tfstate.create
-  actions = ["all"]
-}
