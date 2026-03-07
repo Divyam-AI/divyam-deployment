@@ -33,27 +33,29 @@ locals {
 # --- Resource Scope ---
 # Azure: resource_group_name | GCP: project_id
   resource_scope = {
-    create  = true
-    name    = "${local.deployment_prefix}-rg"
-    #name   =  "rg-sudhir-4084" # Azure
-    #name   = "prod-benchmarking" # GCP
+    create  = false
+    #name    = "${local.deployment_prefix}-rg"
+    name    = local.cloud_provider == "azure" ? "rg-sudhir-4084" : "sudhir-workspace" # Azure | GCP
   }
 
 # --- Virtual Network ---
   # Azure: VNet | GCP: Shared VPC
   vnet = {
-    create          = true
-    name            = "${local.deployment_prefix}-vnet"
+    create          = false
+    #name            = "${local.deployment_prefix}-vnet"
+    name            = local.cloud_provider == "azure" ? "rg-sudhir-4084-vnet" : "default" # Azure | GCP
     scope_name      = "${local.resource_scope.name}" # Azure Resource Group or GCP Project where this vnet is to be created/present
     region          = "${local.region}"
     zone            = "${local.zone}"
     address_space   = ["10.0.0.0/16"]
     subnets         = [
-        { create = true, subnet_name = "${local.deployment_prefix}-subnet", subnet_ip = "10.0.0.0/21" } # (2048 IPs)
+        #{ create = true, subnet_name = "${local.deployment_prefix}-subnet", subnet_ip = "10.0.0.0/21" } # (2048 IPs)
+        { create = false, subnet_name = local.cloud_provider == "azure" ? "rg-sudhir-4084-subnet" : "default" } # (2048 IPs)
       ]
     app_gw_subnet   = local.cloud_provider == "azure" ? [
         # (32 IPs)  - Required only for Azure App Gateway. Ignore for rest
-        { create = true, subnet_name = "${local.deployment_prefix}-subnet-app-gw", subnet_ip = "10.0.8.0/27" }
+        #{ create = true, subnet_name = "${local.deployment_prefix}-subnet-app-gw", subnet_ip = "10.0.8.0/27" }
+        { create = false, subnet_name = local.cloud_provider == "azure" ? "rg-sudhir-4084-subnet-app-gw" : "default" } # (2048 IPs)
       ]: []
   }
 
