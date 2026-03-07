@@ -3,6 +3,12 @@ output "vnet_id" {
   value       = (var.vnet.create ? azurerm_virtual_network.vnet[0].id : data.azurerm_virtual_network.vnet[0].id)
 }
 
+# Ensures Terragrunt sees at least one output when this module is applied (avoids "dependency has no outputs" warning).
+output "applied" {
+  description = "True when module has been applied; ensures dependency always has at least one output for Terragrunt."
+  value       = true
+}
+
 output "vnet_name" {
   description = "Name of the virtual network"
   value       = (var.vnet.create ? azurerm_virtual_network.vnet[0].name : data.azurerm_virtual_network.vnet[0].name)

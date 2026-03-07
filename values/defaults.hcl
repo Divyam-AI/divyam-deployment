@@ -23,13 +23,14 @@ locals {
   # Can set key -> value for tags to be applied for cloud entities
   common_tags       = { sudhir_environment     = "test-#{environment}" } 
   # Can also use templates as value and will automatically replaced
-  # Standard template variables are defined as part of tag_globals in root level terragrunt.hcl
+  # Standard template variables are defined as part of tag_globals in root.hcl
   # { 
   #   environment     = "#{environment}"
   #   region          = "#{region}"
   #   resource_tag    = "#{org_name}-#{resource_name}"
   # }
 
+#################### Foundation ##########################
 # --- Resource Scope ---
 # Azure: resource_group_name | GCP: project_id
   resource_scope = {
@@ -73,6 +74,7 @@ locals {
     bucket_name    = "${replace(local.deployment_prefix, "-", "")}tfstate" # Azure container + storage account name; GCP bucket name
   }
 
+#################### Platform ##########################
   # --- Divyam Data ---
   divyam_object_storages = [{
     create               = true
@@ -82,6 +84,15 @@ locals {
     container_name       = "${replace(local.deployment_prefix, "-", "")}container" # Azure Container or GCP Bucket
   }]
 
+  # -- Secrets ---
+  divyam_secrets = {
+    create_vault   = true   # Azure only: if false, use store_name to look up existing Key Vault
+    create_secrets = true   # if false, do not create or update secrets in the vault
+    scope_name     = "${local.resource_scope.name}"       # Azure Resource Group or GCP Project
+    store_name     = "${local.deployment_prefix}-vault"   # Azure Key Vault name (create or lookup)
+  }
+
+#################### Application ##########################
   # --- Kubernetes Cluster ---
   # Azure: AKS | GCP: GKE
   k8s = {
@@ -93,13 +104,5 @@ locals {
   divyam_static_ip_load_balancer = {
     create = true
     ip     = ""
-  }
-
-  # -- Secrets ---
-  divyam_secrets = {
-    create_vault   = true   # Azure only: if false, use store_name to look up existing Key Vault
-    create_secrets = true   # if false, do not create or update secrets in the vault
-    scope_name     = "${local.resource_scope.name}"       # Azure Resource Group or GCP Project
-    store_name     = "${local.deployment_prefix}-vault"   # Azure Key Vault name (create or lookup)
   }
 }

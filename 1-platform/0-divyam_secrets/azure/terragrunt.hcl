@@ -1,5 +1,5 @@
 include "root" {
-  path   = find_in_parent_folders("terragrunt.hcl")
+  path   = find_in_parent_folders("root.hcl")
   expose = true
 }
 
@@ -31,7 +31,7 @@ dependency "tfstate_azure_blob_storage" {
 
 dependency "object_storage" {
   config_path = "../../0-divyam_object_storage/azure"
-
+  # Apply 0-divyam_object_storage/azure before this module so dependency has real outputs (avoids mock warning).
   mock_outputs = {
     router_requests_logs_storage_account_connection_string = null
   }

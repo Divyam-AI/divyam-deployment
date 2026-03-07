@@ -5,6 +5,27 @@ data "azurerm_storage_account" "terraform" {
   resource_group_name = var.resource_group_name
 }
 
+# When subnet_ids is empty and vnet_name is set, resolve subnets from the vnet for network_rules.
+data "azurerm_virtual_network" "vnet" {
+  count               = var.create && length(var.subnet_ids) == 0 && var.vnet_name != "" ? 1 : 0
+  name                = var.vnet_name
+  resource_group_name = var.vnet_resource_group_name
+}
+
+data "azurerm_subnet" "vnet_subnets" {
+  for_each = var.create && length(var.subnet_ids) == 0 && var.vnet_name != "" ? toset(coalesce(data.azurerm_virtual_network.vnet[0].subnets, [])) : toset([])
+  name                 = each.key
+  virtual_network_name  = data.azurerm_virtual_network.vnet[0].name
+  resource_group_name   = data.azurerm_virtual_network.vnet[0].resource_group_name
+}
+
+locals {
+  # Use provided subnet_ids, or when empty and vnet lookup is configured, build map from vnet subnets.
+  resolved_subnet_ids = length(var.subnet_ids) > 0 ? var.subnet_ids : (
+    length(data.azurerm_subnet.vnet_subnets) > 0 ? { for k, s in data.azurerm_subnet.vnet_subnets : k => s.id } : {}
+  )
+}
+
 resource "azurerm_storage_account" "terraform" {
   count               = var.create ? 1 : 0
   name                = var.storage_account_name
@@ -17,7 +38,7 @@ resource "azurerm_storage_account" "terraform" {
   network_rules {
     default_action             = "Deny"
     ip_rules                   = var.storage_account_ip_rules
-    virtual_network_subnet_ids = values(var.subnet_ids)
+    virtual_network_subnet_ids = length(local.resolved_subnet_ids) > 0 ? values(local.resolved_subnet_ids) : []
   }
 
   tags = local.rendered_tags

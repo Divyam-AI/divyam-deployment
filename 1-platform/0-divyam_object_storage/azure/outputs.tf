@@ -53,6 +53,12 @@ output "router_requests_logs_storage_account_id" {
   value       = var.router_requests_logs_storage_key != null ? try(local.all_storage_account_ids[var.router_requests_logs_storage_key], null) : null
 }
 
+# Ensures Terragrunt sees at least one output when this module is applied (avoids "dependency has no outputs" warning).
+output "applied" {
+  description = "True when module has been applied; ensures dependency always has at least one output for Terragrunt."
+  value       = true
+}
+
 output "router_requests_logs_storage_account_name" {
   description = "Name of the storage account with type 'router-requests-logs' (from divyam_object_storages)."
   value       = var.router_requests_logs_storage_key != null ? try(local.all_storage_account_names[var.router_requests_logs_storage_key], null) : null

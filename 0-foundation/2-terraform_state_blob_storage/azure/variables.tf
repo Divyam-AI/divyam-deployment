@@ -47,6 +47,19 @@ variable "storage_account_ip_rules" {
 }
 
 variable "subnet_ids" {
-  description = "Map of subnet resource IDs to allow for storage"
+  description = "Map of subnet name to resource ID to allow for storage. If empty and vnet_name is set, subnets are looked up from the vnet."
   type        = map(string)
+  default     = {}
+}
+
+variable "vnet_name" {
+  description = "When subnet_ids is empty, look up this vnet's subnets for network_rules. Leave empty to use only subnet_ids."
+  type        = string
+  default     = ""
+}
+
+variable "vnet_resource_group_name" {
+  description = "Resource group containing vnet_name when doing vnet subnet lookup."
+  type        = string
+  default     = ""
 }

@@ -1,5 +1,5 @@
 include "root" {
-  path   = find_in_parent_folders("terragrunt.hcl")
+  path   = find_in_parent_folders("root.hcl")
   expose = true
 }
 
@@ -9,12 +9,11 @@ terraform {
 
 dependency "vnet" {
   config_path = "../../1-vnet/azure"
-
+  skip_outputs = true
   mock_outputs = {
     subnet_ids = {}
   }
-
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "apply"]
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply"]
 }
 
 # Note: Local state because storing to azure blob store cannot happen until this
@@ -40,11 +39,13 @@ locals {
       create                  = local.root.tfstate.create
       storage_account_name    = include.root.locals.merged.tfstate.bucket_name
       storage_container_name  = include.root.locals.merged.tfstate.bucket_name
+      vnet_name               = try(local.root.vnet.name, "")
+      vnet_resource_group_name = try(local.root.vnet.scope_name, "")
     }
   )
 }
 
-# dependency is only available at top level; merge its outputs into inputs here
+# dependency is only available at top level; pass its (mock) outputs here.
 inputs = merge(
   local.inputs,
   {
