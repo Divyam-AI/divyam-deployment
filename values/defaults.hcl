@@ -153,7 +153,7 @@ locals {
       "api.${local.env_name}.divyam.local")
     dashboard_dns = (local.org_name != "" ?
       "dashboard.${local.env_name}.${local.org_name}.divyam.local" :
-      "${local.env_name}.dashboard.divyam.local")
+      "dashboard.${local.env_name}.divyam.local")
 
     waf_enabled = true
     create_waf  = true   # When true, create WAF/Cloud Armor policy in-module; when false and waf_enabled, fetch existing by waf_policy_name and attach
