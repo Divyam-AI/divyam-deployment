@@ -34,6 +34,7 @@ locals {
 # Azure: resource_group_name | GCP: project_id
   resource_scope = {
     create  = false
+    # TODO: Remove these temp values
     #name    = "${local.deployment_prefix}-rg"
     name    = local.cloud_provider == "azure" ? "rg-sudhir-4084" : "sudhir-workspace" # Azure | GCP
   }
