@@ -24,7 +24,7 @@ locals {
   alerts_cfg  = try(local.root.alerts, {})
   project_id  = local.root.resource_scope.name
   cluster_id  = try(local.root.k8s.name, "${local.root.deployment_prefix}-k8s-cluster")
-  rules_dir   = "${get_repo_root()}/2-alerts/common/rules"
+  rules_dir   = "${get_repo_root()}/1-platform/2-alerts/common/rules"
   rule_files  = fileset(local.rules_dir, "*.json")
   exclude     = try(local.alerts_cfg.exclude_list, [])
   # Load each rule JSON and replace {{project_id}} / {{cluster_id}}; filter by exclude_list

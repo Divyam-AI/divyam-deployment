@@ -197,8 +197,10 @@ locals {
     }
 
     observability = {
-      enable_logs    = true
-      enable_metrics = true
+      enable_logs         = true
+      # Maximum retention: GCP _Default bucket = 3650 days; Azure Log Analytics = 730 days (capped in 1-k8s).
+      logs_retention_days = 30
+      enable_metrics      = true
     }
 
     # Upgrade cadence: Azure = automatic_channel_upgrade (stable|rapid|patch|node-image), GCP = release_channel (REGULAR|RAPID|STABLE). Set per cloud.
@@ -227,5 +229,11 @@ locals {
   }
 
 #################### Application ##########################
+
+  # If not create, can setup mysql inside K8s. Default is inside K8s
+  cloudsql = {
+    create         = false
+    instance_name  = "${local.deployment_prefix}-cloudsql"
+  }
 
 }

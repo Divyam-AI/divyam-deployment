@@ -123,6 +123,12 @@ variable "enable_metrics_collection" {
   default     = true
 }
 
+variable "logs_retention_days" {
+  description = "Retention in days for the Log Analytics workspace (AKS logs). Azure max = 730; values above 730 are capped at 730."
+  type        = number
+  default     = 7
+}
+
 variable "artifacts_path" {
   description = "Optional path to artifacts.yaml for helm chart namespaces (log collection)"
   type        = string

@@ -6,11 +6,11 @@ include "root" {
 }
 
 terraform {
-  source = "${get_repo_root()}/2-alerts/azure"
+  source = "${get_repo_root()}/1-platform/2-alerts/azure"
 }
 
 dependency "k8s" {
-  config_path = "../../1-platform/1-k8s/azure"
+  config_path = "../../1-k8s/azure"
   mock_outputs = {
     monitor_workspace_name = "mock-workspace"
     monitor_workspace_id   = "/subscriptions/mock/resourceGroups/mock/providers/Microsoft.Monitor/accounts/mock"
@@ -41,7 +41,7 @@ inputs = {
   azure_monitor_workspace_name = dependency.k8s.outputs.monitor_workspace_name
   azure_monitor_workspace_id   = dependency.k8s.outputs.monitor_workspace_id
   resource_name_prefix         = local.root.deployment_prefix
-  alerts_folder                = "${get_repo_root()}/2-alerts/common/alerts"
+  alerts_folder                = "${get_repo_root()}/1-platform/2-alerts/common/alerts"
 
   notification_pager_webhook_url  = local.pager_url
   notification_gchat_space_id     = local.gchat_id

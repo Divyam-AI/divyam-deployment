@@ -6,7 +6,7 @@ include "root" {
 }
 
 terraform {
-  source = "${get_repo_root()}/2-alerts/gcp/notification_channels"
+  source = "${get_repo_root()}/1-platform/2-alerts/gcp/notification_channels"
 }
 
 locals {

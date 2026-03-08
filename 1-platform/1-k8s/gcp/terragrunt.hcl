@@ -87,6 +87,7 @@ inputs = merge(
     cluster_name          = local.k8s.create ? null : local.k8s.name
     clusters              = local.k8s.create ? local.clusters_with_links : {}
     additional_node_pools = local.additional_node_pools
+    logs_retention_days   = min(3650, max(1, try(local.obs.logs_retention_days, 3650)))
     common_tags           = try(local.root.common_tags, {})
     tag_globals           = try(include.root.inputs.tag_globals, {})
     tag_context = {

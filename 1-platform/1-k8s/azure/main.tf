@@ -326,6 +326,7 @@ resource "azurerm_log_analytics_workspace" "log_analytics_workspace" {
   location            = var.location
   resource_group_name = var.resource_group_name
   sku                 = "PerGB2018"
+  retention_in_days   = var.logs_retention_days
   tags = local.rendered_tags_log_workspace
 }
 

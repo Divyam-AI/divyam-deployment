@@ -3,21 +3,49 @@
 # Replace placeholder values with your own before apply.
 #
 # Usage:
-#   ./scripts/sample_deploy.sh  <gcp|azure>
+#   ./sample_deploy.sh <0|1|2> <gcp|azure>
+#
+# Arguments:
+#   0 - run terragrunt in 0-foundation
+#   1 - run terragrunt in 1-platform
+#   2 - run terragrunt in 2-app
+#   gcp|azure - cloud provider
 #
 # Optional: use local backend (no remote state, no Azure/GCS backend access) for testing:
-#   TG_USE_LOCAL_BACKEND=1 ./sample_deploy.sh azure
+#   TG_USE_LOCAL_BACKEND=1 ./sample_deploy.sh 0 azure
 
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/" && pwd)"
 cd "$REPO_ROOT"
 
 if [ -z "${1:-}" ]; then
-    echo "Error: CLOUD PROVIDER is required as argument (gcp|azure)"
+    echo "Error: LAYER is required as first argument (0=0-foundation, 1=1-platform, 2=2-app)"
+    exit 1
+fi
+if [ -z "${2:-}" ]; then
+    echo "Error: CLOUD PROVIDER is required as second argument (gcp|azure)"
     exit 1
 fi
 
-export CLOUD_PROVIDER="${1}"
+LAYER="${1}"
+export CLOUD_PROVIDER="${2}"
+
+if [ "${LAYER}" != "0" ] && [ "${LAYER}" != "1" ] && [ "${LAYER}" != "2" ]; then
+    echo "Error: LAYER must be 0, 1, or 2 (got: ${LAYER})"
+    exit 1
+fi
+if [ "${CLOUD_PROVIDER}" != "azure" ] && [ "${CLOUD_PROVIDER}" != "gcp" ]; then
+    echo "Error: CLOUD PROVIDER must be gcp or azure (got: ${CLOUD_PROVIDER})"
+    exit 1
+fi
+
+if [ "${LAYER}" == "0" ]; then
+    TG_DIR="0-foundation"
+elif [ "${LAYER}" == "1" ]; then
+    TG_DIR="1-platform"
+else
+    TG_DIR="2-app"
+fi
 
 # --- Required (values/*.hcl) ---
 export ENV="${ENV:-dev}"
@@ -38,8 +66,6 @@ fi
 export ORG_NAME="${ORG_NAME:-}"
 export TG_USE_LOCAL_BACKEND="${TG_USE_LOCAL_BACKEND:-1}"
 
-echo "ENV=$ENV CLOUD_PROVIDER=$CLOUD_PROVIDER REGION=$REGION ZONE=$ZONE ORG_NAME=$ORG_NAME${TG_USE_LOCAL_BACKEND:+ TG_USE_LOCAL_BACKEND=$TG_USE_LOCAL_BACKEND (local backend)}"
-#echo "Running terragrunt run-all plan in 0-foundation (cloud=${CLOUD_PROVIDER} only)..."
-# --filter limits run to this cloud's folders (e.g. 0-foundation/**/azure or /**/gcp)
-#exec bash -c "cd \"$REPO_ROOT/0-foundation\" && terragrunt run --all plan --filter './**/${CLOUD_PROVIDER}'"
-exec bash -c "terragrunt run --all plan --filter './**/${CLOUD_PROVIDER}'"
+echo "ENV=$ENV CLOUD_PROVIDER=$CLOUD_PROVIDER REGION=$REGION ZONE=$ZONE ORG_NAME=$ORG_NAME LAYER=$LAYER TG_DIR=$TG_DIR${TG_USE_LOCAL_BACKEND:+ TG_USE_LOCAL_BACKEND=$TG_USE_LOCAL_BACKEND (local backend)}"
+echo "Running terragrunt run-all plan in $TG_DIR (cloud=${CLOUD_PROVIDER})..."
+exec bash -c "cd \"$REPO_ROOT/$TG_DIR\" && terragrunt run --all plan --filter './**/${CLOUD_PROVIDER}'"

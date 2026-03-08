@@ -113,6 +113,7 @@ inputs = {
 
   enable_log_collection    = try(local.obs.enable_logs, true)
   enable_metrics_collection = try(local.obs.enable_metrics, true)
-  agic_helm_version        = "1.7.0"
+  logs_retention_days      = min(730, try(local.obs.logs_retention_days, 730))
   artifacts_path           = try(local.root.helm_charts.artifacts_path, null)
+  agic_helm_version        = "1.7.0"
 }

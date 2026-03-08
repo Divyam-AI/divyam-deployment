@@ -142,6 +142,15 @@ resource "google_container_cluster" "gke_cluster" {
   }
 }
 
+# Project _Default log bucket retention (GKE, load balancer, and other project logs). 1–3650 days.
+resource "google_logging_project_bucket_config" "default_bucket" {
+  count        = var.enabled ? 1 : 0
+  project      = var.project_id
+  location     = "global"
+  bucket_id    = "_Default"
+  retention_days = min(3650, max(1, var.logs_retention_days))
+}
+
 # Additional node pools (e.g. GPU). Only for standard (non-Autopilot) clusters.
 resource "google_container_node_pool" "additional" {
   for_each   = local.additional_pool_key

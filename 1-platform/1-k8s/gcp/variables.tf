@@ -60,3 +60,9 @@ variable "additional_node_pools" {
   }))
   default = {}
 }
+
+variable "logs_retention_days" {
+  description = "Retention in days for the project _Default log bucket (GKE, LB, and other project logs). GCP max = 3650; values above 3650 are capped at 3650."
+  type        = number
+  default     = 7
+}
