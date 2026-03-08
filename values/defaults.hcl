@@ -1,7 +1,6 @@
 #----------------------------------------------
 # Cloud-agnostic deployment configuration.
-# These values feed into both Azure and GCP. Cloud-specific overrides live in
-# values/azure/ and values/gcp/ respectively.
+# These values feed into both Azure and GCP. Cloud-specific provider/backend are in root.hcl.
 #
 # When create = false, use existing resources; provide the names below for lookup.
 #----------------------------------------------
@@ -40,7 +39,7 @@ locals {
   }
 
 # --- APIs / Resource Providers (0-foundation/1-apis) ---
-# GCP: enable APIs; Azure: register resource providers. Set enabled = true; override apis (GCP) or provider_namespaces (Azure) in values/<cloud>/defaults.hcl if needed.
+# GCP: enable APIs; Azure: register resource providers. Set enabled = true; override apis (GCP) or provider_namespaces (Azure) here if needed.
   apis = {
     enabled = true
   }
@@ -69,17 +68,23 @@ locals {
 
   # --- NAT (egress) ---
   # Azure: NAT Gateway + Public IP, associated to VNet subnets. GCP: Cloud NAT on Cloud Router for listed subnetworks.
+  # Lookup names: platform modules fetch nat_gateway_ip via data sources (Azure: public IP by name; GCP: router/nat by name). Names must match 0-foundation/2-nat or existing infra.
   nat = {
     create = true
     resource_name_prefix = "${local.deployment_prefix}"
-    # GCP: Cloud Router and NAT config names
+    # Names for data-source lookup (1-platform resolves NAT IP from these; no dependency on 0-foundation).
+    nat_gateway_name   = "${local.deployment_prefix}-nat-gateway"   # Azure: NAT gateway resource name
+    #TODO: Remove these temp values
+    # nat_public_ip_name = "${local.deployment_prefix}-nat-ip"       # Azure: public IP resource name (used to fetch IP)
+    nat_public_ip_name = "${local.deployment_prefix}-nat-ip-4084"       # Azure: public IP resource name (used to fetch IP)
+    # GCP: Cloud Router and NAT config names (for lookup if needed)
     router_name     = "${local.deployment_prefix}-nat-router"
     nat_config_name = "${local.deployment_prefix}-nat-config"
   }
 
   # --- Bastion ---
   # Azure: Linux VM with public IP, NSG (SSH). GCP: Compute instance with firewall (SSH).
-  # Set create = true and override in values/azure/defaults.hcl or values/gcp/defaults.hcl (e.g. bastion_name, vnet_subnet_name [Azure], machine_type [GCP]).
+  # Set create = true and override below (e.g. bastion_name, vnet_subnet_name [Azure], machine_type [GCP]).
   bastion = {
     create       = false
     bastion_name = "${local.deployment_prefix}-bastion"
@@ -91,7 +96,7 @@ locals {
 # Azure: Resource Group -> Storage Account -> Container | GCP: Project -> GCS bucket(s)
   # --- Terraform State Backend ---
   # bucket_name: cloud-agnostic logical name for state store (Azure: container + storage account; GCP: bucket).
-  # Override in values/azure/defaults.hcl or values/gcp/defaults.hcl if needed (e.g. storage_account_name, container_name for Azure).
+  # Override here if needed (e.g. storage_account_name, container_name for Azure).
   tfstate = {
     create         = true
     region         = "${local.region}"
@@ -159,10 +164,52 @@ locals {
   }
 
   # --- Kubernetes Cluster ---
-  # Azure: AKS | GCP: GKE
+  # Cloud-agnostic schema; 1-platform/1-k8s/<cloud> maps from k8s. Region, vnet names come from root (not duplicated here).
   k8s = {
     create = true
-    name   = "${local.deployment_prefix}-cluster"
+    name   = "${local.deployment_prefix}-k8s-cluster"
+    kubernetes_version = "1.28"
+
+    # "Auto" = platform-managed nodes (Azure NAP, GKE Autopilot). "Manual" = explicit node pools / VM size.
+    node_provisioning_mode = "Auto" #"Manual"
+
+    network = {
+      private_cluster_enabled         = true
+      api_server_authorized_ip_ranges = []
+      service_cidr   = "10.1.0.0/16"
+      dns_service_ip = "10.1.0.10"
+      pod_cidr       = "10.2.0.0/16"
+      services_cidr  = "10.3.0.0/16"
+    }
+
+    node_pools = {
+      default = {
+        instance_type = local.cloud_provider == "azure" ? "Standard_D4s_v3" : "e2-standard-4"
+        auto_scaling  = true
+        min_count    = 1
+        max_count    = 5
+        count        = null
+      }
+      additional = {
+        gpupool = {
+          instance_type = local.cloud_provider == "azure" ? "Standard_NV6ads_A10_v5" : "n1-standard-4"
+          count         = 2
+          auto_scaling = false
+          min_count    = null
+          max_count    = null
+          node_taints  = ["sku=gpu:NoSchedule"]
+          node_labels  = { gpu = "true" }
+        }
+      }
+    }
+
+    observability = {
+      enable_logs    = true
+      enable_metrics = true
+    }
+
+    # Upgrade cadence: Azure = automatic_channel_upgrade (stable|rapid|patch|node-image), GCP = release_channel (REGULAR|RAPID|STABLE). Set per cloud.
+    release_channel = local.cloud_provider == "azure" ? "stable" : "REGULAR"
   }
 
   iam_bindings = {

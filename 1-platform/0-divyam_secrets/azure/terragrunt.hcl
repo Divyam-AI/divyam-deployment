@@ -24,11 +24,6 @@ module "common" {
 EOF
 }
 
-dependency "tfstate_azure_blob_storage" {
-  config_path  = "../../../0-foundation/2-terraform_state_blob_storage/azure"
-  skip_outputs = true
-}
-
 dependency "object_storage" {
   config_path = "../../0-divyam_object_storage/azure"
   # Apply 0-divyam_object_storage/azure before this module so dependency has real outputs (avoids mock warning).

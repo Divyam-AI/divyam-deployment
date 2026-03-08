@@ -3,9 +3,10 @@ variable "location" {
   type        = string
 }
 
-variable "common_tags" {
-  description = "Common tags applied to all azure resources"
-  type        = map(string)
+variable "create" {
+  description = "When false, do not create cluster; fetch existing by name and output its details."
+  type        = bool
+  default     = true
 }
 
 variable "resource_group_name" {
@@ -23,10 +24,16 @@ variable "cluster" {
   type = object({
     name                            = string
     kubernetes_version              = string
-    api_server_authorized_ip_ranges = optional(list(string), [])
+    api_server_authorized_ip_ranges  = optional(list(string), [])
     private_cluster_enabled         = optional(bool, true)
     vnet_subnet_name                = string
     dns_prefix                      = string
+
+    # Node Auto-Provisioning (NAP): set to "Auto" for GKE-style managed node provisioning (platform picks VM size from workload needs). "Manual" = traditional explicit node pools.
+    node_provisioning_mode          = optional(string, "Manual")
+
+    # AKS automatic upgrade channel: patch|rapid|stable|node-image (equivalent to GKE release_channel).
+    automatic_channel_upgrade       = optional(string, "stable")
 
     network_plugin = optional(string, "azure")
     network_policy = optional(string, "azure")
@@ -47,6 +54,7 @@ variable "cluster" {
 
     additional_node_pools = optional(map(object({
       vm_size          = string
+      machine_type     = optional(string)
       gpu_driver       = optional(string, "Install")
       auto_scaling     = bool
       count            = optional(number, null)
@@ -92,7 +100,13 @@ variable "app_gateway_id" {
 }
 
 variable "nat_gateway_ip" {
-  description = "IP of the NAT Gateway for API server authorized IPs (public cluster)"
+  description = "IP of the NAT Gateway for API server authorized IPs (optional; if null and nat_public_ip_name set, resolved via data source)"
+  type        = string
+  default     = null
+}
+
+variable "nat_public_ip_name" {
+  description = "Name of the NAT gateway's public IP resource in Azure (from defaults.hcl nat.nat_public_ip_name); used to look up IP via data source when nat_gateway_ip is null"
   type        = string
   default     = null
 }

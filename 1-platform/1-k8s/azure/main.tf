@@ -1,23 +1,30 @@
 # Helm provider is used for AGIC chart; azurerm comes from root-generated provider.tf.
-terraform {
-  required_providers {
-    helm = {
-      source  = "hashicorp/helm"
-      version = ">= 2.0.0"
-    }
-  }
-}
-
+# required_providers for helm are merged into root's provider.tf via terragrunt generate in this folder.
+# Define all resource names once; use them for both object creation and tag rendering so tags stay in sync.
 locals {
-  # Convert the values to terraform templates.
-  common_tags = {
-    for key, value in var.common_tags :
-    key => replace(value, "/@\\{([^}]+)\\}/", "$${$1}")
-  }
+  # Resource names (single source of truth for name + tags).
+  cluster_name           = var.cluster.name
+  agic_identity_name     = "${var.cluster.name}-agic-identity"
+  default_node_pool_name = "system"
+  log_workspace_name     = "${var.cluster.name}-log-workspace"
+  aks_dcr_name           = "${var.cluster.name}-aks-dcr"
+  amw_prefix             = join("", [for p in split("-", var.cluster.name) : substr(p, 0, 3)])
+  amw_name               = "${local.amw_prefix}-amw"
+  prom_dcr_name          = "${var.cluster.name}-prom-dcr"
+  grafana_name           = "${local.amw_prefix}-gf"
 
-  nat_gateway_cidr = var.nat_gateway_ip == null ? null : (
-    strcontains(var.nat_gateway_ip, ":") ? "${var.nat_gateway_ip}/128" : "${var.nat_gateway_ip}/32"
-  )
+  tag_context_base = merge(var.tag_globals, var.tag_context)
+
+  # Rendered tags: resource_name comes from the names above so tags always match the resource name.
+  rendered_tags_agic_identity = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = local.agic_identity_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
+  rendered_tags_cluster      = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = local.cluster_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
+  rendered_tags_system       = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = local.default_node_pool_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
+  rendered_tags_log_workspace = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = local.log_workspace_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
+  rendered_tags_aks_dcr       = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = local.aks_dcr_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
+  rendered_tags_amw          = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = local.amw_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
+  rendered_tags_prom_dcr     = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = local.prom_dcr_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
+  rendered_tags_grafana      = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = local.grafana_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
+  rendered_tags_for_pool     = { for pk in keys(var.cluster.additional_node_pools) : pk => { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = pk }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) } }
 
   log_streams = [
     "Microsoft-ContainerLog",
@@ -65,38 +72,59 @@ data "azurerm_subnet" "vnet_subnets" {
   resource_group_name  = var.vnet_resource_group_name
 }
 
+# Look up NAT gateway public IP by name (from defaults.hcl nat.nat_public_ip_name) when nat_gateway_ip not provided.
+data "azurerm_public_ip" "nat_ip" {
+  count               = (var.nat_gateway_ip == null || var.nat_gateway_ip == "") && var.nat_public_ip_name != null && var.nat_public_ip_name != "" ? 1 : 0
+  name                = var.nat_public_ip_name
+  resource_group_name = var.resource_group_name
+}
+
+# When create = false, fetch existing AKS cluster by name for outputs.
+data "azurerm_kubernetes_cluster" "existing" {
+  count               = var.create ? 0 : 1
+  name                = local.cluster_name
+  resource_group_name = var.resource_group_name
+}
+
+locals {
+  aks_cluster = var.create ? azurerm_kubernetes_cluster.aks_cluster[0] : data.azurerm_kubernetes_cluster.existing[0]
+}
+
 locals {
   vnet_id         = length(var.vnet_subnet_names) > 0 ? data.azurerm_virtual_network.vnet[0].id : null
   subnet_ids       = length(var.vnet_subnet_names) > 0 ? { for n in var.vnet_subnet_names : n => data.azurerm_subnet.vnet_subnets[n].id } : {}
   subnet_names    = var.vnet_subnet_names
   subnet_prefixes = length(var.vnet_subnet_names) > 0 ? { for n in var.vnet_subnet_names : n => data.azurerm_subnet.vnet_subnets[n].address_prefixes[0] } : {}
   app_gateway_subnet_id = try(local.subnet_ids[var.app_gateway_subnet_name], null)
+
+  # Resolve NAT gateway IP: from variable or by looking up public IP by name (Azure API).
+  resolved_nat_gateway_ip = coalesce(
+    var.nat_gateway_ip,
+    try(data.azurerm_public_ip.nat_ip[0].ip_address, null)
+  )
+  nat_gateway_cidr = local.resolved_nat_gateway_ip == null ? null : (
+    strcontains(local.resolved_nat_gateway_ip, ":") ? "${local.resolved_nat_gateway_ip}/128" : "${local.resolved_nat_gateway_ip}/32"
+  )
 }
 
 # ---------------------------
 # AGIC access setup
 # ---------------------------
 resource "azurerm_user_assigned_identity" "agic_uami" {
-  name                = "${var.cluster.name}-agic-identity"
+  count               = var.create ? 1 : 0
+  name                = local.agic_identity_name
   location            = var.location
   resource_group_name = var.resource_group_name
 
-  tags = {
-    for key, value in local.common_tags :
-    key => templatestring(value, {
-      resource_name  = "${var.cluster.name}-agic-identity"
-      location       = var.location
-      resource_group = var.resource_group_name
-      environment    = var.environment
-    })
-  }
+  tags = local.rendered_tags_agic_identity
 }
 
 # Give the AKS Managed Identity "Contributor" role on the Application Gateway
 resource "azurerm_role_assignment" "agic_appgw_access" {
+  count                = var.create ? 1 : 0
   scope                = var.app_gateway_id
   role_definition_name = "Contributor"
-  principal_id         = azurerm_user_assigned_identity.agic_uami.principal_id
+  principal_id         = azurerm_user_assigned_identity.agic_uami[0].principal_id
 
   lifecycle {
     prevent_destroy = true
@@ -116,9 +144,10 @@ data "azurerm_resource_group" "selected" {
 
 # Give identity assigned permissions
 resource "azurerm_role_assignment" "agic_identity_assigner" {
+  count                = var.create ? 1 : 0
   scope                = data.azurerm_resource_group.selected.id
   role_definition_name = "Managed Identity Operator"
-  principal_id         = azurerm_user_assigned_identity.agic_uami.principal_id
+  principal_id         = azurerm_user_assigned_identity.agic_uami[0].principal_id
 
   lifecycle {
     prevent_destroy = true
@@ -132,9 +161,10 @@ resource "azurerm_role_assignment" "agic_identity_assigner" {
 }
 
 resource "azurerm_role_assignment" "resource_group_role" {
+  count                = var.create ? 1 : 0
   scope                = data.azurerm_resource_group.selected.id
   role_definition_name = "Reader"
-  principal_id         = azurerm_user_assigned_identity.agic_uami.principal_id
+  principal_id         = azurerm_user_assigned_identity.agic_uami[0].principal_id
 
   lifecycle {
     prevent_destroy = true
@@ -149,10 +179,10 @@ resource "azurerm_role_assignment" "resource_group_role" {
 
 # Allow AKS cluster's to have ingress join the app gw subnet (when app gateway subnet is in vnet_subnet_names).
 resource "azurerm_role_assignment" "agic_subnet_permissions" {
-  count                = local.app_gateway_subnet_id != null ? 1 : 0
+  count                = var.create && local.app_gateway_subnet_id != null ? 1 : 0
   scope                = local.app_gateway_subnet_id
   role_definition_name = "Network Contributor"
-  principal_id         = azurerm_user_assigned_identity.agic_uami.principal_id
+  principal_id         = azurerm_user_assigned_identity.agic_uami[0].principal_id
 
   lifecycle {
     prevent_destroy = true
@@ -169,30 +199,33 @@ resource "azurerm_role_assignment" "agic_subnet_permissions" {
 # AKS clusters
 # ---------------------------
 resource "azurerm_kubernetes_cluster" "aks_cluster" {
-  name                = var.cluster.name
+  count               = var.create ? 1 : 0
+  name                = local.cluster_name
   location            = var.location
   resource_group_name = var.resource_group_name
   dns_prefix          = var.cluster.dns_prefix
 
   kubernetes_version = var.cluster.kubernetes_version
 
+  automatic_upgrade_channel = var.cluster.automatic_channel_upgrade
+
+  # Node Auto-Provisioning (NAP): when "Auto", AKS provisions workload nodes from pending pod requirements (no VM size needed for that capacity). Requires azurerm >= 4.57.
+  dynamic "node_provisioning_profile" {
+    for_each = var.cluster.node_provisioning_mode == "Auto" ? [1] : []
+    content {
+      mode = "Auto"
+    }
+  }
+
   default_node_pool {
-    name                 = "system"
+    name                 = local.default_node_pool_name
     vnet_subnet_id       = local.subnet_ids[var.cluster.vnet_subnet_name]
     vm_size              = var.cluster.default_node_pool.vm_size
     node_count           = !var.cluster.default_node_pool.auto_scaling ? var.cluster.default_node_pool.count : null
     auto_scaling_enabled = var.cluster.default_node_pool.auto_scaling
     min_count            = var.cluster.default_node_pool.auto_scaling ? var.cluster.default_node_pool.min_count : null
     max_count            = var.cluster.default_node_pool.auto_scaling ? var.cluster.default_node_pool.max_count : null
-    tags = merge(var.cluster.default_node_pool.tags, {
-      for key, value in local.common_tags :
-      key => templatestring(value, {
-        resource_name  = "system"
-        location       = var.location
-        resource_group = var.resource_group_name
-        environment    = var.environment
-      })
-    })
+    tags = merge(var.cluster.default_node_pool.tags, local.rendered_tags_system)
 
     node_labels                 = var.cluster.default_node_pool.node_labels
     temporary_name_for_rotation = var.cluster.default_node_pool.temporary_name_for_rotation
@@ -200,7 +233,7 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
 
   identity {
     type         = "UserAssigned"
-    identity_ids = [azurerm_user_assigned_identity.agic_uami.id]
+    identity_ids = [azurerm_user_assigned_identity.agic_uami[0].id]
   }
 
   # Allows for use of Azure Key Vault
@@ -227,7 +260,7 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
   }
 
   dynamic "oms_agent" {
-    for_each = var.enable_log_collection ? { "enabled" = true } : {}
+    for_each = var.create && var.enable_log_collection ? { "enabled" = true } : {}
 
     content {
       log_analytics_workspace_id      = azurerm_log_analytics_workspace.log_analytics_workspace["enabled"].id
@@ -236,19 +269,11 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
   }
 
   dynamic "monitor_metrics" {
-    for_each = var.enable_metrics_collection ? { "enabled" = true } : {}
+    for_each = var.create && var.enable_metrics_collection ? { "enabled" = true } : {}
     content {}
   }
 
-  tags = {
-    for key, value in local.common_tags :
-    key => templatestring(value, {
-      resource_name  = var.cluster.name
-      location       = var.location
-      resource_group = var.resource_group_name
-      environment    = var.environment
-    })
-  }
+  tags = local.rendered_tags_cluster
 
   lifecycle {
     ignore_changes = [
@@ -261,10 +286,10 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
 
 # Additional node pool
 resource "azurerm_kubernetes_cluster_node_pool" "additional_node_pools" {
-  for_each = var.cluster.additional_node_pools
+  for_each = var.create ? var.cluster.additional_node_pools : {}
 
   name                  = each.key
-  kubernetes_cluster_id  = azurerm_kubernetes_cluster.aks_cluster.id
+  kubernetes_cluster_id  = azurerm_kubernetes_cluster.aks_cluster[0].id
   vnet_subnet_id        = local.subnet_ids[each.value.vnet_subnet_name != null ? each.value.vnet_subnet_name : var.cluster.vnet_subnet_name]
   vm_size               = each.value.vm_size
   gpu_driver            = each.value.gpu_driver
@@ -273,15 +298,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "additional_node_pools" {
   min_count             = each.value.auto_scaling ? each.value.min_count : null
   max_count             = each.value.auto_scaling ? each.value.max_count : null
   node_taints           = each.value.node_taints
-  tags = merge(each.value.tags, {
-    for key, value in local.common_tags :
-    key => templatestring(value, {
-      resource_name  = each.key
-      location       = var.location
-      resource_group = var.resource_group_name
-      environment    = var.environment
-    })
-  })
+  tags = merge(each.value.tags, local.rendered_tags_for_pool[each.key])
 
   node_labels = each.value.node_labels
 
@@ -296,27 +313,19 @@ resource "azurerm_kubernetes_cluster_node_pool" "additional_node_pools" {
 # Container Logs collection
 # ---------------------------
 resource "azurerm_log_analytics_workspace" "log_analytics_workspace" {
-  for_each = var.enable_log_collection ? { "enabled" = true } : {}
+  for_each = var.create && var.enable_log_collection ? { "enabled" = true } : {}
 
-  name                = "${var.cluster.name}-log-workspace"
+  name                = local.log_workspace_name
   location            = var.location
   resource_group_name = var.resource_group_name
   sku                 = "PerGB2018"
-  tags = {
-    for key, value in local.common_tags :
-    key => templatestring(value, {
-      resource_name  = "${var.cluster.name}-log-workspace"
-      location       = var.location
-      resource_group = var.resource_group_name
-      environment    = var.environment
-    })
-  }
+  tags = local.rendered_tags_log_workspace
 }
 
 resource "azurerm_monitor_data_collection_rule" "aks_logs" {
-  for_each = var.enable_log_collection ? { "enabled" = true } : {}
+  for_each = var.create && var.enable_log_collection ? { "enabled" = true } : {}
 
-  name                = "${var.cluster.name}-aks-dcr"
+  name                = local.aks_dcr_name
   resource_group_name  = var.resource_group_name
   location             = var.location
 
@@ -355,22 +364,14 @@ resource "azurerm_monitor_data_collection_rule" "aks_logs" {
     destinations = ["law-destination"]
   }
 
-  tags = {
-    for key, value in local.common_tags :
-    key => templatestring(value, {
-      resource_name  = "${var.cluster.name}-aks-dcr"
-      location       = var.location
-      resource_group = var.resource_group_name
-      environment    = var.environment
-    })
-  }
+  tags = local.rendered_tags_aks_dcr
 }
 
 resource "azurerm_monitor_data_collection_rule_association" "aks_dcr_assoc" {
-  for_each = var.enable_log_collection ? { "enabled" = true } : {}
+  for_each = var.create && var.enable_log_collection ? { "enabled" = true } : {}
 
   name                    = "${var.cluster.name}-aks-dcr-assoc"
-  target_resource_id      = azurerm_kubernetes_cluster.aks_cluster.id
+  target_resource_id      = azurerm_kubernetes_cluster.aks_cluster[0].id
   data_collection_rule_id = azurerm_monitor_data_collection_rule.aks_logs["enabled"].id
 }
 
@@ -378,27 +379,19 @@ resource "azurerm_monitor_data_collection_rule_association" "aks_dcr_assoc" {
 # Managed metrics collection
 # ---------------------------
 resource "azurerm_monitor_workspace" "prometheus" {
-  for_each = var.enable_metrics_collection ? { "enabled" = true } : {}
+  for_each = var.create && var.enable_metrics_collection ? { "enabled" = true } : {}
 
-  name                = "${join("", [for p in split("-", var.cluster.name) : substr(p, 0, 3)])}-amw"
+  name                = local.amw_name
   location            = var.location
   resource_group_name = var.resource_group_name
 
-  tags = {
-    for key, value in local.common_tags :
-    key => templatestring(value, {
-      resource_name  = "${join("", [for p in split("-", var.cluster.name) : substr(p, 0, 3)])}-amw"
-      location       = var.location
-      resource_group = var.resource_group_name
-      environment    = var.environment
-    })
-  }
+  tags = local.rendered_tags_amw
 }
 
 resource "azurerm_monitor_data_collection_rule" "aks_prometheus" {
-  for_each = var.enable_metrics_collection ? { "enabled" = true } : {}
+  for_each = var.create && var.enable_metrics_collection ? { "enabled" = true } : {}
 
-  name                = "${var.cluster.name}-prom-dcr"
+  name                = local.prom_dcr_name
   location             = var.location
   resource_group_name  = var.resource_group_name
 
@@ -421,30 +414,22 @@ resource "azurerm_monitor_data_collection_rule" "aks_prometheus" {
     destinations = ["prometheus-dest"]
   }
 
-  tags = {
-    for key, value in local.common_tags :
-    key => templatestring(value, {
-      resource_name  = "${var.cluster.name}-prom-dcr"
-      location       = var.location
-      resource_group = var.resource_group_name
-      environment    = var.environment
-    })
-  }
+  tags = local.rendered_tags_prom_dcr
 }
 
 resource "azurerm_monitor_data_collection_rule_association" "aks_assoc" {
-  for_each = var.enable_metrics_collection ? { "enabled" = true } : {}
+  for_each = var.create && var.enable_metrics_collection ? { "enabled" = true } : {}
 
   name                    = "${var.cluster.name}-aks-prometheus-assoc"
-  target_resource_id      = azurerm_kubernetes_cluster.aks_cluster.id
+  target_resource_id      = azurerm_kubernetes_cluster.aks_cluster[0].id
   data_collection_rule_id = azurerm_monitor_data_collection_rule.aks_prometheus["enabled"].id
 }
 
 resource "azurerm_dashboard_grafana" "grafana" {
-  for_each = var.enable_metrics_collection ? { "enabled" = true } : {}
+  for_each = var.create && var.enable_metrics_collection ? { "enabled" = true } : {}
 
-  name                  = "${join("", [for p in split("-", var.cluster.name) : substr(p, 0, 3)])}-gf"
-  resource_group_name   = var.resource_group_name
+  name                = local.grafana_name
+  resource_group_name = var.resource_group_name
   location              = var.location
   grafana_major_version = 11
 
@@ -456,19 +441,11 @@ resource "azurerm_dashboard_grafana" "grafana" {
     type = "SystemAssigned"
   }
 
-  tags = {
-    for key, value in local.common_tags :
-    key => templatestring(value, {
-      resource_name  = "${join("", [for p in split("-", var.cluster.name) : substr(p, 0, 3)])}-gf"
-      location       = var.location
-      resource_group = var.resource_group_name
-      environment    = var.environment
-    })
-  }
+  tags = local.rendered_tags_grafana
 }
 
 resource "azurerm_role_assignment" "grafana_reader" {
-  for_each = var.enable_metrics_collection ? { "enabled" = true } : {}
+  for_each = var.create && var.enable_metrics_collection ? { "enabled" = true } : {}
 
   scope                = azurerm_monitor_workspace.prometheus["enabled"].id
   role_definition_name = "Monitoring Data Reader"
@@ -489,24 +466,26 @@ resource "azurerm_role_assignment" "grafana_reader" {
 # AGIC for App gateway -> AKS service connect
 # ---------------------------
 resource "azurerm_federated_identity_credential" "agic" {
+  count                = var.create ? 1 : 0
   name                = "${var.cluster.name}-agic-fic"
-  resource_group_name  = azurerm_user_assigned_identity.agic_uami.resource_group_name
-  parent_id           = azurerm_user_assigned_identity.agic_uami.id
-  issuer              = azurerm_kubernetes_cluster.aks_cluster.oidc_issuer_url
+  resource_group_name  = azurerm_user_assigned_identity.agic_uami[0].resource_group_name
+  parent_id           = azurerm_user_assigned_identity.agic_uami[0].id
+  issuer              = azurerm_kubernetes_cluster.aks_cluster[0].oidc_issuer_url
   subject             = "system:serviceaccount:kube-system:${var.cluster.name}-ingress-azure"
   audience            = ["api://AzureADTokenExchange"]
 }
 
 provider "helm" {
-  kubernetes {
-    host                   = azurerm_kubernetes_cluster.aks_cluster.kube_config[0].host
-    client_certificate     = base64decode(azurerm_kubernetes_cluster.aks_cluster.kube_config[0].client_certificate)
-    client_key             = base64decode(azurerm_kubernetes_cluster.aks_cluster.kube_config[0].client_key)
-    cluster_ca_certificate = base64decode(azurerm_kubernetes_cluster.aks_cluster.kube_config[0].cluster_ca_certificate)
+  kubernetes = {
+    host                   = local.aks_cluster.kube_config[0].host
+    client_certificate     = base64decode(local.aks_cluster.kube_config[0].client_certificate)
+    client_key             = base64decode(local.aks_cluster.kube_config[0].client_key)
+    cluster_ca_certificate = base64decode(local.aks_cluster.kube_config[0].cluster_ca_certificate)
   }
 }
 
 resource "helm_release" "agic" {
+  count      = var.create ? 1 : 0
   name       = "${var.cluster.name}-ingress-azure"
   repository = "oci://mcr.microsoft.com/azure-application-gateway/charts/"
   chart      = "ingress-azure"
@@ -530,11 +509,11 @@ resource "helm_release" "agic" {
     },
     {
       name  = "armAuth.identityResourceID"
-      value = azurerm_user_assigned_identity.agic_uami.id
+      value = azurerm_user_assigned_identity.agic_uami[0].id
     },
     {
       name  = "armAuth.identityClientID"
-      value = azurerm_user_assigned_identity.agic_uami.client_id
+      value = azurerm_user_assigned_identity.agic_uami[0].client_id
     },
     {
       name  = "rbac.enabled"

@@ -1,6 +1,6 @@
 #----------------------------------------------
-# Root Terragrunt config (single file). Reads values/defaults.hcl and
-# values/<CLOUD_PROVIDER>/defaults.hcl (env: CLOUD_PROVIDER, default: azure).
+# Root Terragrunt config (single file). Reads values/defaults.hcl.
+# Cloud-specific provider and backend are inlined below from CLOUD_PROVIDER (env: default azure).
 #
 # When run from repo root: runs resource-scope module for current CLOUD_PROVIDER.
 # When included by children: provides shared locals, provider, remote_state, inputs.
@@ -8,14 +8,51 @@
 #----------------------------------------------
 locals {
   repo_root      = get_repo_root()
-  cloud_provider = get_env("CLOUD_PROVIDER")
+  cloud_provider = length(trimspace(get_env("CLOUD_PROVIDER", ""))) > 0 ? trimspace(get_env("CLOUD_PROVIDER", "")) : error("CLOUD_PROVIDER environment variable must be set (e.g. azure or gcp)")
   at_repo_root   = get_terragrunt_dir() == local.repo_root
 
   # Set TG_USE_LOCAL_BACKEND=1 (or true) to use local state for all modules — no remote backend, no state download. Useful for testing.
   use_local_backend = get_env("TG_USE_LOCAL_BACKEND", "0") != "0"
 
   default_locals = read_terragrunt_config("${local.repo_root}/values/defaults.hcl").locals
-  cloud_locals   = read_terragrunt_config("${local.repo_root}/values/${local.cloud_provider}/defaults.hcl").locals
+
+  # Azure: ARM_SUBSCRIPTION_ID, ARM_TENANT_ID only read when cloud_provider is azure (inside branch below). GCP: uses ADC.
+  cloud_locals = local.cloud_provider == "gcp" ? {
+    cloud_provider  = "gcp"
+    provider_block = <<-EOT
+terraform {
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 5.0.0"
+    }
+  }
+}
+
+provider "google" {
+  # Use Application Default Credentials (gcloud auth application-default login)
+  # or set GOOGLE_APPLICATION_CREDENTIALS.
+}
+EOT
+  } : {
+    cloud_provider  = "azure"
+    provider_block = <<-EOT
+terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = ">= 4.57.0"  # 4.57+ for node_provisioning_profile (Node Auto-Provisioning / NAP)
+    }
+  }
+}
+
+provider "azurerm" {
+  features {}
+  subscription_id = "${get_env("ARM_SUBSCRIPTION_ID")}"
+  tenant_id       = "${get_env("ARM_TENANT_ID")}"
+}
+EOT
+  }
 
   merged = merge(local.default_locals, local.cloud_locals)
 
@@ -38,14 +75,14 @@ terraform {
 # Applies to all modules that include this root (e.g. 1-platform/0-*, 0-foundation/*, 2-app/*).
 # path_relative_to_include() gives each module its own state key/prefix. Use TG_USE_LOCAL_BACKEND=1 for local state.
 remote_state {
-  backend = (local.use_local_backend || local.at_repo_root) ? "local" : (coalesce(local.cloud_provider, "azure") == "gcp" ? "gcs" : "azurerm")
+  backend = (local.use_local_backend || local.at_repo_root) ? "local" : (local.cloud_provider == "gcp" ? "gcs" : "azurerm")
   generate = {
     path      = "backend.tf"
     if_exists = "overwrite"
   }
   config = (local.use_local_backend || local.at_repo_root) ? {
     path = "terraform.tfstate"
-  } : (coalesce(local.cloud_provider, "azure") == "gcp" ? merge(
+  } : (local.cloud_provider == "gcp" ? merge(
     { bucket = local.merged.tfstate.bucket_name },
     { prefix = "${local.merged.env_name}/${local.merged.region}/${path_relative_to_include()}" }
   ) : merge(
