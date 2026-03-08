@@ -1,5 +1,4 @@
-# GKE cluster (1-platform). Config from values/defaults.hcl k8s (k8s.gke when CLOUD_PROVIDER=gcp).
-# VNet names from merged config; network/subnetwork self links built here for the GKE resource.
+# GKE cluster (1-platform). Config from values/defaults.hcl k8s. VNet/subnet by name; service/pod CIDRs from vnet config (GCP API has no single VPC address_space).
 
 include "root" {
   path   = find_in_parent_folders("root.hcl")
@@ -41,19 +40,24 @@ locals {
   project = local.root.resource_scope.name
   region  = local.root.region
 
+  # K8s pod/services CIDRs from vnet config (GCP VPC has no address_space in API; use config so they don't overlap node/app_gw subnets).
+  vnet_address_space = try(local.vnet.address_space[0], "10.0.0.0/16")
+  k8s_pod_cidr       = cidrsubnet(local.vnet_address_space, 4, 2)
+  k8s_services_cidr = cidrsubnet(local.vnet_address_space, 4, 3)
+
   # Single cluster: k8s.name; region/vnet from root. enable_autopilot from cloud-agnostic node_provisioning_mode ("Auto" = Autopilot).
   cluster_config = {
     region                    = local.region
     release_channel           = try(local.k8s.release_channel, "REGULAR")
     enable_autopilot          = try(local.k8s.node_provisioning_mode, "Manual") == "Auto"
     machine_type              = try(local.pools.default.instance_type, "e2-standard-4")
-    enable_private_nodes      = try(local.net.private_cluster_enabled, true)
+    enable_private_nodes      = true
     enable_private_endpoint   = true
     network                   = "projects/${local.project}/global/networks/${try(local.vnet.name, "default")}"
     subnetwork                = "projects/${local.project}/regions/${local.region}/subnetworks/${try(local.vnet.subnet.name, "default")}"
-    master_authorized_networks_cidr = [for c in try(local.net.api_server_authorized_ip_ranges, []) : { cidr_block = c, display_name = c }]
-    cluster_ipv4_cidr        = try(local.net.pod_cidr, "10.2.0.0/16")
-    services_ipv4_cidr       = try(local.net.services_cidr, "10.3.0.0/16")
+    master_authorized_networks_cidr = [for c in try(local.k8s.api_server_authorized_ip_ranges, []) : { cidr_block = c, display_name = c }]
+    cluster_ipv4_cidr        = local.k8s_pod_cidr
+    services_ipv4_cidr       = local.k8s_services_cidr
     additional_pod_range_names = []
     binauthz_evaluation_mode  = "DISABLED"
     dns_scope                 = "CLUSTER_SCOPE"

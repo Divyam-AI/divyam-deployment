@@ -37,8 +37,8 @@ variable "cluster" {
 
     network_plugin = optional(string, "azure")
     network_policy = optional(string, "azure")
-    dns_service_ip = string
-    service_cidr   = string
+    dns_service_ip = optional(string)
+    service_cidr   = optional(string)
 
     default_node_pool = object({
       vm_size                     = string

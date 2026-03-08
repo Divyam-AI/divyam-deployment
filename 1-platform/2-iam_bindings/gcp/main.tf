@@ -1,22 +1,4 @@
 ############################################
-# Configure Google Provider
-############################################
-
-terraform {
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = ">= 4.0"
-    }
-  }
-}
-
-provider "google" {
-  project = var.project_id
-  region  = var.region
-}
-
-############################################
 # Service Accounts (shared common module)
 ############################################
 
@@ -88,10 +70,9 @@ locals {
 resource "google_service_account" "identities" {
   for_each = local.service_account_ids
 
-  account_id   = replace(each.key, "-", "_")
+  project      = var.project_id
+  account_id   = each.key
   display_name = "GKE Service Account - ${each.key}"
-
-  labels = local.rendered_tags
 }
 
 ############################################

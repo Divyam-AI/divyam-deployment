@@ -53,14 +53,15 @@ locals {
     name                            = local.cluster_name
     dns_prefix                      = local.dns_prefix
     kubernetes_version               = try(local.k8s.kubernetes_version, "1.28")
-    api_server_authorized_ip_ranges = try(local.net.api_server_authorized_ip_ranges, [])
-    private_cluster_enabled         = try(local.net.private_cluster_enabled, true)
+    api_server_authorized_ip_ranges = try(local.k8s.api_server_authorized_ip_ranges, [])
+    private_cluster_enabled         = true
     vnet_subnet_name                = local.vnet_subnet_name
 
     network_plugin = "azure"
     network_policy = "azure"
-    dns_service_ip = try(local.net.dns_service_ip, "10.1.0.10")
-    service_cidr   = try(local.net.service_cidr, "10.1.0.0/16")
+    # service_cidr and dns_service_ip are computed in Terraform from VNet fetched by name from Azure (data source).
+    dns_service_ip = null
+    service_cidr   = null
 
     node_provisioning_mode = try(local.k8s.node_provisioning_mode, "Manual")
 

@@ -173,14 +173,7 @@ locals {
     # "Auto" = platform-managed nodes (Azure NAP, GKE Autopilot). "Manual" = explicit node pools / VM size.
     node_provisioning_mode = "Auto" #"Manual"
 
-    network = {
-      private_cluster_enabled         = true
-      api_server_authorized_ip_ranges = []
-      service_cidr   = "10.1.0.0/16"
-      dns_service_ip = "10.1.0.10"
-      pod_cidr       = "10.2.0.0/16"
-      services_cidr  = "10.3.0.0/16"
-    }
+    api_server_authorized_ip_ranges = []
 
     node_pools = {
       default = {
@@ -213,7 +206,7 @@ locals {
   }
 
   iam_bindings = {
-    create = false
+    create = true
   }
 
 #################### Application ##########################

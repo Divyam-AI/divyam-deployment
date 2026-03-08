@@ -6,7 +6,7 @@ include "root" {
 }
 
 terraform {
-  source = "./"
+  source = "${get_repo_root()}/1-platform/2-iam_bindings//gcp"
 }
 
 dependency "divyam_object_storage" {

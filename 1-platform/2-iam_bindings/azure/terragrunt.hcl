@@ -7,7 +7,7 @@ include "root" {
 }
 
 terraform {
-  source = "./"
+  source = "${get_repo_root()}/1-platform/2-iam_bindings//azure"
 }
 
 dependency "divyam_secrets" {
@@ -25,9 +25,9 @@ dependency "divyam_object_storage" {
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
 }
 
-# AKS: use 1-old/aks until 1-platform/aks exists.
+# AKS from platform k8s module.
 dependency "aks" {
-  config_path = "../../../1-old/aks"
+  config_path = "../../1-k8s/azure"
   mock_outputs = {
     aks_oidc_issuer_url = "https://mock-oidc-issuer"
     aks_cluster_name    = "mock-aks-cluster"

@@ -9,13 +9,15 @@ locals {
   # 1️⃣ Base Service Accounts (No Env)
   ##########################################
 
+# Note: GCP allows only ^[a-z]([-a-z0-9]*[a-z0-9])?$ (no underscores).
+
   base_service_accounts = {
     prometheus = {
       namespace_prefix = "prometheus"
       roles            = ["metrics_publisher"]
     }
 
-    kafka_connect = {
+    kafka-connect = {
       namespace_prefix = "kafka"
       roles            = ["blob_writer"]
     }
@@ -30,12 +32,12 @@ locals {
       roles            = ["secret_writer", "resource_reader"]
     }
 
-    db_upgrades = {
+    db-upgrades = {
       namespace_prefix = "db_upgrades"
       roles            = ["secret_writer", "resource_reader"]
     }
 
-    router_controller = {
+    router-controller = {
       namespace_prefix = "router_controller"
       roles            = ["secret_writer", "resource_reader"]
     }
@@ -45,7 +47,7 @@ locals {
       roles            = ["secret_reader", "resource_reader"]
     }
 
-    selector_training = {
+    selector-training = {
       namespace_prefix = "selector_training"
       roles = [
         "secret_writer",
@@ -57,10 +59,11 @@ locals {
 
   ##########################################
   # 2️⃣ Final Service Accounts (Env Suffix)
+  # Keys are GCP-safe (hyphens only) so they work as-is for both GCP account_id and Azure.
   ##########################################
   service_accounts = {
     for sa_name, sa in local.base_service_accounts :
-    "${sa_name}-${var.env_name}-sa" => {
+    replace("${sa_name}-${var.env_name}-sa", "_", "-") => {
       namespace = lookup(sa, "namespace", null) != null ? sa.namespace : "${sa.namespace_prefix}-${var.env_name}-ns"
       roles     = sa.roles
     }
