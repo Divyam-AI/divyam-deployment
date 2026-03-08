@@ -39,9 +39,16 @@ locals {
     name    = local.cloud_provider == "azure" ? "rg-sudhir-4084" : "sudhir-workspace" # Azure | GCP
   }
 
+# --- APIs / Resource Providers (0-foundation/1-apis) ---
+# GCP: enable APIs; Azure: register resource providers. Set enabled = true; override apis (GCP) or provider_namespaces (Azure) in values/<cloud>/defaults.hcl if needed.
+  apis = {
+    enabled = true
+  }
+
 # --- Virtual Network ---
-  # Azure: VNet | GCP: Shared VPC
+  # Azure: VNet | GCP: VPC (optionally Shared VPC host with service project attachments)
   # When create = true (e.g. GCP): create network and subnets. When false: look up existing by name.
+  # GCP: set shared_vpc_host = true to enable this project as Shared VPC host; set service_project_ids = ["project-a","project-b"] to attach service projects.
   vnet = {
     create          = false
     # TODO: Remove these temp values
@@ -54,6 +61,30 @@ locals {
     # TODO: Remove these temp values
     subnet          = { create = false, subnet_ip = "10.0.0.0/21", name = local.cloud_provider == "azure" ? "rg-sudhir-4084-subnet" : "default"  } # "${local.deployment_prefix}-subnet" (2048 IPs)
     app_gw_subnet   = { create = false, subnet_ip = "10.0.8.0/27", name = local.cloud_provider == "azure" ? "rg-sudhir-4084-app-gw-subnet" : "default-app-gw-subnet" } # "${local.deployment_prefix}-subnet-app-gw" (32 IPs)  - Required for Azure App Gateway or GCP Proxy
+    # GCP only: enable Shared VPC host and attach service projects (ignored by Azure)
+    # Azure: shared_vpc_host = true peers this VNet to remote VNets whose ARM IDs are in service_project_ids.
+    shared_vpc_host     = false
+    service_project_ids = []  # GCP: project IDs to attach; Azure: remote VNet ARM IDs to peer with
+  }
+
+  # --- NAT (egress) ---
+  # Azure: NAT Gateway + Public IP, associated to VNet subnets. GCP: Cloud NAT on Cloud Router for listed subnetworks.
+  nat = {
+    create = true
+    resource_name_prefix = "${local.deployment_prefix}"
+    # GCP: Cloud Router and NAT config names
+    router_name     = "${local.deployment_prefix}-nat-router"
+    nat_config_name = "${local.deployment_prefix}-nat-config"
+  }
+
+  # --- Bastion ---
+  # Azure: Linux VM with public IP, NSG (SSH). GCP: Compute instance with firewall (SSH).
+  # Set create = true and override in values/azure/defaults.hcl or values/gcp/defaults.hcl (e.g. bastion_name, vnet_subnet_name [Azure], machine_type [GCP]).
+  bastion = {
+    create       = false
+    bastion_name = "${local.deployment_prefix}-bastion"
+    # Azure: vnet_subnet_name (subnet to attach to), vm_size, admin_username, ssh_public_key_path. Optional: aks_cluster_name, aks_kube_config_raw.
+    # GCP: machine_type, tags.
   }
 
 # --- Blob / Object Storage ---

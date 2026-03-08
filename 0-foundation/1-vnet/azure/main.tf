@@ -80,3 +80,18 @@ data "azurerm_subnet" "app_gw_subnet" {
   virtual_network_name = local.vnet_name
   resource_group_name  = var.vnet.scope_name
 }
+
+# --- Azure VNet peering (hub-and-spoke: peer this VNet to remote VNets) ---
+# When shared_vpc_host = true, create peering from this VNet to each remote VNet in service_project_ids.
+# Remote VNet IDs must be full ARM IDs. Reverse peering (remote → this VNet) must be created elsewhere.
+resource "azurerm_virtual_network_peering" "hub_to_remote" {
+  for_each = var.vnet.create && try(var.vnet.shared_vpc_host, false) ? toset(try(var.vnet.service_project_ids, [])) : toset([])
+
+  name                         = "peer-${substr(md5(each.key), 0, 12)}"
+  resource_group_name          = var.vnet.scope_name
+  virtual_network_name         = local.vnet_name
+  remote_virtual_network_id    = each.key
+  allow_virtual_network_access = true
+  allow_forwarded_traffic      = false
+  allow_gateway_transit        = false
+}

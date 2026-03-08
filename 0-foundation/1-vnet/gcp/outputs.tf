@@ -47,3 +47,9 @@ output "app_gw_subnet_prefix" {
   description = "IP CIDR range of the App Gateway / proxy subnet"
   value       = var.vnet.app_gw_subnet.create ? google_compute_subnetwork.app_gw_subnet[0].ip_cidr_range : data.google_compute_subnetwork.app_gw_subnet[0].ip_cidr_range
 }
+
+# GCP Shared VPC: host project ID when this VPC is a Shared VPC host.
+output "shared_vpc_host_project_id" {
+  description = "Project ID of the Shared VPC host (only set when shared_vpc_host = true)"
+  value       = var.vnet.create && try(var.vnet.shared_vpc_host, false) ? google_compute_shared_vpc_host_project.host[0].project : null
+}

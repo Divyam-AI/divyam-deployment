@@ -68,3 +68,19 @@ data "google_compute_subnetwork" "app_gw_subnet" {
   region  = var.vnet.region
   project = var.vnet.scope_name
 }
+
+# --- GCP Shared VPC (host + service project attachments) ---
+# Enable the project that owns the VPC as a Shared VPC host (only when creating the VPC).
+resource "google_compute_shared_vpc_host_project" "host" {
+  count = var.vnet.create && try(var.vnet.shared_vpc_host, false) ? 1 : 0
+
+  project = var.vnet.scope_name
+}
+
+# Attach service projects to this Shared VPC.
+resource "google_compute_shared_vpc_service_project" "service_projects" {
+  for_each = var.vnet.create && try(var.vnet.shared_vpc_host, false) ? toset(try(var.vnet.service_project_ids, [])) : toset([])
+
+  host_project    = var.vnet.scope_name
+  service_project = each.key
+}

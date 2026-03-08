@@ -1,0 +1,121 @@
+variable "location" {
+  description = "Azure provider location"
+  type        = string
+}
+
+variable "common_tags" {
+  description = "Common tags applied to all azure resources"
+  type        = map(string)
+}
+
+variable "resource_group_name" {
+  description = "Resource group to use"
+  type        = string
+}
+
+variable "environment" {
+  description = "Deployment environment"
+  type        = string
+}
+
+variable "cluster" {
+  description = "AKS cluster configuration (name, dns_prefix, node pool, network, etc.)."
+  type = object({
+    name                            = string
+    kubernetes_version              = string
+    api_server_authorized_ip_ranges = optional(list(string), [])
+    private_cluster_enabled         = optional(bool, true)
+    vnet_subnet_name                = string
+    dns_prefix                      = string
+
+    network_plugin = optional(string, "azure")
+    network_policy = optional(string, "azure")
+    dns_service_ip = string
+    service_cidr   = string
+
+    default_node_pool = object({
+      vm_size                     = string
+      auto_scaling                = bool
+      count                       = optional(number, null)
+      min_count                   = optional(number, null)
+      max_count                   = optional(number, null)
+      mode                        = optional(string, "User")
+      tags                        = optional(map(string), {})
+      node_labels                 = optional(map(string), {})
+      temporary_name_for_rotation = optional(string, "tempnp01")
+    })
+
+    additional_node_pools = optional(map(object({
+      vm_size          = string
+      gpu_driver       = optional(string, "Install")
+      auto_scaling     = bool
+      count            = optional(number, null)
+      min_count        = optional(number, null)
+      max_count        = optional(number, null)
+      mode             = optional(string, "User")
+      node_taints      = optional(list(string), [])
+      tags             = optional(map(string), {})
+      node_labels      = optional(map(string), {})
+      vnet_subnet_name = optional(string, null)
+    })), {})
+  })
+}
+
+variable "vnet_name" {
+  description = "Name of the Virtual Network (looked up in Azure from defaults.hcl vnet.name)"
+  type        = string
+}
+
+variable "vnet_resource_group_name" {
+  description = "Resource group where the VNet exists (defaults.hcl vnet.scope_name)"
+  type        = string
+}
+
+variable "vnet_subnet_names" {
+  description = "List of subnet names to look up (node subnet + app gateway subnet from defaults.hcl)"
+  type        = list(string)
+}
+
+variable "app_gateway_subnet_name" {
+  description = "Subnet name where the Application Gateway is deployed (must be in vnet_subnet_names)"
+  type        = string
+}
+
+variable "app_gateway_name" {
+  description = "Name of the Application Gateway for AGIC integration"
+  type        = string
+}
+
+variable "app_gateway_id" {
+  description = "ID of the Application Gateway for AGIC integration"
+  type        = string
+}
+
+variable "nat_gateway_ip" {
+  description = "IP of the NAT Gateway for API server authorized IPs (public cluster)"
+  type        = string
+  default     = null
+}
+
+variable "enable_log_collection" {
+  description = "Enable container log collection to Azure Log Analytics"
+  type        = bool
+  default     = true
+}
+
+variable "enable_metrics_collection" {
+  description = "Enable managed Prometheus metrics collection"
+  type        = bool
+  default     = true
+}
+
+variable "artifacts_path" {
+  description = "Optional path to artifacts.yaml for helm chart namespaces (log collection)"
+  type        = string
+  default     = null
+}
+
+variable "agic_helm_version" {
+  description = "Version of AGIC helm chart"
+  type        = string
+}
