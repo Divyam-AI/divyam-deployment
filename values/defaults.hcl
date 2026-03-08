@@ -20,7 +20,7 @@ locals {
   )
 
   # Can set key -> value for tags to be applied for cloud entities
-  common_tags       = { sudhir_environment     = "test-#{environment}" } 
+  common_tags       = { divyam_environment     = "divyam-env-#{environment}" } 
   # Can also use templates as value and will automatically replaced
   # Standard template variables are defined as part of tag_globals in root.hcl
   # { 
@@ -207,6 +207,23 @@ locals {
 
   iam_bindings = {
     create = true
+  }
+
+  alerts = {
+    create         = true
+    enabled        = true
+    exclude_list   = []
+
+    notification_channels = {
+      pager_enabled      = true
+      pager_webhook_url  = get_env("NOTIFICATION_PAGER_WEBHOOK_URL", "")
+      gchat_enabled      = true
+      gchat_space_id     = get_env("NOTIFICATION_GCHAT_SPACE_ID", "")
+      email_enabled      = true
+      email_alert_email  = get_env("NOTIFICATION_EMAIL_ALERT_EMAIL", "")
+      slack_enabled      = true
+      slack_webhook_url  = get_env("NOTIFICATION_SLACK_WEBHOOK_URL", "")
+    }
   }
 
 #################### Application ##########################
