@@ -50,5 +50,10 @@ inputs = merge(
     bastion_name = try(local.bastion_config.bastion_name, "${local.root.deployment_prefix}-bastion")
     machine_type = try(local.bastion_config.machine_type, "e2-micro")
     tags         = try(local.bastion_config.tags, ["bastion"])
+    # Kubectl: only when bastion section has configure_kubectl = true; cluster details from k8s section.
+    configure_kubectl   = try(local.bastion_config.configure_kubectl, false)
+    cluster_name       = try(local.root.k8s.name, "")
+    cluster_region     = local.region
+    cluster_project_id = local.project_id
   }
 )

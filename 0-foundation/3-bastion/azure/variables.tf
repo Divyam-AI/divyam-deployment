@@ -68,14 +68,14 @@ variable "vnet_subnet_name" {
   type        = string
 }
 
-variable "aks_cluster_name" {
-  description = "AKS cluster name (optional - can deploy bastion without AKS)"
+variable "cluster_name" {
+  description = "Cluster name from k8s section; used when configure_kubectl is true"
   type        = string
   default     = ""
 }
 
-variable "aks_kube_config_raw" {
-  description = "AKS cluster raw kube configs (optional - can deploy bastion without AKS)"
-  type        = string
-  default     = ""
+variable "configure_kubectl" {
+  description = "When true, install kubectl and a setup script to fetch cluster credentials (cluster details from k8s section)"
+  type        = bool
+  default     = false
 }

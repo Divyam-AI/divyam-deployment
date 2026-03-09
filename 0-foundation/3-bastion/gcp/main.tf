@@ -35,10 +35,12 @@ resource "google_compute_instance" "bastion" {
     }
   }
 
-  metadata_startup_script = <<-EOT
-    #!/bin/bash
-    apt-get update -y || true
-  EOT
+  metadata_startup_script = templatefile("${path.module}/scripts/init.tpl", {
+    configure_kubectl   = var.configure_kubectl
+    cluster_name        = var.cluster_name
+    cluster_region     = var.cluster_region
+    cluster_project_id  = var.cluster_project_id
+  })
 
   service_account {
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]

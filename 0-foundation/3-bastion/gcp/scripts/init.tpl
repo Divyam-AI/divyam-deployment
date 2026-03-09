@@ -34,37 +34,34 @@ apt-get install -y kubectl
 kubectl version --client
 echo "kubectl installed."
 
-%{ if configure_kubectl && cluster_name != "" && resource_group_name != "" ~}
-# Install Azure CLI and write setup script to fetch cluster credentials (run once cluster exists).
-curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+%{ if configure_kubectl && cluster_name != "" && cluster_region != "" && cluster_project_id != "" ~}
+# Install cloud SDK (for get-credentials) and write setup script (run once cluster exists).
+echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+apt-get update -y || true
+apt-get install -y google-cloud-sdk-gke-gcloud-auth-plugin google-cloud-cli
 
 # Write script so it can be invoked on the bastion after the cluster is created (1-platform).
-mkdir -p /home/${admin_username}/.kube
+mkdir -p /root/.kube
 cat > /usr/local/bin/setup-kubectl << 'INNER_EOF'
 #!/bin/bash
 set -e
 CLUSTER_NAME="CLUSTER_NAME_PLACEHOLDER"
-RESOURCE_GROUP="RESOURCE_GROUP_PLACEHOLDER"
-ADMIN_USER="ADMIN_USER_PLACEHOLDER"
-KUBECONFIG_PATH="/home/ADMIN_USER_PLACEHOLDER/.kube/config"
-if [ -z "$CLUSTER_NAME" ] || [ -z "$RESOURCE_GROUP" ]; then
-  echo "Cluster name or resource group not set." >&2
+CLUSTER_REGION="CLUSTER_REGION_PLACEHOLDER"
+CLUSTER_PROJECT="CLUSTER_PROJECT_PLACEHOLDER"
+if [ -z "$CLUSTER_NAME" ] || [ -z "$CLUSTER_REGION" ] || [ -z "$CLUSTER_PROJECT" ]; then
+  echo "Cluster name, region or project not set." >&2
   exit 1
 fi
-if ! az login --identity --output none 2>/dev/null; then
-  echo "az login --identity failed. Ensure the VM has a system-assigned managed identity." >&2
-  exit 1
-fi
-if az aks get-credentials --resource-group "$RESOURCE_GROUP" --name "$CLUSTER_NAME" --file "$KUBECONFIG_PATH" --overwrite-existing; then
-  chown -R $ADMIN_USER:$ADMIN_USER "$(dirname "$KUBECONFIG_PATH")"
-  chmod 600 "$KUBECONFIG_PATH"
+export CLOUDSDK_CORE_PROJECT="$CLUSTER_PROJECT"
+if gcloud container clusters get-credentials "$CLUSTER_NAME" --region "$CLUSTER_REGION" --project "$CLUSTER_PROJECT"; then
   echo "kubectl configured for cluster $CLUSTER_NAME."
 else
-  echo "Failed to get credentials. Ensure the cluster exists and the VM identity has the required role on the cluster." >&2
+  echo "Failed to get credentials. Ensure the cluster exists and this instance has access." >&2
   exit 1
 fi
 INNER_EOF
-sed -i "s#CLUSTER_NAME_PLACEHOLDER#${cluster_name}#g; s#RESOURCE_GROUP_PLACEHOLDER#${resource_group_name}#g; s#ADMIN_USER_PLACEHOLDER#${admin_username}#g" /usr/local/bin/setup-kubectl
+sed -i "s#CLUSTER_NAME_PLACEHOLDER#${cluster_name}#g; s#CLUSTER_REGION_PLACEHOLDER#${cluster_region}#g; s#CLUSTER_PROJECT_PLACEHOLDER#${cluster_project_id}#g" /usr/local/bin/setup-kubectl
 chmod +x /usr/local/bin/setup-kubectl
 
 # Try once at boot (cluster may not exist yet).

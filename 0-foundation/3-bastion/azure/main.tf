@@ -78,9 +78,15 @@ resource "azurerm_linux_virtual_machine" "bastion" {
     public_key = file(var.ssh_public_key_path)
   }
 
+  identity {
+    type = "SystemAssigned"
+  }
+
   custom_data = base64encode(templatefile("${path.module}/scripts/init.tpl", {
-    kube_config_map = var.aks_kube_config_raw != "" ? { (var.aks_cluster_name) = var.aks_kube_config_raw } : {}
-    admin_username  = var.admin_username
+    configure_kubectl   = var.configure_kubectl
+    cluster_name       = var.cluster_name
+    resource_group_name = var.resource_group_name
+    admin_username     = var.admin_username
   }))
   tags = local.rendered_tags
 }

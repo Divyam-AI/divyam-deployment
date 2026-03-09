@@ -34,7 +34,9 @@ locals {
 # Azure: resource_group_name | GCP: project_id
   resource_scope = {
     create  = false
-    name    = "${local.deployment_prefix}-rg"    
+    # TODO: Remove these temp values
+    #name    = "${local.deployment_prefix}-rg"
+    name    = local.cloud_provider == "azure" ? "rg-sudhir-4084" : "sudhir-workspace" # Azure | GCP
   }
 
 # --- APIs / Resource Providers (0-foundation/1-apis) ---
@@ -49,13 +51,16 @@ locals {
   # GCP: set shared_vpc_host = true to enable this project as Shared VPC host; set service_project_ids = ["project-a","project-b"] to attach service projects.
   vnet = {
     create          = false
-    name            = "${local.deployment_prefix}-vnet"    
+    # TODO: Remove these temp values
+    #name            = "${local.deployment_prefix}-vnet"
+    name            = local.cloud_provider == "azure" ? "rg-sudhir-4084-vnet" : "default" # Azure | GCP
     scope_name      = "${local.resource_scope.name}" # Azure Resource Group or GCP Project where this vnet is to be created/present
     region          = "${local.region}"
     zone            = "${local.zone}"
     address_space   = ["10.0.0.0/16"]
-    subnet          = { create = false, subnet_ip = "10.0.0.0/21", name = "${local.deployment_prefix}-subnet" } # (2048 IPs)
-    app_gw_subnet   = { create = false, subnet_ip = "10.0.8.0/27", name = "${local.deployment_prefix}-subnet-app-gw" } # (32 IPs)  - Required for Azure App Gateway or GCP Proxy
+    # TODO: Remove these temp values
+    subnet          = { create = false, subnet_ip = "10.0.0.0/21", name = local.cloud_provider == "azure" ? "rg-sudhir-4084-subnet" : "default"  } # "${local.deployment_prefix}-subnet" (2048 IPs)
+    app_gw_subnet   = { create = false, subnet_ip = "10.0.8.0/27", name = local.cloud_provider == "azure" ? "rg-sudhir-4084-app-gw-subnet" : "default-app-gw-subnet" } # "${local.deployment_prefix}-subnet-app-gw" (32 IPs)  - Required for Azure App Gateway or GCP Proxy
     # GCP only: enable Shared VPC host and attach service projects (ignored by Azure)
     # Azure: shared_vpc_host = true peers this VNet to remote VNets whose ARM IDs are in service_project_ids.
     shared_vpc_host     = false
@@ -70,13 +75,16 @@ locals {
     resource_name_prefix = "${local.deployment_prefix}"
     # Names for data-source lookup (1-platform resolves NAT IP from these; no dependency on 0-foundation).
     nat_gateway_name   = "${local.deployment_prefix}-nat-gateway"   # Azure: NAT gateway resource name
-    nat_public_ip_name = "${local.deployment_prefix}-nat-ip"       # Azure: public IP resource name (used to fetch IP)    
+    #TODO: Remove these temp values
+    # nat_public_ip_name = "${local.deployment_prefix}-nat-ip"       # Azure: public IP resource name (used to fetch IP)
+    nat_public_ip_name = "${local.deployment_prefix}-nat-ip-4084"       # Azure: public IP resource name (used to fetch IP)
     # GCP: Cloud Router and NAT config names (for lookup if needed)
     router_name     = "${local.deployment_prefix}-nat-router"
     nat_config_name = "${local.deployment_prefix}-nat-config"
   }
 
   # --- Bastion ---
+  # Azure: Linux VM with public IP, NSG (SSH). GCP: Compute instance with firewall (SSH).
   # Set create = true and override below. Cluster details for kubectl come from k8s section (no cloud-specific names).
   bastion = {
     create       = false
@@ -115,7 +123,10 @@ locals {
     create_vault   = true   # Azure only: if false, use store_name to look up existing Key Vault
     create_secrets = true   # if false, do not create or update secrets in the vault
     scope_name     = "${local.resource_scope.name}"       # Azure Resource Group or GCP Project
-    store_name     = "${local.deployment_prefix}-vault"   # Azure Key Vault name (create or lookup).  Not required for GCP
+    # TODO: Change the defaults
+    # store_name     = "${local.deployment_prefix}-vault"   # Azure Key Vault name (create or lookup)
+    store_name     = local.cloud_provider == "azure" ? "divyam-dev-vault-4048" : "${local.deployment_prefix}-vault"   # Azure Key Vault name (create or lookup). Not required for GCP
+    
   }
 
   # -- Load Balancer (static IP, DNS, TLS) ---

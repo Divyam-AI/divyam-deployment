@@ -58,9 +58,9 @@ inputs = merge(
       (dependency.vnet.outputs.app_gw_subnet_name) = dependency.vnet.outputs.app_gw_subnet_prefix
     }
     vnet_subnet_name = try(local.bastion_config.vnet_subnet_name, dependency.vnet.outputs.subnet_name)
-    # Cluster name from values/defaults.hcl k8s config; optional kubeconfig (no AKS dependency — K8s can come up later).
-    aks_cluster_name    = try(local.bastion_config.aks_cluster_name, try(local.root.k8s.name, ""))
-    aks_kube_config_raw = try(local.bastion_config.aks_kube_config_raw, "")
+    # Kubectl: only when bastion section has configure_kubectl = true; cluster details from k8s section.
+    configure_kubectl = try(local.bastion_config.configure_kubectl, false)
+    cluster_name      = try(local.root.k8s.name, "")
     tag_globals          = try(include.root.inputs.tag_globals, {})
     tag_context         = {
       resource_name = try(local.bastion_config.bastion_name, "${local.root.deployment_prefix}-bastion")

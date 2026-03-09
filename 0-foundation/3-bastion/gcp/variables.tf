@@ -46,3 +46,28 @@ variable "tags" {
   type        = list(string)
   default     = ["bastion"]
 }
+
+# When true, kubectl is installed and a setup script is added; cluster details come from k8s section.
+variable "configure_kubectl" {
+  description = "If true, install kubectl and a setup script to fetch cluster credentials (cluster details from k8s section)"
+  type        = bool
+  default     = false
+}
+
+variable "cluster_name" {
+  description = "Cluster name from k8s section"
+  type        = string
+  default     = ""
+}
+
+variable "cluster_region" {
+  description = "Region of the cluster (from k8s/root)"
+  type        = string
+  default     = ""
+}
+
+variable "cluster_project_id" {
+  description = "Project ID containing the cluster"
+  type        = string
+  default     = ""
+}
