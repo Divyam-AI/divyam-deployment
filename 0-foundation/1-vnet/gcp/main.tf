@@ -2,19 +2,6 @@
 
 locals {
   network_id = var.vnet.create ? google_compute_network.vpc[0].id : data.google_compute_network.vpc[0].id
-
-  # Per-resource labels so each resource gets its name and divyam_environment.
-  resource_names_vnet = {
-    vpc           = var.vnet.name
-    subnet        = try(var.vnet.subnet.name, "")
-    app_gw_subnet = try(var.vnet.app_gw_subnet.name, "")
-  }
-  rendered_tags_for_vnet = {
-    for key, resource_name in local.resource_names_vnet : key => {
-      for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context, { resource_name = resource_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), ""))
-    }
-    if resource_name != ""
-  }
 }
 
 resource "google_compute_network" "vpc" {
@@ -25,8 +12,6 @@ resource "google_compute_network" "vpc" {
   auto_create_subnetworks = false
   routing_mode            = "GLOBAL"
   description             = "VPC managed by Terraform."
-
-  labels = lookup(local.rendered_tags_for_vnet, "vpc", {})
 
   lifecycle {
     prevent_destroy = true
@@ -49,8 +34,6 @@ resource "google_compute_subnetwork" "subnet" {
   network       = local.network_id
   ip_cidr_range = var.vnet.subnet.subnet_ip
 
-  labels = lookup(local.rendered_tags_for_vnet, "subnet", {})
-
   lifecycle {
     prevent_destroy = true
   }
@@ -72,8 +55,6 @@ resource "google_compute_subnetwork" "app_gw_subnet" {
   region        = var.vnet.region
   network       = local.network_id
   ip_cidr_range = var.vnet.app_gw_subnet.subnet_ip
-
-  labels = lookup(local.rendered_tags_for_vnet, "app_gw_subnet", {})
 
   lifecycle {
     prevent_destroy = true
