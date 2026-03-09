@@ -17,6 +17,14 @@ locals {
 
   service_account_ids = toset(keys(local.service_accounts))
 
+  # Per-resource labels so each service account gets its name and divyam_environment.
+  tag_context_base = merge(var.tag_globals, var.tag_context)
+  rendered_tags_for_sa = {
+    for name in local.service_account_ids : name => {
+      for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), ""))
+    }
+  }
+
   scope_ids = {
     project        = var.project_id
     storage_bucket = var.router_logs_bucket_name
@@ -73,6 +81,8 @@ resource "google_service_account" "identities" {
   project      = var.project_id
   account_id   = each.key
   display_name = "GKE Service Account - ${each.key}"
+
+  labels = local.rendered_tags_for_sa[each.key]
 }
 
 ############################################

@@ -55,5 +55,9 @@ inputs = merge(
       }
     ]
     enabled = try(local.nat_config.create, true)
+
+    common_tags  = try(local.root.common_tags, {})
+    tag_globals  = try(include.root.inputs.tag_globals, {})
+    tag_context  = {}
   }
 )

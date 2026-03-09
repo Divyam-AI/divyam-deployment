@@ -20,7 +20,10 @@ locals {
   )
 
   # Can set key -> value for tags to be applied for cloud entities
-  common_tags       = { divyam_environment     = "divyam-env-#{environment}" } 
+  common_tags       = {
+    Environment   = "divyam-env-#{environment}"
+    resource_name = "#{resource_name}"
+  } 
   # Can also use templates as value and will automatically replaced
   # Standard template variables are defined as part of tag_globals in root.hcl
   # { 
@@ -197,7 +200,7 @@ locals {
     # Upgrade cadence: Azure = automatic_channel_upgrade (stable|rapid|patch|node-image), GCP = release_channel (REGULAR|RAPID|STABLE). Set per cloud.
     release_channel = local.cloud_provider == "azure" ? "stable" : "REGULAR"
 
-    # When true, enables 1-platform/2-bastion-kubectl-setup (run setup-kubectl on bastion after cluster exists). Bastion must have been created with bastion.configure_kubectl so the script exists.
+    # When true, enables 1-platform/3-bastion-kubectl-setup (run setup-kubectl on bastion after cluster exists). Bastion must have been created with bastion.configure_kubectl so the script exists.
     setup_kubectl_on_bastion = false
   }
 

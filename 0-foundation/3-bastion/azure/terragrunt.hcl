@@ -22,6 +22,12 @@ dependency "vnet" {
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply"]
 }
 
+dependency "nat" {
+  config_path = "../../2-nat/azure"
+  skip_outputs = true
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply"]
+}
+
 # Local state like 1-vnet / 2-nat; bastion depends on VNet.
 remote_state {
   backend = "local"

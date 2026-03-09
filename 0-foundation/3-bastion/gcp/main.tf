@@ -22,6 +22,8 @@ resource "google_compute_instance" "bastion" {
   tags         = var.tags
   project      = var.project_id
 
+  labels = local.rendered_tags
+
   boot_disk {
     initialize_params {
       image = "debian-cloud/debian-11"

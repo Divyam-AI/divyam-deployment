@@ -38,6 +38,8 @@ resource "google_compute_managed_ssl_certificate" "lb_cert" {
   name    = var.ssl_cert_name
   project = var.project_id
 
+  labels = local.rendered_tags_for["lb_cert"]
+
   managed {
     domains = local.ssl_cert_domains
   }
@@ -97,6 +99,8 @@ resource "google_compute_health_check" "default" {
   healthy_threshold   = 3
   unhealthy_threshold = 3
 
+  labels = local.rendered_tags_for["health_check"]
+
   http_health_check {
     port         = 8000
     request_path = "/status"
@@ -115,6 +119,8 @@ resource "google_compute_backend_service" "default" {
   connection_draining_timeout_sec    = 0
   security_policy                    = local.security_policy_id
 
+  labels = local.rendered_tags_for["backend_service"]
+
   health_checks = [google_compute_health_check.default.self_link]
 
   dynamic "backend" {
@@ -132,12 +138,17 @@ resource "google_compute_url_map" "default" {
   name            = "${var.backend_service_name}-gke-url-map"
   project         = var.project_id
   default_service = google_compute_backend_service.default.id
+
+  labels = local.rendered_tags_for["url_map_default"]
 }
 
 resource "google_compute_url_map" "http_redirect" {
   count    = local.https_enabled ? 1 : 0
   name     = "${var.backend_service_name}-http-to-https-redirect-map"
   project  = var.project_id
+
+  labels = local.rendered_tags_for["url_map_redirect"]
+
   default_url_redirect {
     https_redirect = true
     strip_query    = false
@@ -150,12 +161,16 @@ resource "google_compute_target_https_proxy" "https" {
   project          = var.project_id
   url_map          = google_compute_url_map.default.id
   ssl_certificates = [local.ssl_certificate_id]
+
+  labels = local.rendered_tags_for["target_https"]
 }
 
 resource "google_compute_target_http_proxy" "http" {
   name    = "${var.target_proxy_name}-http"
   project = var.project_id
   url_map = local.https_enabled ? google_compute_url_map.http_redirect[0].id : google_compute_url_map.default.id
+
+  labels = local.rendered_tags_for["target_http"]
 }
 
 resource "google_compute_global_forwarding_rule" "https" {

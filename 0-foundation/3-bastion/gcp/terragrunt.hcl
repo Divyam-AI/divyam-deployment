@@ -23,6 +23,12 @@ dependency "vnet" {
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply"]
 }
 
+dependency "nat" {
+  config_path = "../../2-nat/gcp"
+  skip_outputs = true
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply"]
+}
+
 # Local state like 1-vnet / 2-nat; bastion depends on VPC.
 remote_state {
   backend = "local"
@@ -55,5 +61,9 @@ inputs = merge(
     cluster_name       = try(local.root.k8s.name, "")
     cluster_region     = local.region
     cluster_project_id = local.project_id
+
+    common_tags  = try(local.root.common_tags, {})
+    tag_globals  = try(include.root.inputs.tag_globals, {})
+    tag_context  = { resource_name = try(local.bastion_config.bastion_name, "${local.root.deployment_prefix}-bastion") }
   }
 )

@@ -3,6 +3,14 @@ include "root" {
   expose = true
 }
 
+dependency "resource_scope" {
+  config_path = "../../0-resource_scope/azure"
+  mock_outputs = {
+    resource_group_name = "mock-rg"
+  }
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply"]
+}
+
 terraform {
   source = "./"
 }
