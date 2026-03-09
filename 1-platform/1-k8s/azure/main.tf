@@ -79,15 +79,15 @@ data "azurerm_public_ip" "nat_ip" {
   resource_group_name = var.resource_group_name
 }
 
-# When create = false, fetch existing AKS cluster by name for outputs.
+# When create = false (and not forcing for import), fetch existing AKS cluster by name for outputs.
 data "azurerm_kubernetes_cluster" "existing" {
-  count               = var.create ? 0 : 1
+  count               = (var.create || var.import_mode) ? 0 : 1
   name                = local.cluster_name
   resource_group_name = var.resource_group_name
 }
 
 locals {
-  aks_cluster = var.create ? azurerm_kubernetes_cluster.aks_cluster[0] : data.azurerm_kubernetes_cluster.existing[0]
+  aks_cluster = (var.create || var.import_mode) ? azurerm_kubernetes_cluster.aks_cluster[0] : data.azurerm_kubernetes_cluster.existing[0]
 }
 
 locals {
@@ -118,7 +118,7 @@ locals {
 # AGIC access setup
 # ---------------------------
 resource "azurerm_user_assigned_identity" "agic_uami" {
-  count               = var.create ? 1 : 0
+  count               = var.create || var.import_mode ? 1 : 0
   name                = local.agic_identity_name
   location            = var.location
   resource_group_name = var.resource_group_name
@@ -128,7 +128,7 @@ resource "azurerm_user_assigned_identity" "agic_uami" {
 
 # Give the AKS Managed Identity "Contributor" role on the Application Gateway
 resource "azurerm_role_assignment" "agic_appgw_access" {
-  count                = var.create ? 1 : 0
+  count                = var.create || var.import_mode ? 1 : 0
   scope                = var.app_gateway_id
   role_definition_name = "Contributor"
   principal_id         = azurerm_user_assigned_identity.agic_uami[0].principal_id
@@ -151,7 +151,7 @@ data "azurerm_resource_group" "selected" {
 
 # Give identity assigned permissions
 resource "azurerm_role_assignment" "agic_identity_assigner" {
-  count                = var.create ? 1 : 0
+  count                = var.create || var.import_mode ? 1 : 0
   scope                = data.azurerm_resource_group.selected.id
   role_definition_name = "Managed Identity Operator"
   principal_id         = azurerm_user_assigned_identity.agic_uami[0].principal_id
@@ -168,7 +168,7 @@ resource "azurerm_role_assignment" "agic_identity_assigner" {
 }
 
 resource "azurerm_role_assignment" "resource_group_role" {
-  count                = var.create ? 1 : 0
+  count                = var.create || var.import_mode ? 1 : 0
   scope                = data.azurerm_resource_group.selected.id
   role_definition_name = "Reader"
   principal_id         = azurerm_user_assigned_identity.agic_uami[0].principal_id
@@ -186,7 +186,7 @@ resource "azurerm_role_assignment" "resource_group_role" {
 
 # Allow AKS cluster's to have ingress join the app gw subnet (when app gateway subnet is in vnet_subnet_names).
 resource "azurerm_role_assignment" "agic_subnet_permissions" {
-  count                = var.create && local.app_gateway_subnet_id != null ? 1 : 0
+  count                = (var.create || var.import_mode) && local.app_gateway_subnet_id != null ? 1 : 0
   scope                = local.app_gateway_subnet_id
   role_definition_name = "Network Contributor"
   principal_id         = azurerm_user_assigned_identity.agic_uami[0].principal_id
@@ -206,7 +206,7 @@ resource "azurerm_role_assignment" "agic_subnet_permissions" {
 # AKS clusters
 # ---------------------------
 resource "azurerm_kubernetes_cluster" "aks_cluster" {
-  count               = var.create ? 1 : 0
+  count               = var.create || var.import_mode ? 1 : 0
   name                = local.cluster_name
   location            = var.location
   resource_group_name = var.resource_group_name
@@ -474,7 +474,7 @@ resource "azurerm_role_assignment" "grafana_reader" {
 # AGIC for App gateway -> AKS service connect
 # ---------------------------
 resource "azurerm_federated_identity_credential" "agic" {
-  count                = var.create ? 1 : 0
+  count                = var.create || var.import_mode ? 1 : 0
   name                = "${var.cluster.name}-agic-fic"
   resource_group_name  = azurerm_user_assigned_identity.agic_uami[0].resource_group_name
   parent_id           = azurerm_user_assigned_identity.agic_uami[0].id
@@ -493,7 +493,7 @@ provider "helm" {
 }
 
 resource "helm_release" "agic" {
-  count      = var.create ? 1 : 0
+  count      = var.create || var.import_mode ? 1 : 0
   name       = "${var.cluster.name}-ingress-azure"
   repository = "oci://mcr.microsoft.com/azure-application-gateway/charts/"
   chart      = "ingress-azure"

@@ -16,15 +16,15 @@ locals {
   } : {}
 }
 
-# Look up existing Key Vault by name when create_vault is false and key_vault_id is not provided.
+# Look up existing Key Vault by name when create_vault is false and key_vault_id is not provided and not forcing for import.
 data "azurerm_key_vault" "existing" {
-  count               = (!var.create_vault && var.key_vault_id == null && var.key_vault_name != null) ? 1 : 0
+  count               = (!var.create_vault && !var.import_mode && var.key_vault_id == null && var.key_vault_name != null) ? 1 : 0
   name                = var.key_vault_name
   resource_group_name = var.resource_group_name
 }
 
 resource "azurerm_key_vault" "this" {
-  count = (var.create_vault && var.key_vault_id == null) ? 1 : 0
+  count = (var.create_vault && var.key_vault_id == null) || var.import_mode ? 1 : 0
 
   name                        = var.key_vault_name
   location                    = var.location
@@ -42,7 +42,7 @@ resource "azurerm_key_vault" "this" {
 }
 
 resource "azurerm_key_vault_access_policy" "current" {
-  count = (var.create_vault && var.key_vault_id == null) ? 1 : 0
+  count = (var.create_vault && var.key_vault_id == null) || var.import_mode ? 1 : 0
 
   key_vault_id = azurerm_key_vault.this[0].id
   tenant_id    = data.azurerm_client_config.current.tenant_id

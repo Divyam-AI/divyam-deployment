@@ -36,7 +36,7 @@ locals {
 # --- Resource Scope ---
 # Azure: resource_group_name | GCP: project_id
   resource_scope = {
-    create          = true
+    create          = false
     name            = local.cloud_provider == "azure" ? "rg-sudhir-4084" : "pre-production-project" # Azure | GCP
     org_id          = get_env("ORG_ID", "")
     billing_account = get_env("BILLING_ACCOUNT", "")

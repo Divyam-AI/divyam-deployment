@@ -1,9 +1,9 @@
 # Azure Database for MySQL Flexible Server. Config from values/defaults.hcl cloudsql.
 # VNet fetched by name via Azure API (no dependency on 0-foundation). Per-resource tags with resource name.
 
-# Look up existing VNet by name (from values/defaults.hcl).
+# Look up existing VNet by name (from values/defaults.hcl). Only when create or force for import.
 data "azurerm_virtual_network" "vnet" {
-  count = var.create ? 1 : 0
+  count = var.create || var.import_mode ? 1 : 0
 
   name                = var.vnet_name
   resource_group_name = var.vnet_resource_group_name
@@ -16,7 +16,7 @@ locals {
 
 # Delegated subnet for MySQL Flexible Server (must be in the VNet).
 resource "azurerm_subnet" "mysql" {
-  count = var.create ? 1 : 0
+  count = var.create || var.import_mode ? 1 : 0
 
   name                 = "${var.server_name}-mysql-snet"
   resource_group_name  = var.vnet_resource_group_name
@@ -36,14 +36,14 @@ resource "azurerm_subnet" "mysql" {
 
 # Private DNS zone for MySQL (required for private access).
 resource "azurerm_private_dns_zone" "mysql" {
-  count = var.create ? 1 : 0
+  count = var.create || var.import_mode ? 1 : 0
 
   name                = "privatelink.mysql.database.azure.com"
   resource_group_name = var.resource_group_name
 }
 
 resource "azurerm_private_dns_zone_virtual_network_link" "mysql" {
-  count = var.create ? 1 : 0
+  count = var.create || var.import_mode ? 1 : 0
 
   name                  = "${var.server_name}-mysql-dns-link"
   resource_group_name   = var.resource_group_name
@@ -53,7 +53,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "mysql" {
 
 # MySQL Flexible Server with private access.
 resource "azurerm_mysql_flexible_server" "default" {
-  count = var.create ? 1 : 0
+  count = var.create || var.import_mode ? 1 : 0
 
   name                = var.server_name
   resource_group_name = var.resource_group_name
@@ -81,7 +81,7 @@ resource "azurerm_mysql_flexible_server" "default" {
 }
 
 resource "azurerm_mysql_flexible_database" "default" {
-  count = var.create ? 1 : 0
+  count = var.create || var.import_mode ? 1 : 0
 
   name                = var.database_name
   resource_group_name = var.resource_group_name

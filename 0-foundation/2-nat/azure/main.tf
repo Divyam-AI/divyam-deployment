@@ -9,7 +9,7 @@ locals {
 }
 
 resource "azurerm_public_ip" "nat" {
-  count = var.create ? 1 : 0
+  count = var.create || var.import_mode ? 1 : 0
 
   name                = local.nat_ip_name
   location            = var.location
@@ -21,7 +21,7 @@ resource "azurerm_public_ip" "nat" {
 }
 
 resource "azurerm_nat_gateway" "nat" {
-  count = var.create ? 1 : 0
+  count = var.create || var.import_mode ? 1 : 0
 
   name                = local.nat_gateway_name
   location            = var.location
@@ -32,14 +32,14 @@ resource "azurerm_nat_gateway" "nat" {
 }
 
 resource "azurerm_nat_gateway_public_ip_association" "nat_ip_assoc" {
-  count = var.create ? 1 : 0
+  count = var.create || var.import_mode ? 1 : 0
 
   nat_gateway_id       = azurerm_nat_gateway.nat[0].id
   public_ip_address_id = azurerm_public_ip.nat[0].id
 }
 
 resource "azurerm_subnet_nat_gateway_association" "subnet_assoc" {
-  for_each = var.create ? { for k, v in var.subnet_ids : k => v if v != null && v != "" } : {}
+  for_each = var.create || var.import_mode ? { for k, v in var.subnet_ids : k => v if v != null && v != "" } : {}
 
   subnet_id      = each.value
   nat_gateway_id = azurerm_nat_gateway.nat[0].id

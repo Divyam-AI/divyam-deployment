@@ -52,3 +52,9 @@ variable "mysql_subnet_prefix" {
   type        = string
   default     = "10.0.2.0/24"
 }
+
+variable "import_mode" {
+  description = "Set to true (e.g. TF_VAR_import_mode=1) when running terraform import so the resource blocks exist; leave false for normal runs."
+  type        = bool
+  default     = false
+}

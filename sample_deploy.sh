@@ -1,23 +1,77 @@
 #!/usr/bin/env bash
-# Sample deploy: set required env vars and run terragrunt plan.
+# Sample deploy: set required env vars and run terragrunt plan/apply/import/etc.
 # Replace placeholder values with your own before apply.
-# Root reads config from VALUES_FILE (default: values/defaults.hcl). Override with 3rd arg or VALUES_FILE env.
+# Root reads config from VALUES_FILE (default: values/defaults.hcl). Override with VALUES_FILE env or last optional arg.
 #
-# Usage:
-#   ./sample_deploy.sh <plan|apply|...> <0|1|2> <gcp|azure> [values_file]
+# Usage (plan/apply/destroy/...):
+#   ./sample_deploy.sh <plan|apply|destroy|...> <0|1|2> <gcp|azure> [values_file]
+#
+# Usage (import state for a single module, e.g. 0-resource_scope):
+#   ./sample_deploy.sh import <0|1|2> <gcp|azure> <module_path> <resource_address> <resource_id> [values_file]
+#   Example (GCP): ./sample_deploy.sh import 0 gcp 0-resource_scope 'google_project.project[0]' pre-production-project
+#   Example (Azure): ./sample_deploy.sh import 0 azure 0-resource_scope 'azurerm_resource_group.rd[0]' /subscriptions/.../resourceGroups/my-rg
 #
 # Arguments:
-#   plan|apply|destroy|... - terragrunt command (e.g. plan, apply, destroy)
-#   0 - run terragrunt in 0-foundation
-#   1 - run terragrunt in 1-platform
-#   2 - run terragrunt in 2-app
+#   plan|apply|destroy|import|... - terragrunt command
+#   0 - run in 0-foundation, 1 - 1-platform, 2 - 2-app
 #   gcp|azure - cloud provider
+#   For import only: module_path (e.g. 0-resource_scope), resource_address, resource_id
 #   values_file - optional (default: values/defaults.hcl). Set VALUES_FILE for root.hcl.
 #
 # Optional: use local backend (no remote state) for testing:
 #   TG_USE_LOCAL_BACKEND=1 ./sample_deploy.sh plan 0 azure
-
-set -euo pipefail
+#
+# --- Import examples (all use TF_VAR_import_mode=1 automatically) ---
+# Replace <resource-id> with the actual cloud resource ID (project ID, ARM ID, etc.).
+#
+# 0-foundation:
+#   GCP 0-resource_scope (project):
+#     ./sample_deploy.sh import 0 gcp 0-resource_scope 'google_project.project[0]' <project-id>
+#   Azure 0-resource_scope (resource group):
+#     ./sample_deploy.sh import 0 azure 0-resource_scope 'azurerm_resource_group.rd[0]' /subscriptions/<sub-id>/resourceGroups/<rg-name>
+#   GCP 1-vnet (VPC / subnet / app_gw_subnet):
+#     ./sample_deploy.sh import 0 gcp 1-vnet 'google_compute_network.vpc[0]' projects/<project>/global/networks/<vpc-name>
+#     ./sample_deploy.sh import 0 gcp 1-vnet 'google_compute_subnetwork.subnet[0]' projects/<project>/regions/<region>/subnetworks/<subnet-name>
+#     ./sample_deploy.sh import 0 gcp 1-vnet 'google_compute_subnetwork.app_gw_subnet[0]' projects/<project>/regions/<region>/subnetworks/<app-gw-subnet-name>
+#   Azure 1-vnet (VNet / subnet / app_gw_subnet):
+#     ./sample_deploy.sh import 0 azure 1-vnet 'azurerm_virtual_network.vnet[0]' /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet-name>
+#     ./sample_deploy.sh import 0 azure 1-vnet 'azurerm_subnet.subnet[0]' /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet-name>
+#     ./sample_deploy.sh import 0 azure 1-vnet 'azurerm_subnet.app_gw_subnet[0]' /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<app-gw-subnet-name>
+#   GCP 2-terraform_state_blob_storage (GCS bucket):
+#     ./sample_deploy.sh import 0 gcp 2-terraform_state_blob_storage 'google_storage_bucket.terraform[0]' <bucket-name>
+#   Azure 2-terraform_state_blob_storage (storage account / container):
+#     ./sample_deploy.sh import 0 azure 2-terraform_state_blob_storage 'azurerm_storage_account.terraform[0]' /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Storage/storageAccounts/<account-name>
+#     ./sample_deploy.sh import 0 azure 2-terraform_state_blob_storage 'azurerm_storage_container.container[0]' https://<account>.blob.core.windows.net/<container-name>
+#   GCP 2-nat (Cloud Router / NAT):
+#     ./sample_deploy.sh import 0 gcp 2-nat 'google_compute_router.egress_nat_router[0]' <project>/<region>/<router-name>
+#     ./sample_deploy.sh import 0 gcp 2-nat 'google_compute_router_nat.nat_config[0]' <project>/<region>/<router-name>/<nat-config-name>
+#   Azure 2-nat (public IP / NAT gateway):
+#     ./sample_deploy.sh import 0 azure 2-nat 'azurerm_public_ip.nat[0]' /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/publicIPAddresses/<pip-name>
+#     ./sample_deploy.sh import 0 azure 2-nat 'azurerm_nat_gateway.nat[0]' /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/natGateways/<nat-name>
+#   GCP 3-bastion (firewall / instance):
+#     ./sample_deploy.sh import 0 gcp 3-bastion 'google_compute_firewall.iap_ssh[0]' projects/<project>/global/firewalls/allow-ssh-<bastion-name>
+#     ./sample_deploy.sh import 0 gcp 3-bastion 'google_compute_instance.bastion[0]' projects/<project>/zones/<zone>/instances/<bastion-name>
+#   Azure 3-bastion (NIC / public IP / NSG / VM / etc.):
+#     ./sample_deploy.sh import 0 azure 3-bastion 'azurerm_network_interface.bastion_nic[0]' /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/networkInterfaces/<nic-name>
+#     ./sample_deploy.sh import 0 azure 3-bastion 'azurerm_public_ip.bastion_pip[0]' /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/publicIPAddresses/<pip-name>
+#     ./sample_deploy.sh import 0 azure 3-bastion 'azurerm_network_security_group.bastion_nsg[0]' /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/networkSecurityGroups/<nsg-name>
+#     ./sample_deploy.sh import 0 azure 3-bastion 'azurerm_linux_virtual_machine.bastion[0]' /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Compute/virtualMachines/<vm-name>
+#
+# 1-platform:
+#   GCP 0-divyam_secrets (Secret Manager secret):
+#     ./sample_deploy.sh import 1 gcp 0-divyam_secrets 'google_secret_manager_secret.secrets["<secret-name>"]' projects/<project>/secrets/<secret-id>
+#   Azure 0-divyam_secrets (Key Vault / secret):
+#     ./sample_deploy.sh import 1 azure 0-divyam_secrets 'azurerm_key_vault.this[0]' /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.KeyVault/vaults/<vault-name>
+#     ./sample_deploy.sh import 1 azure 0-divyam_secrets 'azurerm_key_vault_secret.secrets["<secret-name>"]' https://<vault-name>.vault.azure.net/secrets/<secret-name>
+#   Azure 1-k8s (AKS cluster):
+#     ./sample_deploy.sh import 1 azure 1-k8s 'azurerm_kubernetes_cluster.aks_cluster[0]' /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.ContainerService/managedClusters/<cluster-name>
+#
+# 2-app:
+#   Azure 0-cloudsql (MySQL Flexible Server / database / subnet / DNS zone):
+#     ./sample_deploy.sh import 2 azure 0-cloudsql 'azurerm_mysql_flexible_server.default[0]' /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.DBforMySQL/flexibleServers/<server-name>
+#     ./sample_deploy.sh import 2 azure 0-cloudsql 'azurerm_mysql_flexible_database.default[0]' /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.DBforMySQL/flexibleServers/<server>/databases/<db-name>
+#     ./sample_deploy.sh import 2 azure 0-cloudsql 'azurerm_subnet.mysql[0]' /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<mysql-subnet-name>
+#
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/" && pwd)"
 cd "$REPO_ROOT"
 
@@ -37,7 +91,21 @@ fi
 TG_CMD="${1}"
 LAYER="${2}"
 export CLOUD_PROVIDER="${3}"
-export VALUES_FILE="${4:-values/defaults.hcl}"
+
+if [ "${TG_CMD}" == "import" ]; then
+    if [ -z "${4:-}" ] || [ -z "${5:-}" ] || [ -z "${6:-}" ]; then
+        echo "Error: import requires module_path, resource_address, and resource_id."
+        echo "  Usage: ./sample_deploy.sh import <0|1|2> <gcp|azure> <module_path> <resource_address> <resource_id> [values_file]"
+        echo "  Example: ./sample_deploy.sh import 0 gcp 0-resource_scope 'google_project.project[0]' pre-production-project"
+        exit 1
+    fi
+    MODULE_PATH="${4}"
+    IMPORT_ADDRESS="${5}"
+    IMPORT_ID="${6}"
+    export VALUES_FILE="${7:-values/defaults.hcl}"
+else
+    export VALUES_FILE="${4:-values/defaults.hcl}"
+fi
 
 if [ "${LAYER}" != "0" ] && [ "${LAYER}" != "1" ] && [ "${LAYER}" != "2" ]; then
     echo "Error: LAYER must be 0, 1, or 2 (got: ${LAYER})"
@@ -132,10 +200,25 @@ check_cloud_credentials
 export ORG_NAME="${ORG_NAME:-}"
 export TG_USE_LOCAL_BACKEND="${TG_USE_LOCAL_BACKEND:-1}"
 
+if [ "${TG_CMD}" == "import" ]; then
+    MODULE_DIR="$REPO_ROOT/$TG_DIR/$MODULE_PATH/$CLOUD_PROVIDER"
+    if [ ! -d "${MODULE_DIR}" ]; then
+        echo "Error: Module directory not found: ${MODULE_DIR}"
+        exit 1
+    fi
+    echo "ENV=$ENV CLOUD_PROVIDER=$CLOUD_PROVIDER REGION=$REGION LAYER=$LAYER TG_DIR=$TG_DIR MODULE=$MODULE_PATH/$CLOUD_PROVIDER VALUES_FILE=$VALUES_FILE${TG_USE_LOCAL_BACKEND:+ TG_USE_LOCAL_BACKEND=$TG_USE_LOCAL_BACKEND (local backend)}"
+    echo "Running terragrunt import in $MODULE_DIR..."
+    # Make target resource block exist for import (e.g. when create=false in values)
+    export TF_VAR_import_mode=1
+    bash -c "cd \"$MODULE_DIR\" && terragrunt import \"$IMPORT_ADDRESS\" \"$IMPORT_ID\""
+    TG_EXIT=$?
+    unset TF_VAR_import_mode
+else
 echo "ENV=$ENV CLOUD_PROVIDER=$CLOUD_PROVIDER REGION=$REGION ZONE=$ZONE ORG_NAME=$ORG_NAME LAYER=$LAYER TG_DIR=$TG_DIR VALUES_FILE=$VALUES_FILE${TG_USE_LOCAL_BACKEND:+ TG_USE_LOCAL_BACKEND=$TG_USE_LOCAL_BACKEND (local backend)}"
 echo "Running terragrunt run-all $TG_CMD in $TG_DIR (cloud=${CLOUD_PROVIDER})..."
 bash -c "cd \"$REPO_ROOT/$TG_DIR\" && terragrunt run --all $TG_CMD --filter './**/${CLOUD_PROVIDER}'"
 TG_EXIT=$?
+fi
 
 # After a successful apply, write Terraform outputs to the file path configured in values file (extension sets YAML vs JSON)
 if [[ "${TG_EXIT}" -eq 0 && "${TG_CMD}" == "apply" ]]; then
