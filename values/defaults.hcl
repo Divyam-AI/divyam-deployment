@@ -20,8 +20,9 @@ locals {
   )
 
   # Can set key -> value for tags to be applied for cloud entities
+  # GCP lables and values should contain lowercase letters, numeric characters, underscores, and dashes and cannot be longer than 63 characters each.
   common_tags       = {
-    Environment   = "divyam-env-#{environment}"
+    environment   = "divyam-env-#{environment}"
     resource_name = "#{resource_name}"
   } 
   # Can also use templates as value and will automatically replaced

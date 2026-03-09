@@ -20,7 +20,8 @@ resource "google_storage_bucket" "terraform" {
 
   public_access_prevention = "enforced"
 
-  labels = local.rendered_tags
+  # GCS bucket labels require lowercase keys (see https://cloud.google.com/storage/docs/tags-and-labels#bucket-labels)
+  labels = { for k, v in local.rendered_tags : lower(k) => v }
 
   lifecycle {
     prevent_destroy = true
