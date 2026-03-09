@@ -1,6 +1,17 @@
+locals {
+  tag_context_base            = merge(var.tag_globals, var.tag_context)
+  bastion_nic_name            = "${var.bastion_name}-nic"
+  bastion_pip_name            = "${var.bastion_name}-pip"
+  bastion_nsg_name            = "${var.bastion_name}-nsg"
+  rendered_tags_bastion_nic   = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = local.bastion_nic_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
+  rendered_tags_bastion_pip   = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = local.bastion_pip_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
+  rendered_tags_bastion_nsg   = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = local.bastion_nsg_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
+  rendered_tags_bastion_vm    = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = var.bastion_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
+}
+
 resource "azurerm_network_interface" "bastion_nic" {
   count               = var.create ? 1 : 0
-  name                = "${var.bastion_name}-nic"
+  name                = local.bastion_nic_name
   location            = var.location
   resource_group_name = var.resource_group_name
 
@@ -10,25 +21,25 @@ resource "azurerm_network_interface" "bastion_nic" {
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = azurerm_public_ip.bastion_pip[0].id
   }
-  tags = local.rendered_tags
+  tags = local.rendered_tags_bastion_nic
 }
 
 resource "azurerm_public_ip" "bastion_pip" {
   count               = var.create ? 1 : 0
-  name                = "${var.bastion_name}-pip"
+  name                = local.bastion_pip_name
   location            = var.location
   resource_group_name = var.resource_group_name
   allocation_method   = "Static"
   sku                 = "Standard"
-  tags = local.rendered_tags
+  tags = local.rendered_tags_bastion_pip
 }
 
 resource "azurerm_network_security_group" "bastion_nsg" {
   count               = var.create ? 1 : 0
-  name                = "${var.bastion_name}-nsg"
+  name                = local.bastion_nsg_name
   location            = var.location
   resource_group_name = var.resource_group_name
-  tags = local.rendered_tags
+  tags = local.rendered_tags_bastion_nsg
 }
 
 resource "azurerm_network_security_rule" "allow_ssh" {
@@ -88,7 +99,7 @@ resource "azurerm_linux_virtual_machine" "bastion" {
     resource_group_name = var.resource_group_name
     admin_username     = var.admin_username
   }))
-  tags = local.rendered_tags
+  tags = local.rendered_tags_bastion_vm
 }
 
 resource "azurerm_network_interface_security_group_association" "bastion_nic_nsg" {

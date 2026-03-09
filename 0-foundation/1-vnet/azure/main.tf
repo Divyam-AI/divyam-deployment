@@ -2,6 +2,9 @@
 
 locals {
   vnet_name = var.vnet.create ? azurerm_virtual_network.vnet[0].name : data.azurerm_virtual_network.vnet[0].name
+  # Per-resource tags so the VNet gets its name in tags (e.g. #{resource_name}).
+  tag_context_base   = merge(var.tag_globals, var.tag_context)
+  rendered_tags_vnet = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = var.vnet.name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
 }
 
 resource "azurerm_virtual_network" "vnet" {
@@ -11,7 +14,7 @@ resource "azurerm_virtual_network" "vnet" {
   location            = var.vnet.region
   resource_group_name = var.vnet.scope_name
 
-  tags = local.rendered_tags
+  tags = local.rendered_tags_vnet
 
   lifecycle {
     ignore_changes  = [name]

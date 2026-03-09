@@ -99,6 +99,15 @@ locals {
     for sa_name in local.service_account_ids :
     sa_name => "${local.name_prefix}-${replace(sa_name, "_", "-")}-uai"
   }
+  tag_context_base = merge(var.tag_globals, var.tag_context)
+  # Per-resource tags so each User Assigned Identity gets its name in tags.
+  rendered_tags_for_uai = {
+    for sa_name in local.service_account_ids :
+    sa_name => {
+      for k, v in var.common_tags :
+      k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = local.uai_display_name[sa_name] }), try(regex("#\\{([^}]+)\\}", v)[0], ""), ""))
+    }
+  }
 }
 
 ############################################
@@ -111,7 +120,7 @@ resource "azurerm_user_assigned_identity" "identities" {
   location            = var.location
   resource_group_name = var.resource_group_name
 
-  tags = local.rendered_tags
+  tags = local.rendered_tags_for_uai[each.key]
 }
 
 ############################################

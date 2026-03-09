@@ -32,6 +32,7 @@ locals {
       resource_group_name     = local.root.resource_scope.name
       location                = local.root.region
       environment             = local.root.env_name
+      common_tags             = try(local.root.common_tags, {})
       tag_globals             = try(include.root.inputs.tag_globals, {})
       tag_context = {
         resource_name = include.root.locals.merged.tfstate.bucket_name

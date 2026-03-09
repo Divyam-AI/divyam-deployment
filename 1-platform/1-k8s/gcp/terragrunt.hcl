@@ -5,6 +5,15 @@ include "root" {
   expose = true
 }
 
+dependency "app_gw" {
+  config_path = "../../0-app_gw/gcp"
+  mock_outputs = {
+    load_balancer_ip = ""
+    cloud_armor_policy_id = null
+  }
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply"]
+}
+
 terraform {
   source = "./"
 }

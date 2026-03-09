@@ -5,6 +5,12 @@ include "root" {
   expose = true
 }
 
+dependency "k8s" {
+  config_path = "../../../1-k8s/gcp"
+  skip_outputs = true
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
+}
+
 terraform {
   source = "${get_repo_root()}/1-platform/2-alerts/gcp/notification_channels"
 }

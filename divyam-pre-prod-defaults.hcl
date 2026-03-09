@@ -211,7 +211,7 @@ locals {
     # Upgrade cadence: Azure = automatic_channel_upgrade (stable|rapid|patch|node-image), GCP = release_channel (REGULAR|RAPID|STABLE). Set per cloud.
     release_channel = local.cloud_provider == "azure" ? "stable" : "REGULAR"
 
-    # When true, enables 1-platform/3-bastion-kubectl-setup (run setup-kubectl on bastion after cluster exists). Bastion must have been created with bastion.configure_kubectl so the script exists.
+    # When true, enables 1-platform/2-bastion-kubectl-setup (run setup-kubectl on bastion after cluster exists). Bastion must have been created with bastion.configure_kubectl so the script exists.
     setup_kubectl_on_bastion = false
   }
 

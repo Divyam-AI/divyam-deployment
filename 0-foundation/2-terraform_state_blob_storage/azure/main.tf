@@ -24,6 +24,8 @@ locals {
   resolved_subnet_ids = length(var.subnet_ids) > 0 ? var.subnet_ids : (
     length(data.azurerm_subnet.vnet_subnets) > 0 ? { for k, s in data.azurerm_subnet.vnet_subnets : k => s.id } : {}
   )
+  tag_context_base = merge(var.tag_globals, var.tag_context)
+  rendered_tags_storage_account = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = var.storage_account_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
 }
 
 resource "azurerm_storage_account" "terraform" {
@@ -41,7 +43,7 @@ resource "azurerm_storage_account" "terraform" {
     virtual_network_subnet_ids = length(local.resolved_subnet_ids) > 0 ? values(local.resolved_subnet_ids) : []
   }
 
-  tags = local.rendered_tags
+  tags = local.rendered_tags_storage_account
 
   lifecycle {
     prevent_destroy = true
