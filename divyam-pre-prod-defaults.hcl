@@ -89,8 +89,8 @@ locals {
   bastion = {
     create       = false
     bastion_name = "${local.deployment_prefix}-bastion"
-    # Optional: configure_kubectl = true. When true, kubectl is installed and cluster identity is taken from k8s section.
-    # The cluster may not exist at bastion setup. Once the cluster is created (1-platform), run on the bastion: setup-kubectl
+    # configure_kubectl: use only when cluster is pre-created and only the bastion needs to be set up (installs kubectl + setup-kubectl script on bastion at create time).
+    # Once the cluster is created (1-platform), either run on the bastion: setup-kubectl, or set k8s.setup_kubectl_on_bastion = true to run it via Terraform.
     # Azure: vnet_subnet_name, vm_size, admin_username, ssh_public_key_path. GCP: machine_type, tags.
   }
 
@@ -207,6 +207,9 @@ locals {
 
     # Upgrade cadence: Azure = automatic_channel_upgrade (stable|rapid|patch|node-image), GCP = release_channel (REGULAR|RAPID|STABLE). Set per cloud.
     release_channel = local.cloud_provider == "azure" ? "stable" : "REGULAR"
+
+    # When true, enables 1-platform/2-bastion-kubectl-setup (run setup-kubectl on bastion after cluster exists). Bastion must have been created with bastion.configure_kubectl so the script exists.
+    setup_kubectl_on_bastion = false
   }
 
   iam_bindings = {
@@ -238,4 +241,7 @@ locals {
     instance_name  = "${local.deployment_prefix}-cloudsql"
   }
 
+# --- Terraform outputs file for Helm ---
+  # Path with extension; supports ${local.deployment_prefix}, ${local.env_name}, ${local.org_name} (resolved from ENV/ORG_NAME)
+  outputs_file_path = "outputs/outputs-${local.deployment_prefix}.yaml"
 }

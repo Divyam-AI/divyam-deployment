@@ -58,6 +58,27 @@ EOT
 
   merged = merge(local.default_locals, local.cloud_locals)
 
+  # Outputs for Helm (outputs.yaml): control which Terraform outputs are written by scripts/write-outputs-yaml.sh.
+  # exclude_outputs: sensitive data (kubeconfig, connection strings, secrets, certs) — never written to outputs.yaml.
+  outputs_for_helm = {
+    include_modules = []
+    exclude_modules = []
+    include_outputs = []
+    exclude_outputs = [
+      "aks_kube_config",
+      "aks_kube_config_raw",
+      "aks_oidc_issuer_url",
+      "cluster_ca_certificates",
+      "uai_client_ids",
+      "uai_ids",
+      "secrets",
+      "storage_account_connection_strings",
+      "router_requests_logs_storage_account_connection_string",
+      "backend_config",
+      "certificate_secret_id",
+    ]
+  }
+
   # Provider block comes from values/<cloud>/defaults.hcl so only the active cloud's
   # config is loaded (no Azure subscription_id/tenant_id when CLOUD_PROVIDER=gcp).
   effective_provider_content = try(local.merged.provider_block, "")
