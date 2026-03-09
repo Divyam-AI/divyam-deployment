@@ -7,6 +7,11 @@ resource "google_compute_router" "egress_nat_router" {
   region  = var.region
   network = var.network
   project = var.project_id
+
+  lifecycle {
+    # Avoid replacing imported router when dependency outputs differ (e.g. run-all plan) or network is same VPC by different ref
+    ignore_changes = [network]
+  }
 }
 
 resource "google_compute_router_nat" "nat_config" {
@@ -21,10 +26,15 @@ resource "google_compute_router_nat" "nat_config" {
   source_subnetwork_ip_ranges_to_nat = "LIST_OF_SUBNETWORKS"
 
   dynamic "subnetwork" {
-    for_each = { for idx, val in var.nat_subnetworks : idx => val }
+    for_each = { for idx, val in var.nat_subnetworks : idx => val if val.name != null && val.name != "" }
     content {
       name                    = subnetwork.value.name
       source_ip_ranges_to_nat = subnetwork.value.cidrs
     }
+  }
+
+  lifecycle {
+    # Preserve imported NAT subnetwork config when dependency outputs missing or format differs (e.g. ALL_IP_RANGES vs specific CIDRs)
+    ignore_changes = [subnetwork]
   }
 }

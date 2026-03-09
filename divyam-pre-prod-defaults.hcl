@@ -60,8 +60,8 @@ locals {
     zone            = "${local.zone}"
     address_space   = ["10.0.0.0/16"]
     # TODO: Remove these temp values
-    subnet          = { create = true, subnet_ip = "10.0.0.0/21", name = local.cloud_provider == "azure" ? "rg-sudhir-4084-subnet" : "default"  } # "${local.deployment_prefix}-subnet" (2048 IPs)
-    app_gw_subnet   = { create = true, subnet_ip = "10.0.8.0/27", name = local.cloud_provider == "azure" ? "rg-sudhir-4084-app-gw-subnet" : "proxy-only-subnet" } # (32 IPs)  - Required for Azure App Gateway or GCP Proxy
+    subnet          = { create = true, subnet_ip = "10.160.0.0/20", name = local.cloud_provider == "azure" ? "rg-sudhir-4084-subnet" : "default"  } # "${local.deployment_prefix}-subnet" (2048 IPs)
+    app_gw_subnet   = { create = true, subnet_ip = "10.1.0.0/26", name = local.cloud_provider == "azure" ? "rg-sudhir-4084-app-gw-subnet" : "proxy-only-subnet" } # (32 IPs)  - Required for Azure App Gateway or GCP Proxy
     # GCP only: enable Shared VPC host and attach service projects (ignored by Azure)
     # Azure: shared_vpc_host = true peers this VNet to remote VNets whose ARM IDs are in service_project_ids.
     shared_vpc_host     = false
@@ -75,13 +75,12 @@ locals {
     create = true
     resource_name_prefix = "${local.deployment_prefix}"
     # Names for data-source lookup (1-platform resolves NAT IP from these; no dependency on 0-foundation).
-    nat_gateway_name   = "${local.deployment_prefix}-nat-gateway"   # Azure: NAT gateway resource name
-    #TODO: Remove these temp values
-    # nat_public_ip_name = "${local.deployment_prefix}-nat-ip"       # Azure: public IP resource name (used to fetch IP)
+    nat_gateway_name   = "egress-nat-config-preprod"   # NAT gateway resource name
+
     nat_public_ip_name = "${local.deployment_prefix}-nat-ip-4084"       # Azure: public IP resource name (used to fetch IP)
     # GCP: Cloud Router and NAT config names (for lookup if needed)
-    router_name     = "${local.deployment_prefix}-nat-router"
-    nat_config_name = "${local.deployment_prefix}-nat-config"
+    router_name     = "egress-nat-router-preprod"
+    nat_config_name = "egress-nat-config-preprod"
   }
 
   # --- Bastion ---

@@ -15,7 +15,8 @@ resource "google_compute_network" "vpc" {
 
   lifecycle {
     prevent_destroy = true
-    ignore_changes  = [auto_create_subnetworks, description]  # default VPC has true; we use false for new VPCs; avoid replacement when importing
+    # default VPC uses REGIONAL; new VPCs often use GLOBAL; avoid changing existing networks
+    ignore_changes = [auto_create_subnetworks, description, routing_mode]
   }
 }
 
@@ -37,6 +38,8 @@ resource "google_compute_subnetwork" "subnet" {
 
   lifecycle {
     prevent_destroy = true
+    # GKE adds secondary ranges for pods/services; do not remove them when not in config
+    ignore_changes = [secondary_ip_range]
   }
 }
 
@@ -59,6 +62,8 @@ resource "google_compute_subnetwork" "app_gw_subnet" {
 
   lifecycle {
     prevent_destroy = true
+    # Preserve secondary ranges if added (e.g. by GKE or other services)
+    ignore_changes = [secondary_ip_range]
   }
 }
 
