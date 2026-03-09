@@ -56,6 +56,7 @@ variable "cluster" {
       vm_size          = string
       machine_type     = optional(string)
       gpu_driver       = optional(string, "Install")
+      priority         = optional(string, "Regular") # "Spot" for spot instances; default node pool cannot be Spot on AKS
       auto_scaling     = bool
       count            = optional(number, null)
       min_count        = optional(number, null)

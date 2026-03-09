@@ -41,6 +41,12 @@ variable "machine_type" {
   default     = "e2-micro"
 }
 
+variable "spot_instance" {
+  description = "When true, create a spot (preemptible) VM; when false, regular on-demand."
+  type        = bool
+  default     = false
+}
+
 variable "tags" {
   description = "Network tags to attach to the instance"
   type        = list(string)

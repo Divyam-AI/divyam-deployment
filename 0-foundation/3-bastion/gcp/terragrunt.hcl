@@ -55,6 +55,7 @@ inputs = merge(
     subnet       = dependency.vnet.outputs.subnet_id
     bastion_name = try(local.bastion_config.bastion_name, "${local.root.deployment_prefix}-bastion")
     machine_type = try(local.bastion_config.machine_type, "e2-micro")
+    spot_instance = try(local.bastion_config.spot_instance, false)
     tags         = try(local.bastion_config.tags, ["bastion"])
     # Kubectl: only when bastion section has configure_kubectl = true; cluster details from k8s section.
     configure_kubectl   = try(local.bastion_config.configure_kubectl, false)

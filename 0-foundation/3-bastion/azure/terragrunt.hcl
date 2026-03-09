@@ -50,6 +50,7 @@ inputs = merge(
     resource_group_name  = local.root.resource_scope.name
     bastion_name         = try(local.bastion_config.bastion_name, "${local.root.deployment_prefix}-bastion")
     vm_size              = try(local.bastion_config.vm_size, "Standard_B1s")
+    spot_instance        = try(local.bastion_config.spot_instance, false)
     admin_username       = try(local.bastion_config.admin_username, "azureuser")
     ssh_public_key_path  = try(local.bastion_config.ssh_public_key_path, "~/.ssh/id_rsa.pub")
     vnet_id              = dependency.vnet.outputs.vnet_id

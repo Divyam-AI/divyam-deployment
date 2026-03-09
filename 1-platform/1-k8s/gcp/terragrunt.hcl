@@ -78,6 +78,7 @@ locals {
   # Additional node pools (GCP shape): machine_type from instance_type (single value per cloud from defaults ternary) or legacy keys.
   additional_node_pools = { for name, pool in try(local.pools.additional, {}) : name => {
     machine_type = try(pool.instance_type, pool.machine_type, pool.vm_size, "e2-standard-4")
+    use_spot     = try(pool.spot_instance, false)
     node_count   = try(pool.count, 1)
     auto_scaling = try(pool.auto_scaling, false)
     min_count    = try(pool.min_count, null)

@@ -31,6 +31,12 @@ variable "vm_size" {
   default     = "Standard_B1s"
 }
 
+variable "spot_instance" {
+  description = "When true, create a Spot VM (priority Spot); when false, regular on-demand."
+  type        = bool
+  default     = false
+}
+
 variable "admin_username" {
   type        = string
   description = "Admin username for the Bastion VM SSH access."

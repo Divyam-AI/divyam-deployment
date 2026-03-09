@@ -51,6 +51,7 @@ variable "additional_node_pools" {
   description = "Additional node pools (e.g. GPU). Used only when cluster enable_autopilot = false. Key = pool name."
   type = map(object({
     machine_type = string
+    use_spot     = optional(bool, false) # when true, use Spot VMs for this pool
     node_count   = optional(number, 1)
     auto_scaling = optional(bool, false)
     min_count    = optional(number, null)

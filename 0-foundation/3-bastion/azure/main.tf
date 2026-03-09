@@ -63,6 +63,8 @@ resource "azurerm_linux_virtual_machine" "bastion" {
   resource_group_name = var.resource_group_name
   location            = var.location
   size                = var.vm_size
+  priority            = var.spot_instance ? "Spot" : "Regular"
+  eviction_policy      = var.spot_instance ? "Deallocate" : null
   network_interface_ids = [
     azurerm_network_interface.bastion_nic[0].id
   ]

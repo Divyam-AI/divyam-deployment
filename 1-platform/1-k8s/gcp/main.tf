@@ -59,6 +59,7 @@ resource "google_container_cluster" "gke_cluster" {
     content {
       machine_type = each.value.machine_type
       disk_size_gb = 100
+      spot         = each.value.use_spot
       oauth_scopes = [
         "https://www.googleapis.com/auth/cloud-platform"
       ]
@@ -170,6 +171,7 @@ resource "google_container_node_pool" "additional" {
   node_config {
     machine_type = var.additional_node_pools[each.value.pool_key].machine_type
     disk_size_gb = 100
+    spot         = try(var.additional_node_pools[each.value.pool_key].use_spot, false)
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"
     ]

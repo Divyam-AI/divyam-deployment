@@ -87,6 +87,7 @@ locals {
   bastion = {
     create       = false
     bastion_name = "${local.deployment_prefix}-bastion"
+    spot_instance = false
     # configure_kubectl: use only when cluster is pre-created and only the bastion needs to be set up (installs kubectl + setup-kubectl script on bastion at create time).
     # Once the cluster is created (1-platform), either run on the bastion: setup-kubectl, or set k8s.setup_kubectl_on_bastion = true to run it via Terraform.
     # Azure: vnet_subnet_name, vm_size, admin_username, ssh_public_key_path. GCP: machine_type, tags.
@@ -167,6 +168,7 @@ locals {
     name   = "${local.deployment_prefix}-k8s-cluster"
     kubernetes_version = "1.28"
 
+    # Use spot/preemptible nodes per pool (GKE: spot; AKS: priority Spot). Set spot_instance = true on each pool that should use spot.
     # "Auto" = platform-managed nodes (Azure NAP, GKE Autopilot). "Manual" = explicit node pools / VM size.
     node_provisioning_mode = "Auto" #"Manual"
 
@@ -175,6 +177,7 @@ locals {
     node_pools = {
       default = {
         instance_type = local.cloud_provider == "azure" ? "Standard_D4s_v3" : "e2-standard-4"
+        spot_instance = false
         auto_scaling  = true
         min_count    = 1
         max_count    = 5
@@ -183,6 +186,7 @@ locals {
       additional = {
         gpupool = {
           instance_type = local.cloud_provider == "azure" ? "Standard_NV6ads_A10_v5" : "n1-standard-4"
+          spot_instance = false
           count         = 2
           auto_scaling = false
           min_count    = null

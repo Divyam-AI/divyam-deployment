@@ -300,6 +300,8 @@ resource "azurerm_kubernetes_cluster_node_pool" "additional_node_pools" {
   vnet_subnet_id        = local.subnet_ids[each.value.vnet_subnet_name != null ? each.value.vnet_subnet_name : var.cluster.vnet_subnet_name]
   vm_size               = each.value.vm_size
   gpu_driver            = each.value.gpu_driver
+  priority              = try(each.value.priority, "Regular")
+  eviction_policy       = try(each.value.priority, "Regular") == "Spot" ? "Deallocate" : null
   node_count            = !each.value.auto_scaling ? each.value.count : null
   auto_scaling_enabled  = each.value.auto_scaling
   min_count             = each.value.auto_scaling ? each.value.min_count : null

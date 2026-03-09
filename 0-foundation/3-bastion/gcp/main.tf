@@ -44,6 +44,10 @@ resource "google_compute_instance" "bastion" {
     cluster_project_id  = var.cluster_project_id
   })
 
+  scheduling {
+    preemptible = var.spot_instance
+  }
+
   service_account {
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
   }
