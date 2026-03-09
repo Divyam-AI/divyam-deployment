@@ -6,8 +6,9 @@ variable "env_name" {
 variable "resource_scope" {
   description = "If create=true, create the resource group; if false, use a data source to reference existing by resource_group_name"
   type = object({
-    name   = string
-    create = bool
+    name            = string
+    create          = bool
+    billing_account = optional(string, "")
   })
 }
 

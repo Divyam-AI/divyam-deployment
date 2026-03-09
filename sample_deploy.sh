@@ -69,6 +69,8 @@ if [ "${CLOUD_PROVIDER}" == "azure" ]; then
 elif [ "${CLOUD_PROVIDER}" == "gcp" ]; then
     export REGION="${REGION:-asia-south1}"
     export ZONE="${ZONE:-asia-south1-a}"
+    # Billing account ID for new project (0-resource_scope); required when resource_scope.create=true
+    export BILLING_ACCOUNT="${BILLING_ACCOUNT:-}"
 fi
 
 # --- Cloud credentials pre-flight (fail fast with clear instructions) ---

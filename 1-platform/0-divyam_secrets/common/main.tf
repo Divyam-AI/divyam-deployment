@@ -14,7 +14,7 @@ resource "random_password" "random_superset_pg_password" {
 }
 
 resource "random_password" "random_superset_pg_superset_password" {
-  count   = (var.input.divyam_superset_pg_superset_password == null || var.input.divyam_superset_pg_superset_password == "") ? 1 : 0
+  count   = (var.input.divyam_superset_password == null || var.input.divyam_superset_password == "") ? 1 : 0
   length  = 16
   special = true
 }
@@ -27,7 +27,7 @@ resource "random_password" "random_db_root_password" {
 
 locals {
   superset_pg_password          = (var.input.divyam_superset_pg_password != null && var.input.divyam_superset_pg_password != "") ? var.input.divyam_superset_pg_password : random_password.random_superset_pg_password[0].result
-  superset_pg_superset_password = (var.input.divyam_superset_pg_superset_password != null && var.input.divyam_superset_pg_superset_password != "") ? var.input.divyam_superset_pg_superset_password : random_password.random_superset_pg_superset_password[0].result
+  superset_pg_superset_password = (var.input.divyam_superset_password != null && var.input.divyam_superset_password != "") ? var.input.divyam_superset_password : random_password.random_superset_pg_superset_password[0].result
   divyam_db_root_password       = (var.input.divyam_db_root_password != null && var.input.divyam_db_root_password != "") ? var.input.divyam_db_root_password : random_password.random_db_root_password[0].result
   clickhouse_user               = coalesce(var.input.divyam_clickhouse_user_name, "default")
   # coalesce(null, "") fails in Terraform; use conditional so empty string is valid default

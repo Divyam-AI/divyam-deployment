@@ -37,8 +37,9 @@ locals {
 # --- Resource Scope ---
 # Azure: resource_group_name | GCP: project_id
   resource_scope = {
-    create  = false
-    name    = "${local.deployment_prefix}-rg"    
+    create          = false
+    name            = "${local.deployment_prefix}-rg"
+    billing_account = get_env("BILLING_ACCOUNT", "")
   }
 
 # --- APIs / Resource Providers (0-foundation/1-apis) ---

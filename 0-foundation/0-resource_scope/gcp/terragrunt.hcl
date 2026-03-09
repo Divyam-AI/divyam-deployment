@@ -23,7 +23,7 @@ locals {
     resource_scope = local.root.resource_scope
     org_id         = try(local.root.org_id, "")
     folder_id      = try(local.root.folder_id, "")
-    billing_account = try(local.root.billing_account, "")
+    billing_account = try(local.root.resource_scope.billing_account, "")
     env_name       = local.root.env_name
     common_tags    = try(local.root.common_tags, {})
     tag_globals    = try(include.root.inputs.tag_globals, {})
