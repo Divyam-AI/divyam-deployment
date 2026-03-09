@@ -98,7 +98,7 @@ check_cloud_credentials() {
         fi
         if ! gcloud projects list --limit=1 &>/dev/null; then
             echo "Error: GCP credentials are invalid or need re-authentication (e.g. reauth related error)."
-            echo "Run: gcloud auth application-default login"
+            echo "Run: gcloud auth login"
             exit 1
         fi
         echo "GCP credentials OK (Application Default Credentials)."
@@ -138,7 +138,7 @@ TG_EXIT=$?
 # After a successful apply, write Terraform outputs to the file path configured in values file (extension sets YAML vs JSON)
 if [[ "${TG_EXIT}" -eq 0 && "${TG_CMD}" == "apply" ]]; then
   if [[ -x "$REPO_ROOT/scripts/write-outputs-yaml.sh" ]]; then
-#    echo "Writing Terraform outputs (path from ${VALUES_FILE})..."
+    echo "Skipping ...Writing Terraform outputs (path from ${VALUES_FILE})..."
 #    "$REPO_ROOT/scripts/write-outputs-yaml.sh" "${LAYER}" "${CLOUD_PROVIDER}" "${REPO_ROOT}" "${VALUES_FILE}" || true
   fi
 fi
