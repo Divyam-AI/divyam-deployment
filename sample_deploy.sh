@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 # Sample deploy: set required env vars and run terragrunt plan.
 # Replace placeholder values with your own before apply.
+# Root reads config from VALUES_FILE (default: values/defaults.hcl). Override with 3rd arg or VALUES_FILE env.
 #
 # Usage:
-#   ./sample_deploy.sh <0|1|2> <gcp|azure>
+#   ./sample_deploy.sh <0|1|2> <gcp|azure> [values_file]
 #
 # Arguments:
 #   0 - run terragrunt in 0-foundation
 #   1 - run terragrunt in 1-platform
 #   2 - run terragrunt in 2-app
 #   gcp|azure - cloud provider
+#   values_file - optional (default: values/defaults.hcl). Set VALUES_FILE for root.hcl.
 #
-# Optional: use local backend (no remote state, no Azure/GCS backend access) for testing:
+# Optional: use local backend (no remote state) for testing:
 #   TG_USE_LOCAL_BACKEND=1 ./sample_deploy.sh 0 azure
 
 set -euo pipefail
@@ -29,6 +31,7 @@ fi
 
 LAYER="${1}"
 export CLOUD_PROVIDER="${2}"
+export VALUES_FILE="${3:-values/defaults.hcl}"
 
 if [ "${LAYER}" != "0" ] && [ "${LAYER}" != "1" ] && [ "${LAYER}" != "2" ]; then
     echo "Error: LAYER must be 0, 1, or 2 (got: ${LAYER})"
@@ -47,7 +50,7 @@ else
     TG_DIR="2-app"
 fi
 
-# --- Required (values/*.hcl) ---
+# --- Required (fed into values file via get_env) ---
 export ENV="${ENV:-dev}"
 
 if [ "${CLOUD_PROVIDER}" == "azure" ]; then
@@ -66,6 +69,6 @@ fi
 export ORG_NAME="${ORG_NAME:-}"
 export TG_USE_LOCAL_BACKEND="${TG_USE_LOCAL_BACKEND:-1}"
 
-echo "ENV=$ENV CLOUD_PROVIDER=$CLOUD_PROVIDER REGION=$REGION ZONE=$ZONE ORG_NAME=$ORG_NAME LAYER=$LAYER TG_DIR=$TG_DIR${TG_USE_LOCAL_BACKEND:+ TG_USE_LOCAL_BACKEND=$TG_USE_LOCAL_BACKEND (local backend)}"
+echo "ENV=$ENV CLOUD_PROVIDER=$CLOUD_PROVIDER REGION=$REGION ZONE=$ZONE ORG_NAME=$ORG_NAME LAYER=$LAYER TG_DIR=$TG_DIR VALUES_FILE=$VALUES_FILE${TG_USE_LOCAL_BACKEND:+ TG_USE_LOCAL_BACKEND=$TG_USE_LOCAL_BACKEND (local backend)}"
 echo "Running terragrunt run-all plan in $TG_DIR (cloud=${CLOUD_PROVIDER})..."
 exec bash -c "cd \"$REPO_ROOT/$TG_DIR\" && terragrunt run --all plan --filter './**/${CLOUD_PROVIDER}'"

@@ -14,7 +14,9 @@ locals {
   # Set TG_USE_LOCAL_BACKEND=1 (or true) to use local state for all modules — no remote backend, no state download. Useful for testing.
   use_local_backend = get_env("TG_USE_LOCAL_BACKEND", "0") != "0"
 
-  default_locals = read_terragrunt_config("${local.repo_root}/values/defaults.hcl").locals
+  # Values file path (relative to repo root). Override with VALUES_FILE env or 3rd script arg.
+  values_file = get_env("VALUES_FILE", "values/defaults.hcl")
+  default_locals = read_terragrunt_config("${local.repo_root}/${local.values_file}").locals
 
   # Azure: ARM_SUBSCRIPTION_ID, ARM_TENANT_ID only read when cloud_provider is azure (inside branch below). GCP: uses ADC.
   cloud_locals = local.cloud_provider == "gcp" ? {
