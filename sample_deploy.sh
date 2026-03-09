@@ -29,6 +29,10 @@
 #     ./sample_deploy.sh import 0 gcp 0-resource_scope 'google_project.project[0]' <project-id>
 #   Azure 0-resource_scope (resource group):
 #     ./sample_deploy.sh import 0 azure 0-resource_scope 'azurerm_resource_group.rd[0]' /subscriptions/<sub-id>/resourceGroups/<rg-name>
+#   GCP 1-apis (one import per enabled API; ID = project_id/service):
+#     ./sample_deploy.sh import 0 gcp 1-apis 'google_project_service.enabled_apis["compute.googleapis.com"]' <project-id>/compute.googleapis.com
+#     (repeat for each API). Or import all default APIs in one step:
+#     ./sample_deploy.sh import 0 gcp 1-apis google_project_service.enabled_apis <project-id> [values_file]
 #   GCP 1-vnet (VPC / subnet / app_gw_subnet):
 #     ./sample_deploy.sh import 0 gcp 1-vnet 'google_compute_network.vpc[0]' projects/<project>/global/networks/<vpc-name>
 #     ./sample_deploy.sh import 0 gcp 1-vnet 'google_compute_subnetwork.subnet[0]' projects/<project>/regions/<region>/subnetworks/<subnet-name>
@@ -128,8 +132,8 @@ fi
 export ENV="${ENV:-dev}"
 
 if [ "${CLOUD_PROVIDER}" == "azure" ]; then
-    export REGION="${REGION:-eastus2}"
-    export ZONE="${ZONE:-eastus2-1}"
+    export REGION="${REGION:-southindia}"
+    export ZONE="${ZONE:-southindia-1}"
     # https://portal.azure.com/#view/Microsoft_Azure_Billing/SubscriptionsBladeV2 -> Subscription ID
     export ARM_SUBSCRIPTION_ID="${ARM_SUBSCRIPTION_ID:-8645e690-451d-45a4-b10c-159705f63a22}"
     # https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/Overview -> Tenant ID
@@ -208,11 +212,43 @@ if [ "${TG_CMD}" == "import" ]; then
     fi
     echo "ENV=$ENV CLOUD_PROVIDER=$CLOUD_PROVIDER REGION=$REGION LAYER=$LAYER TG_DIR=$TG_DIR MODULE=$MODULE_PATH/$CLOUD_PROVIDER VALUES_FILE=$VALUES_FILE${TG_USE_LOCAL_BACKEND:+ TG_USE_LOCAL_BACKEND=$TG_USE_LOCAL_BACKEND (local backend)}"
     echo "Running terragrunt import in $MODULE_DIR..."
-    # Make target resource block exist for import (e.g. when create=false in values)
-    export TF_VAR_import_mode=1
-    bash -c "cd \"$MODULE_DIR\" && terragrunt import \"$IMPORT_ADDRESS\" \"$IMPORT_ID\""
-    TG_EXIT=$?
-    unset TF_VAR_import_mode
+
+    # GCP 1-apis: import all default APIs in one step when address is google_project_service.enabled_apis and id is project_id (no slash)
+    IMPORT_ALL_APIS=false
+    if [ "${MODULE_PATH}" = "1-apis" ] && [ "${CLOUD_PROVIDER}" = "gcp" ] && \
+       [ "${IMPORT_ADDRESS}" = "google_project_service.enabled_apis" ] && [ "${IMPORT_ID#*/}" = "${IMPORT_ID}" ]; then
+        IMPORT_ALL_APIS=true
+    fi
+
+    if [ "${IMPORT_ALL_APIS}" = true ]; then
+        PROJECT_ID="${IMPORT_ID}"
+        GCP_DEFAULT_APIS=(
+            "compute.googleapis.com"
+            "container.googleapis.com"
+            "iam.googleapis.com"
+            "storage.googleapis.com"
+            "logging.googleapis.com"
+            "monitoring.googleapis.com"
+            "secretmanager.googleapis.com"
+            "dns.googleapis.com"
+            "networkmanagement.googleapis.com"
+            "servicenetworking.googleapis.com"
+        )
+        TG_EXIT=0
+        for api in "${GCP_DEFAULT_APIS[@]}"; do
+            echo "Importing ${api}..."
+            if (bash -c "cd \"$MODULE_DIR\" && terragrunt import 'google_project_service.enabled_apis[\"${api}\"]' \"${PROJECT_ID}/${api}\""); then
+                :
+            else
+                echo "  -> skip (not enabled or already in state)"
+            fi
+        done
+    else
+        export TF_VAR_import_mode=1
+        bash -c "cd \"$MODULE_DIR\" && terragrunt import \"$IMPORT_ADDRESS\" \"$IMPORT_ID\""
+        TG_EXIT=$?
+        unset TF_VAR_import_mode
+    fi
 else
 echo "ENV=$ENV CLOUD_PROVIDER=$CLOUD_PROVIDER REGION=$REGION ZONE=$ZONE ORG_NAME=$ORG_NAME LAYER=$LAYER TG_DIR=$TG_DIR VALUES_FILE=$VALUES_FILE${TG_USE_LOCAL_BACKEND:+ TG_USE_LOCAL_BACKEND=$TG_USE_LOCAL_BACKEND (local backend)}"
 echo "Running terragrunt run-all $TG_CMD in $TG_DIR (cloud=${CLOUD_PROVIDER})..."

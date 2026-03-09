@@ -3,17 +3,13 @@ include "root" {
   expose = true
 }
 
-terraform {
-  source = "./"
+# Run 0-resource_scope before this module (same order as dependency, but we use values for project_id to avoid dependency output issues in run-all).
+dependencies {
+  paths = ["../../0-resource_scope/gcp"]
 }
 
-dependency "resource_scope" {
-  config_path = "../../0-resource_scope/gcp"
-
-  mock_outputs = {
-    project_id = "mock-project"
-  }
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply"]
+terraform {
+  source = "./"
 }
 
 remote_state {
@@ -44,7 +40,8 @@ locals {
 
 inputs = merge(
   {
-    project_id = dependency.resource_scope.outputs.project_id
+    # Use same source as 0-resource_scope: values file resource_scope.name (GCP project ID)
+    project_id = local.root.resource_scope.name
     enabled    = try(local.apis_config.enabled, true)
     apis       = local.apis
   }

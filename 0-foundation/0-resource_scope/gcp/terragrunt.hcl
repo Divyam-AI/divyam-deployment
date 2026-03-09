@@ -21,7 +21,7 @@ locals {
   # Map values/* (resource_scope + GCP defaults) to Terraform inputs; create = false uses data source only
   inputs = {
     resource_scope = local.root.resource_scope
-    org_id         = try(local.root.org_id, "")
+    org_id         = try(local.root.resource_scope.org_id, try(local.root.org_id, ""))
     folder_id      = try(local.root.folder_id, "")
     billing_account = try(local.root.resource_scope.billing_account, "")
     env_name       = local.root.env_name

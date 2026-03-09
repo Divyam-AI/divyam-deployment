@@ -15,6 +15,7 @@ resource "google_compute_network" "vpc" {
 
   lifecycle {
     prevent_destroy = true
+    ignore_changes  = [auto_create_subnetworks, description]  # default VPC has true; we use false for new VPCs; avoid replacement when importing
   }
 }
 
