@@ -1,6 +1,7 @@
 variable "region" {
-  description = "Azure provider location"
+  description = "Azure provider location (resource group). When empty and creating, a default is used from cloud where possible."
   type        = string
+  default     = ""
 }
 
 variable "zone" {

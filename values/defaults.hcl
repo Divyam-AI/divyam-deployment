@@ -39,6 +39,7 @@ locals {
   resource_scope = {
     create          = false
     name            = "${local.deployment_prefix}-rg"
+    org_id          = get_env("ORG_ID", "")
     billing_account = get_env("BILLING_ACCOUNT", "")
   }
 

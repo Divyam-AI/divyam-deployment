@@ -1,15 +1,38 @@
 # GCP project (resource scope). Equivalent to Azure resource group.
 # Use local backend; project is needed before GCS bucket for state.
 
+# Defaults from cloud when org_id / billing_account are empty (only when creating a project).
+data "google_client_config" "current" {}
+
+data "google_project" "default" {
+  count      = var.resource_scope.create && data.google_client_config.current.project != "" ? 1 : 0
+  project_id = data.google_client_config.current.project
+}
+
+# Look up billing account by id when provided (validates and normalizes to billingAccounts/XXX).
+# When billing_account is empty, set it in values (e.g. BILLING_ACCOUNT); provider no longer supports "first open" lookup.
+data "google_billing_account" "default" {
+  count            = var.resource_scope.create && var.billing_account != "" ? 1 : 0
+  billing_account  = var.billing_account
+}
+
+locals {
+  # When creating and org_id is empty, do not infer from default project (data source has no parent attribute).
+  # Set org_id or folder_id in values when creating a project.
+  default_org_id = var.org_id != "" ? var.org_id : null
+  # When creating and billing_account is empty, set BILLING_ACCOUNT in values; otherwise use looked-up id.
+  default_billing_account = length(data.google_billing_account.default) > 0 ? data.google_billing_account.default[0].id : null
+}
+
 # Create project when create = true
 resource "google_project" "project" {
   count = var.resource_scope.create ? 1 : 0
 
   project_id      = var.resource_scope.name
   name            = var.resource_scope.name
-  org_id          = var.org_id != "" ? var.org_id : null
+  org_id          = local.default_org_id
   folder_id       = var.folder_id != "" ? var.folder_id : null
-  billing_account = var.billing_account != "" ? var.billing_account : null
+  billing_account = local.default_billing_account
 
   # Avoid default VPC; we create Shared VPC in 2-vnet.
   auto_create_network = false
@@ -18,6 +41,7 @@ resource "google_project" "project" {
 
   lifecycle {
     prevent_destroy = true
+    ignore_changes   = [name, auto_create_network]  # Do not change display name, auto_create_network if project already exists
   }
 }
 

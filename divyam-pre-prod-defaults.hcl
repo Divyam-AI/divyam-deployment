@@ -21,7 +21,7 @@ locals {
 
   # Can set key -> value for tags to be applied for cloud entities
   common_tags       = {
-    Environment   = "#{environment}"
+    environment   = "#{environment}"
     resource_name = "#{resource_name}"
   } 
   # Can also use templates as value and will automatically replaced
@@ -36,8 +36,9 @@ locals {
 # --- Resource Scope ---
 # Azure: resource_group_name | GCP: project_id
   resource_scope = {
-    create          = false
+    create          = true
     name            = local.cloud_provider == "azure" ? "rg-sudhir-4084" : "pre-production-project" # Azure | GCP
+    org_id          = get_env("ORG_ID", "")
     billing_account = get_env("BILLING_ACCOUNT", "")
   }
 
