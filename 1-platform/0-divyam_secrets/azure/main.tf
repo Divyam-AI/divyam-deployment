@@ -69,6 +69,9 @@ resource "azurerm_key_vault_secret" "secrets" {
 
   tags = local.rendered_tags_for_secrets[each.key]
 
+  # Access policy must exist before secrets can be read/written.
+  depends_on = [azurerm_key_vault_access_policy.current]
+
   # Re-running with new values updates existing secrets (new version in Key Vault).
   lifecycle {
     prevent_destroy = true
