@@ -6,3 +6,7 @@
 ./sample_deploy.sh import 0 gcp 2-nat 'google_compute_router.egress_nat_router[0]' projects/pre-production-project/regions/asia-south1/routers/egress-nat-router-preprod
 ./sample_deploy.sh import 0 gcp 2-nat 'google_compute_router_nat.nat_config[0]' projects/pre-production-project/regions/asia-south1/routers/egress-nat-router-preprod/egress-nat-config-preprod
 ./sample_deploy.sh import 0 gcp 2-terraform_state_blob_storage 'google_storage_bucket.terraform[0]' divyamdevtfstate
+# Import existing GCS bucket into state so Terraform does not try to create it. Use same VALUES_FILE as plan.
+# Ensure state is in backend: run without TG_USE_LOCAL_BACKEND=1 (or set TG_USE_LOCAL_BACKEND=0).
+# If the key differs, run in 1-platform/0-divyam_object_storage/gcp: terragrunt output import_keys_created
+./sample_deploy.sh import 1 gcp 0-divyam_object_storage 'google_storage_bucket.this["divyamdevstorage/divyam-preprod-gcs-router-raw-logs"]' projects/pre-production-project/storage/buckets/divyam-preprod-gcs-router-raw-logs divyam-pre-prod-defaults.hcl

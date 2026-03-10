@@ -1,12 +1,6 @@
 # Run setup-kubectl on the bastion host after the cluster exists.
 # No dependency on bastion module: bastion name/zone/project from values; uses gcloud compute ssh (ADC).
 
-terraform {
-  required_providers {
-    null = { source = "hashicorp/null" }
-  }
-}
-
 variable "create" {
   description = "When true, run setup-kubectl on bastion (bastion.create and bastion.configure_kubectl from values)"
   type        = bool

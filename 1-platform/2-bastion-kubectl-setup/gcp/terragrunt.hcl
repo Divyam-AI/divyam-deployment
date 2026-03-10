@@ -11,13 +11,33 @@ terraform {
   source = "./"
 }
 
+# Override root's provider.tf so we have a single terraform block with both google and null
+# (use a different generate block name to avoid conflict with root's generate "provider").
+generate "provider_bastion_setup" {
+  path      = "provider.tf"
+  if_exists = "overwrite"
+  contents  = <<-EOT
+terraform {
+  required_providers {
+    google = { source = "hashicorp/google", version = ">= 5.0.0" }
+    null   = { source = "hashicorp/null" }
+  }
+}
+provider "google" {}
+EOT
+}
+
 remote_state {
   backend = "local"
   config  = { path = "terraform.tfstate" }
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite"
+  }
 }
 
 dependency "k8s" {
-  config_path = "../1-k8s/gcp"
+  config_path = "../../1-k8s/gcp"
   mock_outputs = {
     cluster_endpoints = {}
   }

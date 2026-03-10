@@ -115,8 +115,8 @@ locals {
     create               = true
     type                 = "router-requests-logs"                                  # Identifies this storage for router-requests-logs
     scope_name           = "${local.resource_scope}"                               # Azure Resource Group or GCP Project
-    storage_account_name = "${replace(local.deployment_prefix, "-", "")}storage"   # Full Azure storage account name (no dashes). Not for GCP; used for grouping
-    container_name       = "${replace(local.deployment_prefix, "-", "")}container" # Azure Container or GCP Bucket
+    storage_account_name = "divyam-preprod-storage"                               # Fixed key for GCP import (google_storage_bucket.this["divyam-preprod-storage/container_name"])
+    container_name       = "divyam-preprod-gcs-router-raw-logs" # Azure Container or GCS Bucket
   }]
 
   # -- Secrets ---

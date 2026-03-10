@@ -25,6 +25,7 @@ locals {
 }
 
 # --- Create path ---
+# Import key = account_key/bucket_name (from var.buckets). Run: terragrunt output import_keys_created to see keys for current config.
 resource "google_storage_bucket" "this" {
   for_each = local.buckets_flat_created
 

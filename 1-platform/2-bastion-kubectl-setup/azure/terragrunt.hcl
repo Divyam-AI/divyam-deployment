@@ -11,13 +11,37 @@ terraform {
   source = "./"
 }
 
+# Override root's provider.tf so we have a single terraform block with both azurerm and null
+# (use a different generate block name to avoid conflict with root's generate "provider").
+generate "provider_bastion_setup" {
+  path      = "provider.tf"
+  if_exists = "overwrite"
+  contents  = <<-EOT
+terraform {
+  required_providers {
+    azurerm = { source = "hashicorp/azurerm", version = ">= 4.57.0" }
+    null    = { source = "hashicorp/null" }
+  }
+}
+provider "azurerm" {
+  features {}
+  subscription_id = "${get_env("ARM_SUBSCRIPTION_ID")}"
+  tenant_id       = "${get_env("ARM_TENANT_ID")}"
+}
+EOT
+}
+
 remote_state {
   backend = "local"
   config  = { path = "terraform.tfstate" }
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite"
+  }
 }
 
 dependency "k8s" {
-  config_path = "../1-k8s/azure"
+  config_path = "../../1-k8s/azure"
   mock_outputs = {
     aks_cluster_id = ""
   }

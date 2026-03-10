@@ -81,8 +81,6 @@ resource "google_service_account" "identities" {
   project      = var.project_id
   account_id   = each.key
   display_name = "GKE Service Account - ${each.key}"
-
-  labels = local.rendered_tags_for_sa[each.key]
 }
 
 ############################################

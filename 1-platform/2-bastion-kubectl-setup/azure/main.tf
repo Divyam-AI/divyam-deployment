@@ -1,13 +1,6 @@
 # Run setup-kubectl on the bastion host after the cluster exists.
 # No dependency on bastion module: bastion details are read from values and public IP is fetched from Azure.
 
-terraform {
-  required_providers {
-    null     = { source = "hashicorp/null" }
-    azurerm  = { source = "hashicorp/azurerm" }
-  }
-}
-
 variable "create" {
   description = "When true, run setup-kubectl on bastion (bastion.create and bastion.configure_kubectl from values)"
   type        = bool

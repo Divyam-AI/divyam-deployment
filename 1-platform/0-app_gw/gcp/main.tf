@@ -38,8 +38,6 @@ resource "google_compute_managed_ssl_certificate" "lb_cert" {
   name    = var.ssl_cert_name
   project = var.project_id
 
-  labels = local.rendered_tags_for["lb_cert"]
-
   managed {
     domains = local.ssl_cert_domains
   }
@@ -50,8 +48,6 @@ resource "google_compute_global_address" "static_ip" {
   count   = var.create_public_lb && var.create_public_ip ? 1 : 0
   name    = coalesce(var.static_ip_name, "${var.backend_service_name}-ip")
   project = var.project_id
-
-  labels = local.rendered_tags_for["lb_ip"]
 }
 
 data "google_compute_global_address" "existing" {
@@ -87,8 +83,6 @@ resource "google_compute_address" "internal" {
   subnetwork   = data.google_compute_subnetwork.appgw[0].self_link
   region       = var.region
   address      = var.lb_ip
-
-  labels = local.rendered_tags_for["internal_ip"]
 }
 
 resource "google_compute_health_check" "default" {
@@ -98,8 +92,6 @@ resource "google_compute_health_check" "default" {
   timeout_sec         = 5
   healthy_threshold   = 3
   unhealthy_threshold = 3
-
-  labels = local.rendered_tags_for["health_check"]
 
   http_health_check {
     port         = 8000
@@ -119,8 +111,6 @@ resource "google_compute_backend_service" "default" {
   connection_draining_timeout_sec    = 0
   security_policy                    = local.security_policy_id
 
-  labels = local.rendered_tags_for["backend_service"]
-
   health_checks = [google_compute_health_check.default.self_link]
 
   dynamic "backend" {
@@ -138,16 +128,12 @@ resource "google_compute_url_map" "default" {
   name            = "${var.backend_service_name}-gke-url-map"
   project         = var.project_id
   default_service = google_compute_backend_service.default.id
-
-  labels = local.rendered_tags_for["url_map_default"]
 }
 
 resource "google_compute_url_map" "http_redirect" {
   count    = local.https_enabled ? 1 : 0
   name     = "${var.backend_service_name}-http-to-https-redirect-map"
   project  = var.project_id
-
-  labels = local.rendered_tags_for["url_map_redirect"]
 
   default_url_redirect {
     https_redirect = true
@@ -161,16 +147,12 @@ resource "google_compute_target_https_proxy" "https" {
   project          = var.project_id
   url_map          = google_compute_url_map.default.id
   ssl_certificates = [local.ssl_certificate_id]
-
-  labels = local.rendered_tags_for["target_https"]
 }
 
 resource "google_compute_target_http_proxy" "http" {
   name    = "${var.target_proxy_name}-http"
   project = var.project_id
   url_map = local.https_enabled ? google_compute_url_map.http_redirect[0].id : google_compute_url_map.default.id
-
-  labels = local.rendered_tags_for["target_http"]
 }
 
 resource "google_compute_global_forwarding_rule" "https" {
@@ -181,8 +163,6 @@ resource "google_compute_global_forwarding_rule" "https" {
   port_range  = "443"
   target      = google_compute_target_https_proxy.https[0].id
   ip_protocol = "TCP"
-
-  labels = local.rendered_tags_for["fr_https"]
 }
 
 resource "google_compute_global_forwarding_rule" "http" {
@@ -193,8 +173,6 @@ resource "google_compute_global_forwarding_rule" "http" {
   port_range  = "80"
   target      = google_compute_target_http_proxy.http.id
   ip_protocol = "TCP"
-
-  labels = local.rendered_tags_for["fr_http"]
 }
 
 resource "google_compute_forwarding_rule" "internal" {
@@ -209,6 +187,4 @@ resource "google_compute_forwarding_rule" "internal" {
   network               = local.network_self_link
   subnetwork            = data.google_compute_subnetwork.appgw[0].self_link
   region                = var.region
-
-  labels = local.rendered_tags_for["fr_internal"]
 }

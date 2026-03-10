@@ -1,5 +1,7 @@
 # Merged view of all buckets (created + looked up) for outputs
 locals {
+  # Keys for google_storage_bucket.this (for import). Key = storage_account_name/bucket_name; storage_account_name from values (e.g. ENV=dev -> divyamdevstorage).
+  import_keys_created = keys(local.buckets_flat_created)
   all_bucket_ids = merge(
     { for k, v in google_storage_bucket.this : k => v.id },
     { for k, v in data.google_storage_bucket.existing : k => v.id }
@@ -61,4 +63,10 @@ output "router_requests_logs_bucket_url" {
 output "router_requests_logs_bucket_names" {
   description = "Bucket names for the storage with type 'router-requests-logs' (from divyam_object_storages)."
   value       = var.router_requests_logs_storage_key != null ? [for k in local.router_requests_logs_keys : local.all_bucket_names[k]] : []
+}
+
+# Keys for google_storage_bucket.this (for import). Key = storage_account_name/bucket_name; storage_account_name depends on ENV (e.g. ENV=dev -> divyamdevstorage).
+output "import_keys_created" {
+  description = "Resource address keys for terraform import. Use: terraform import 'google_storage_bucket.this[\"<key>\"]' projects/<project>/storage/buckets/<bucket-name>"
+  value       = local.import_keys_created
 }

@@ -62,6 +62,9 @@
 #     ./sample_deploy.sh import 0 azure 3-bastion 'azurerm_linux_virtual_machine.bastion[0]' /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Compute/virtualMachines/<vm-name>
 #
 # 1-platform:
+#   GCP 0-divyam_object_storage (GCS bucket): use VALUES_FILE that defines the bucket (e.g. divyam-pre-prod-defaults.hcl).
+#     With divyam-pre-prod-defaults.hcl the key is "divyam-preprod-storage/divyam-preprod-gcs-router-raw-logs". Run: terragrunt output import_keys_created (in module dir) to see keys.
+#     ./sample_deploy.sh import 1 gcp 0-divyam_object_storage 'google_storage_bucket.this["divyam-preprod-storage/divyam-preprod-gcs-router-raw-logs"]' projects/<project>/storage/buckets/<bucket-name> [values_file]
 #   GCP 0-divyam_secrets (Secret Manager secret):
 #     ./sample_deploy.sh import 1 gcp 0-divyam_secrets 'google_secret_manager_secret.secrets["<secret-name>"]' projects/<project>/secrets/<secret-id>
 #   Azure 0-divyam_secrets (Key Vault / secret):
@@ -245,7 +248,8 @@ if [ "${TG_CMD}" == "import" ]; then
         done
     else
         export TF_VAR_import_mode=1
-        bash -c "cd \"$MODULE_DIR\" && terragrunt import \"$IMPORT_ADDRESS\" \"$IMPORT_ID\""
+        # Pass IMPORT_ADDRESS via env so brackets/quotes (e.g. .this["bucket-name"]) are not re-parsed by the inner shell
+        IMPORT_ADDRESS="$IMPORT_ADDRESS" IMPORT_ID="$IMPORT_ID" MODULE_DIR="$MODULE_DIR" bash -c 'cd "$MODULE_DIR" && terragrunt import "$IMPORT_ADDRESS" "$IMPORT_ID"'
         TG_EXIT=$?
         unset TF_VAR_import_mode
     fi
