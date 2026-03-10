@@ -10,3 +10,6 @@
 # Ensure state is in backend: run without TG_USE_LOCAL_BACKEND=1 (or set TG_USE_LOCAL_BACKEND=0).
 # If the key differs, run in 1-platform/0-divyam_object_storage/gcp: terragrunt output import_keys_created
 ./sample_deploy.sh import 1 gcp 0-divyam_object_storage 'google_storage_bucket.this["divyamdevstorage/divyam-preprod-gcs-router-raw-logs"]' projects/pre-production-project/storage/buckets/divyam-preprod-gcs-router-raw-logs divyam-pre-prod-defaults.hcl
+
+
+ORG_ID=1060883629618 BILLING_ACCOUNT="01FACA-EFA07C-B3BD77" ./sample_deploy.sh import 0-foundation/0-resource_scope gcp 'google_project.project[0]' divyam-dev-rg values/defaults.hcl

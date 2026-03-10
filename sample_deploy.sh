@@ -13,6 +13,10 @@
 #   Example: ./sample_deploy.sh state 0-foundation/0-resource_scope gcp
 #   Example: ./sample_deploy.sh state 1-platform/0-divyam_object_storage gcp divyam-pre-prod-defaults.hcl
 #
+# Usage (full state JSON or show each resource's attributes):
+#   ./sample_deploy.sh state-pull <module_dir> <gcp|azure> [values_file]   # full state as JSON
+#   ./sample_deploy.sh state-show <module_dir> <gcp|azure> [values_file]   # list + terraform state show for each
+#
 # Usage (import state for a single module, e.g. 0-foundation/0-resource_scope):
 #   ./sample_deploy.sh import <module_dir> <gcp|azure> <resource_address> <resource_id> [values_file]
 #   Example (GCP): ./sample_deploy.sh import 0-foundation/0-resource_scope gcp 'google_project.project[0]' pre-production-project
@@ -118,6 +122,8 @@ if [ "${TG_CMD}" == "import" ]; then
     IMPORT_ID="${5}"
     export VALUES_FILE="${6:-values/defaults.hcl}"
 elif [ "${TG_CMD}" == "state" ]; then
+    export VALUES_FILE="${4:-values/defaults.hcl}"
+elif [ "${TG_CMD}" == "state-pull" ] || [ "${TG_CMD}" == "state-show" ]; then
     export VALUES_FILE="${4:-values/defaults.hcl}"
 else
     export VALUES_FILE="${4:-values/defaults.hcl}"
@@ -284,7 +290,7 @@ if [ "${TG_CMD}" == "import" ]; then
         TG_EXIT=$?
         unset TF_VAR_import_mode
     fi
-elif [ "${TG_CMD}" == "state" ]; then
+elif [ "${TG_CMD}" == "state" ] || [ "${TG_CMD}" == "state-pull" ] || [ "${TG_CMD}" == "state-show" ]; then
     # State requires a single module: MODULE_DIR must be a leaf path like 0-foundation/0-resource_scope
     if [ "${RUN_SINGLE_MODULE}" != true ]; then
         echo "Error: state requires a single module path (e.g. 0-foundation/0-resource_scope), not a layer (e.g. 0-foundation)."
@@ -305,9 +311,25 @@ elif [ "${TG_CMD}" == "state" ]; then
         echo "Values file: $VALUES_FILE (path not found under repo)"
     fi
     echo "ENV=$ENV CLOUD_PROVIDER=$CLOUD_PROVIDER REGION=$REGION MODULE_DIR=$MODULE_DIR VALUES_FILE=$VALUES_FILE${TG_USE_LOCAL_BACKEND:+ TG_USE_LOCAL_BACKEND=$TG_USE_LOCAL_BACKEND (local backend)}"
-    echo "Running terragrunt state list in $MODULE_DIR_FULL..."
-    bash -c "cd \"$MODULE_DIR_FULL\" && terragrunt state list"
-    TG_EXIT=$?
+    if [ "${TG_CMD}" == "state" ]; then
+        echo "Running terragrunt state list in $MODULE_DIR_FULL..."
+        bash -c "cd \"$MODULE_DIR_FULL\" && terragrunt state list"
+        TG_EXIT=$?
+    elif [ "${TG_CMD}" == "state-pull" ]; then
+        echo "Running terragrunt state pull in $MODULE_DIR_FULL (full state JSON)..."
+        bash -c "cd \"$MODULE_DIR_FULL\" && terragrunt state pull"
+        TG_EXIT=$?
+    else
+        echo "Running terragrunt state show for each resource in $MODULE_DIR_FULL..."
+        STATE_LIST="$(bash -c "cd \"$MODULE_DIR_FULL\" && terragrunt state list -no-color" 2>/dev/null)" || { echo "Error: state list failed"; exit 1; }
+        TG_EXIT=0
+        while IFS= read -r addr; do
+            [ -z "$addr" ] && continue
+            echo "========== $addr =========="
+            bash -c "cd \"$MODULE_DIR_FULL\" && terragrunt state show -no-color '$addr'" || TG_EXIT=$?
+            echo ""
+        done <<< "$STATE_LIST"
+    fi
 else
 # plan / apply / destroy / ...
 if [ "${RUN_SINGLE_MODULE}" = true ]; then

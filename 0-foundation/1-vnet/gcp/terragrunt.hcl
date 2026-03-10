@@ -16,7 +16,7 @@ terraform {
 remote_state {
   backend = "local"
   config = {
-    path = "terraform.tfstate"
+    path = include.root.locals.local_state_file
   }
 }
 

@@ -37,10 +37,16 @@ locals {
 # --- Resource Scope ---
 # Azure: resource_group_name | GCP: project_id
   resource_scope = {
-    create          = false
+    create          = true
     name            = "${local.deployment_prefix}-rg"
     org_id          = get_env("ORG_ID", "")
     billing_account = get_env("BILLING_ACCOUNT", "")
+    
+    _check_billing_account = (
+      local.resource_scope.create && length(trimspace(local.resource_scope.billing_account)) == 0 ?
+        error("BILLING_ACCOUNT environment variable must be set when create = true") :
+        true
+    )
   }
 
 # --- APIs / Resource Providers (0-foundation/1-apis) ---

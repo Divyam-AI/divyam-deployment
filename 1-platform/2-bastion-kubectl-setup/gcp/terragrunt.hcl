@@ -29,7 +29,7 @@ EOT
 
 remote_state {
   backend = "local"
-  config  = { path = "terraform.tfstate" }
+  config  = { path = include.root.locals.local_state_file }
   generate = {
     path      = "backend.tf"
     if_exists = "overwrite"

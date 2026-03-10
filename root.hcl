@@ -58,6 +58,9 @@ EOT
 
   merged = merge(local.default_locals, local.cloud_locals)
 
+  # Local state filename segregated by cloud_provider and deployment_prefix (for TG_USE_LOCAL_BACKEND or at_repo_root).
+  local_state_file = "terraform-${local.merged.cloud_provider}-${local.merged.deployment_prefix}.tfstate"
+
   # Outputs for Helm (outputs.yaml): control which Terraform outputs are written by scripts/write-outputs-yaml.sh.
   # exclude_outputs: sensitive data (kubeconfig, connection strings, secrets, certs) — never written to outputs.yaml.
   outputs_for_helm = {
@@ -88,10 +91,16 @@ EOT
 }
 
 # Default: run resource-scope from repo root. Children override with their own source.
+# init -reconfigure: accept backend config changes (e.g. state path by cloud_provider/deployment_prefix) without migration prompt.
 terraform {
 #  source = local.at_repo_root ? "0-foundation/0-resource_scope/${local.cloud_provider}" : "."
 #   source = local.at_repo_root ? "0-foundation/1-vnet/${local.cloud_provider}" : "."
     source = local.at_repo_root ? "0-foundation/2-terraform_state_blob_storage/${local.cloud_provider}" : "."
+
+  extra_arguments "init_reconfigure" {
+    commands = ["init"]
+    arguments = ["-reconfigure"]
+  }
 }
 
 # Remote state: config from values/defaults.hcl tfstate + resource_scope; backend type by CLOUD_PROVIDER.
@@ -104,17 +113,17 @@ remote_state {
     if_exists = "overwrite"
   }
   config = (local.use_local_backend || local.at_repo_root) ? {
-    path = "terraform.tfstate"
+    path = local.local_state_file
   } : (local.cloud_provider == "gcp" ? merge(
     { bucket = local.merged.tfstate.bucket_name },
-    { prefix = "${local.merged.env_name}/${local.merged.region}/${path_relative_to_include()}" }
+    { prefix = "${local.merged.cloud_provider}/${local.merged.deployment_prefix}/${local.merged.region}/${path_relative_to_include()}" }
   ) : merge(
     {
       resource_group_name  = local.merged.resource_scope.name
       storage_account_name = local.merged.tfstate.bucket_name
       container_name       = local.merged.tfstate.bucket_name
     },
-    { key = "${local.merged.env_name}/${local.merged.region}/${path_relative_to_include()}/terraform.tfstate" }
+    { key = "${local.merged.cloud_provider}/${local.merged.deployment_prefix}/${local.merged.region}/${path_relative_to_include()}/terraform.tfstate" }
   ))
 }
 
