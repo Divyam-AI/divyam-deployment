@@ -1,6 +1,6 @@
 output "nat_gateway_enabled" {
-  description = "Indicates if NAT gateway is created."
-  value       = var.enabled
+  description = "Indicates if a NAT gateway is present (created, imported, or pre-existing)."
+  value       = var.create ? true : length(data.azurerm_nat_gateway.nat) > 0
 }
 
 output "nat_gateway_id" {
