@@ -44,3 +44,15 @@ resource "azurerm_subnet_nat_gateway_association" "subnet_assoc" {
   subnet_id      = each.value
   nat_gateway_id = azurerm_nat_gateway.nat[0].id
 }
+
+data "azurerm_nat_gateway" "nat" {
+  count               = var.create || var.import_mode ? 0 : 1
+  name                = local.nat_gateway_name
+  resource_group_name = var.resource_group_name
+}
+
+data "azurerm_public_ip" "nat" {
+  count               = var.create || var.import_mode ? 0 : 1
+  name                = local.nat_ip_name
+  resource_group_name = var.resource_group_name
+}
