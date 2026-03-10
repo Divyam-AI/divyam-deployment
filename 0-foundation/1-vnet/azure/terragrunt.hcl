@@ -3,6 +3,14 @@ include "root" {
   expose = true
 }
 
+# Run 0-apis and 0-resource_scope before this module. Use dependencies (not dependency) so import/plan work without reading resource_scope outputs.
+dependencies {
+  paths = [
+    "../../0-apis/azure",
+    "../../0-resource_scope/azure"
+  ]
+}
+
 dependency "resource_scope" {
   config_path = "../../0-resource_scope/azure"
   mock_outputs = {

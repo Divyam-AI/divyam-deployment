@@ -40,15 +40,9 @@ locals {
     name            = local.cloud_provider == "azure" ? "rg-sudhir-4084" : "pre-production-project" # Azure | GCP
     org_id          = "1060883629618" # get_env("ORG_ID", "")
     billing_account = "01FACA-EFA07C-B3BD77"
-
-    _check_billing_account = (
-      local.resource_scope.create && length(trimspace(local.resource_scope.billing_account)) == 0 ?
-        error("BILLING_ACCOUNT environment variable must be set when create = true") :
-        true
-    )
   }
 
-# --- APIs / Resource Providers (0-foundation/1-apis) ---
+# --- APIs / Resource Providers (0-foundation/0-apis) ---
 # GCP: enable APIs; Azure: register resource providers. Set enabled = true; override apis (GCP) or provider_namespaces (Azure) here if needed.
   apis = {
     enabled = true

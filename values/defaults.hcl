@@ -37,19 +37,13 @@ locals {
 # --- Resource Scope ---
 # Azure: resource_group_name | GCP: project_id
   resource_scope = {
-    create          = true
+    create          = false
     name            = "${local.deployment_prefix}-rg"
     org_id          = get_env("ORG_ID", "")
-    billing_account = get_env("BILLING_ACCOUNT", "")
-    
-    _check_billing_account = (
-      local.resource_scope.create && length(trimspace(local.resource_scope.billing_account)) == 0 ?
-        error("BILLING_ACCOUNT environment variable must be set when create = true") :
-        true
-    )
+    billing_account = get_env("BILLING_ACCOUNT")
   }
 
-# --- APIs / Resource Providers (0-foundation/1-apis) ---
+# --- APIs / Resource Providers (0-foundation/0-apis) ---
 # GCP: enable APIs; Azure: register resource providers. Set enabled = true; override apis (GCP) or provider_namespaces (Azure) here if needed.
   apis = {
     enabled = true
@@ -60,14 +54,14 @@ locals {
   # When create = true (e.g. GCP): create network and subnets. When false: look up existing by name.
   # GCP: set shared_vpc_host = true to enable this project as Shared VPC host; set service_project_ids = ["project-a","project-b"] to attach service projects.
   vnet = {
-    create          = false
+    create          = true
     name            = "${local.deployment_prefix}-vnet"    
     scope_name      = "${local.resource_scope.name}" # Azure Resource Group or GCP Project where this vnet is to be created/present
     region          = "${local.region}"
     zone            = "${local.zone}"
     address_space   = ["10.0.0.0/16"]
-    subnet          = { create = false, subnet_ip = "10.0.0.0/21", name = "${local.deployment_prefix}-subnet" } # (2048 IPs)
-    app_gw_subnet   = { create = false, subnet_ip = "10.0.8.0/27", name = "${local.deployment_prefix}-subnet-app-gw" } # (32 IPs)  - Required for Azure App Gateway or GCP Proxy
+    subnet          = { create = true, subnet_ip = "10.0.0.0/21", name = "${local.deployment_prefix}-subnet" } # (2048 IPs)
+    app_gw_subnet   = { create = true, subnet_ip = "10.0.8.0/27", name = "${local.deployment_prefix}-subnet-app-gw" } # (32 IPs)  - Required for Azure App Gateway or GCP Proxy
     # GCP only: enable Shared VPC host and attach service projects (ignored by Azure)
     # Azure: shared_vpc_host = true peers this VNet to remote VNets whose ARM IDs are in service_project_ids.
     shared_vpc_host     = false

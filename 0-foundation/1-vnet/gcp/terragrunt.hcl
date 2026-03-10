@@ -5,7 +5,10 @@ include "root" {
 
 # Run 0-resource_scope before this module. Use dependencies (not dependency) so import/plan work without reading resource_scope outputs.
 dependencies {
-  paths = ["../../0-resource_scope/gcp"]
+  paths = [
+    "../../0-apis/gcp",
+    "../../0-resource_scope/gcp"
+  ]
 }
 
 terraform {

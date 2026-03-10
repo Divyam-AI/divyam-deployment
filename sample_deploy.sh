@@ -41,10 +41,10 @@
 #     ./sample_deploy.sh import 0-foundation/0-resource_scope gcp 'google_project.project[0]' <project-id>
 #   Azure 0-resource_scope (resource group):
 #     ./sample_deploy.sh import 0-foundation/0-resource_scope azure 'azurerm_resource_group.rd[0]' /subscriptions/<sub-id>/resourceGroups/<rg-name>
-#   GCP 1-apis (one import per enabled API; ID = project_id/service):
-#     ./sample_deploy.sh import 0-foundation/1-apis gcp 'google_project_service.enabled_apis["compute.googleapis.com"]' <project-id>/compute.googleapis.com
+#   GCP 0-apis (one import per enabled API; ID = project_id/service):
+#     ./sample_deploy.sh import 0-foundation/0-apis gcp 'google_project_service.enabled_apis["compute.googleapis.com"]' <project-id>/compute.googleapis.com
 #     (repeat for each API). Or import all default APIs in one step:
-#     ./sample_deploy.sh import 0-foundation/1-apis gcp google_project_service.enabled_apis <project-id> [values_file]
+#     ./sample_deploy.sh import 0-foundation/0-apis gcp google_project_service.enabled_apis <project-id> [values_file]
 #   GCP 1-vnet (VPC / subnet / app_gw_subnet):
 #     ./sample_deploy.sh import 0-foundation/1-vnet gcp 'google_compute_network.vpc[0]' projects/<project>/global/networks/<vpc-name>
 #     ./sample_deploy.sh import 0-foundation/1-vnet gcp 'google_compute_subnetwork.subnet[0]' projects/<project>/regions/<region>/subnetworks/<subnet-name>
@@ -253,10 +253,10 @@ if [ "${TG_CMD}" == "import" ]; then
     echo "ENV=$ENV CLOUD_PROVIDER=$CLOUD_PROVIDER REGION=$REGION MODULE_DIR=$MODULE_DIR VALUES_FILE=$VALUES_FILE${TG_USE_LOCAL_BACKEND:+ TG_USE_LOCAL_BACKEND=$TG_USE_LOCAL_BACKEND (local backend)}"
     echo "Running terragrunt import in $MODULE_DIR_FULL..."
 
-    # GCP 1-apis: import all default APIs in one step when address is google_project_service.enabled_apis and id is project_id (no slash)
+    # GCP 0-apis: import all default APIs in one step when address is google_project_service.enabled_apis and id is project_id (no slash)
     MODULE_PATH_LEAF="${MODULE_DIR##*/}"
     IMPORT_ALL_APIS=false
-    if [ "${MODULE_PATH_LEAF}" = "1-apis" ] && [ "${CLOUD_PROVIDER}" = "gcp" ] && \
+    if [ "${MODULE_PATH_LEAF}" = "0-apis" ] && [ "${CLOUD_PROVIDER}" = "gcp" ] && \
        [ "${IMPORT_ADDRESS}" = "google_project_service.enabled_apis" ] && [ "${IMPORT_ID#*/}" = "${IMPORT_ID}" ]; then
         IMPORT_ALL_APIS=true
     fi
