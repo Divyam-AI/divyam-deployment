@@ -8,15 +8,14 @@
 #----------------------------------------------
 locals {
   repo_root      = get_repo_root()
-  cloud_provider = length(trimspace(get_env("CLOUD_PROVIDER", ""))) > 0 ? trimspace(get_env("CLOUD_PROVIDER", "")) : error("CLOUD_PROVIDER environment variable must be set (e.g. azure or gcp)")
+  # Values file path (relative to repo root). Override with VALUES_FILE env or 3rd script arg.
+  values_file = get_env("VALUES_FILE") # VALUES_FILE to be used : values/defaults.hcl
+  default_locals = read_terragrunt_config("${local.repo_root}/${local.values_file}").locals
+  cloud_provider = local.default_locals.cloud_provider
   at_repo_root   = get_terragrunt_dir() == local.repo_root
 
   # Set TG_USE_LOCAL_BACKEND=1 (or true) to use local state for all modules — no remote backend, no state download. Useful for testing.
   use_local_backend = get_env("TG_USE_LOCAL_BACKEND", "0") != "0"
-
-  # Values file path (relative to repo root). Override with VALUES_FILE env or 3rd script arg.
-  values_file = get_env("VALUES_FILE", "values/defaults.hcl")
-  default_locals = read_terragrunt_config("${local.repo_root}/${local.values_file}").locals
 
   # Azure: ARM_SUBSCRIPTION_ID, ARM_TENANT_ID only read when cloud_provider is azure (inside branch below). GCP: uses ADC.
   cloud_locals = local.cloud_provider == "gcp" ? {
@@ -58,8 +57,11 @@ EOT
 
   merged = merge(local.default_locals, local.cloud_locals)
 
-  # Local state filename segregated by cloud_provider and deployment_prefix (for TG_USE_LOCAL_BACKEND or at_repo_root).
-  local_state_file = "terraform-${local.merged.cloud_provider}-${local.merged.deployment_prefix}.tfstate"
+  # Local state filename segregated by cloud_provider, deployment_prefix, and values file (for TG_USE_LOCAL_BACKEND or at_repo_root).
+  # Including values file ensures values/defaults.hcl and divyam-pre-prod-defaults.hcl (etc.) use separate state files.
+  _values_parts   = split("/", local.values_file)
+  _values_basename = replace(element(local._values_parts, length(local._values_parts) - 1), ".hcl", "")
+  local_state_file = "terraform-${local.merged.cloud_provider}-${local.merged.deployment_prefix}-${local._values_basename}.tfstate"
 
   # Outputs for Helm (outputs.yaml): control which Terraform outputs are written by scripts/write-outputs-yaml.sh.
   # exclude_outputs: sensitive data (kubeconfig, connection strings, secrets, certs) — never written to outputs.yaml.
@@ -116,14 +118,14 @@ remote_state {
     path = local.local_state_file
   } : (local.cloud_provider == "gcp" ? merge(
     { bucket = local.merged.tfstate.bucket_name },
-    { prefix = "${local.merged.cloud_provider}/${local.merged.deployment_prefix}/${local.merged.region}/${path_relative_to_include()}" }
+    { prefix = "${local.merged.cloud_provider}/${local.merged.deployment_prefix}/${local._values_basename}/${local.merged.region}/${path_relative_to_include()}" }
   ) : merge(
     {
       resource_group_name  = local.merged.resource_scope.name
       storage_account_name = local.merged.tfstate.bucket_name
       container_name       = local.merged.tfstate.bucket_name
     },
-    { key = "${local.merged.cloud_provider}/${local.merged.deployment_prefix}/${local.merged.region}/${path_relative_to_include()}/terraform.tfstate" }
+    { key = "${local.merged.cloud_provider}/${local.merged.deployment_prefix}/${local._values_basename}/${local.merged.region}/${path_relative_to_include()}/terraform.tfstate" }
   ))
 }
 

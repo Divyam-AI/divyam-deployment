@@ -27,6 +27,10 @@ terraform {
 # creating the blob store first which also needs the vnet for access control.
 remote_state {
   backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite"
+  }
   config = {
     path = include.root.locals.local_state_file
   }

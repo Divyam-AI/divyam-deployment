@@ -31,6 +31,10 @@ dependency "nat" {
 # Local state like 1-vnet / 2-nat; bastion depends on VNet.
 remote_state {
   backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite"
+  }
   config = {
     path = include.root.locals.local_state_file
   }

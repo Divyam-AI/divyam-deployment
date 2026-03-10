@@ -14,6 +14,10 @@ terraform {
 
 remote_state {
   backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite"
+  }
   config = {
     path = include.root.locals.local_state_file
   }

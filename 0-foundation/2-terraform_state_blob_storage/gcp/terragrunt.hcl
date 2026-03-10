@@ -20,6 +20,10 @@ dependency "vnet" {
 # Note: Local state because storing to GCS cannot happen until this bucket is created.
 remote_state {
   backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite"
+  }
   config = {
     path = include.root.locals.local_state_file
   }

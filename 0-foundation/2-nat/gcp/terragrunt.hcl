@@ -10,6 +10,10 @@ terraform {
 # Local state like 1-vnet; NAT depends on VPC and can run before state bucket.
 remote_state {
   backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite"
+  }
   config = {
     path = include.root.locals.local_state_file
   }

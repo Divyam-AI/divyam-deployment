@@ -7,11 +7,11 @@
 
 locals {
   # Can replace these with actual values
-  cloud_provider    = get_env("CLOUD_PROVIDER") 
-  env_name          = get_env("ENV")
-  org_name          = get_env("ORG_NAME")
-  region            = get_env("REGION")
-  zone              = get_env("ZONE")
+  cloud_provider    = get_env("CLOUD_PROVIDER", "gcp")
+  env_name          = "pre-prod"
+  org_name          = ""
+  region            = local.cloud_provider == "azure" ? "southindia" : "asia-south"
+  zone              = local.cloud_provider == "azure" ? "southindia-1" : "asia-south1-a"
 
   deployment_prefix = (
     length(local.org_name) > 0 ?
@@ -38,8 +38,8 @@ locals {
   resource_scope = {
     create          = true
     name            = local.cloud_provider == "azure" ? "rg-sudhir-4084" : "pre-production-project" # Azure | GCP
-    org_id          = "1060883629618" # get_env("ORG_ID", "")
-    billing_account = "01FACA-EFA07C-B3BD77"
+    # Get it from https://portal.azure.com/#view/Microsoft_Azure_Billing/SubscriptionsBladeV2 or https://console.cloud.google.com/billing/
+    billing_account = local.cloud_provider == "azure" ? "8645e690-451d-45a4-b10c-159705f63a22" : "01FACA-EFA07C-B3BD77"
   }
 
 # --- APIs / Resource Providers (0-foundation/0-apis) ---

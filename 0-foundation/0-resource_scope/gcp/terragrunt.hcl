@@ -11,6 +11,10 @@ terraform {
 # Use local state; project is needed before GCS bucket for state (same chicken-egg as Azure).
 remote_state {
   backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite"
+  }
   config = {
     path = include.root.locals.local_state_file
   }

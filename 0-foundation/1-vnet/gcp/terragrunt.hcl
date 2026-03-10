@@ -18,6 +18,10 @@ terraform {
 # Local state; GCP VPC may be created before state bucket (same chicken-egg as Azure vnet).
 remote_state {
   backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite"
+  }
   config = {
     path = include.root.locals.local_state_file
   }

@@ -9,7 +9,7 @@ locals {
   # Can replace these with actual values
   cloud_provider    = get_env("CLOUD_PROVIDER") 
   env_name          = get_env("ENV")
-  org_name          = get_env("ORG_NAME")
+  org_name          = get_env("ORG_NAME", "")
   region            = get_env("REGION")
   zone              = get_env("ZONE")
 
@@ -39,8 +39,8 @@ locals {
   resource_scope = {
     create          = false
     name            = "${local.deployment_prefix}-rg"
-    org_id          = get_env("ORG_ID", "")
-    billing_account = get_env("BILLING_ACCOUNT")
+    # Get it from https://portal.azure.com/#view/Microsoft_Azure_Billing/SubscriptionsBladeV2 or https://console.cloud.google.com/billing/
+    billing_account = get_env("BILLING_ACCOUNT", "") # BILLING_ACCOUNT is required if create is true
   }
 
 # --- APIs / Resource Providers (0-foundation/0-apis) ---
