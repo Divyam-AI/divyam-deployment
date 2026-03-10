@@ -41,6 +41,7 @@ inputs = merge(
     resource_group_name  = local.root.resource_scope.name
     resource_name_prefix = try(local.nat_config.resource_name_prefix, "divyam")
     create               = try(local.nat_config.create, false)
+    enabled              = local.nat_config.enabled
     # Build subnet_ids map from 1-vnet outputs for NAT gateway association (dependency only available in inputs).
     subnet_ids = {
       subnet        = dependency.vnet.outputs.subnet_id

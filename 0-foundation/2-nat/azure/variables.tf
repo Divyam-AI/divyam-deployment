@@ -24,6 +24,12 @@ variable "subnet_ids" {
   type        = map(string)
 }
 
+variable "enabled" {
+  description = "Whether the NAT gateway is enabled. Reflected in the nat_gateway_enabled output."
+  type        = bool
+  default     = true
+}
+
 variable "import_mode" {
   description = "Set to true (e.g. TF_VAR_import_mode=1) when running terraform import so the resource blocks exist; leave false for normal runs."
   type        = bool
