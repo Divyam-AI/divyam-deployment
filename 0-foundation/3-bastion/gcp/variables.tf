@@ -77,9 +77,3 @@ variable "cluster_project_id" {
   type        = string
   default     = ""
 }
-
-variable "import_mode" {
-  description = "Set to true (e.g. TF_VAR_import_mode=1) when running terraform import so the resource blocks exist; leave false for normal runs."
-  type        = bool
-  default     = false
-}

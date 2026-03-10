@@ -1,12 +1,12 @@
 # Look up the existing GCS bucket when create = false and not forcing for import.
 data "google_storage_bucket" "terraform" {
-  count   = var.create || var.import_mode ? 0 : 1
+  count   = var.create ? 0 : 1
   name    = var.bucket_name
   project = var.project_id
 }
 
 resource "google_storage_bucket" "terraform" {
-  count   = var.create || var.import_mode ? 1 : 0
+  count   = var.create ? 1 : 0
   name    = var.bucket_name
   project = var.project_id
 

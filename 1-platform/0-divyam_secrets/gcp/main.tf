@@ -13,7 +13,7 @@ locals {
 }
 
 resource "google_secret_manager_secret" "secrets" {
-  for_each  = (var.create_secrets || var.import_mode) ? toset(module.common.secret_names) : toset([])
+  for_each  = var.create_secrets ? toset(module.common.secret_names) : toset([])
   secret_id = each.key
   project   = var.project_id
 
@@ -25,7 +25,7 @@ resource "google_secret_manager_secret" "secrets" {
 }
 
 resource "google_secret_manager_secret_version" "secrets" {
-  for_each    = (var.create_secrets || var.import_mode) ? toset(module.common.secret_names) : toset([])
+  for_each    = var.create_secrets ? toset(module.common.secret_names) : toset([])
   secret      = google_secret_manager_secret.secrets[each.key].id
   secret_data = module.common.secrets[each.key]
 }

@@ -22,9 +22,3 @@ variable "resource_scope" {
     billing_account = optional(string, "")
   })
 }
-
-variable "import_mode" {
-  description = "Set to true (e.g. TF_VAR_import_mode=1) when running terraform import so the resource block exists; leave false for normal runs."
-  type        = bool
-  default     = false
-}

@@ -24,9 +24,9 @@ locals {
   default_billing_account = length(data.google_billing_account.default) > 0 ? data.google_billing_account.default[0].id : null
 }
 
-# Create project when create = true (or when import_mode = true for import).
+# Create project when create = true.
 resource "google_project" "project" {
-  count = var.resource_scope.create || var.import_mode ? 1 : 0
+  count = var.resource_scope.create ? 1 : 0
 
   project_id      = var.resource_scope.name
   name            = var.resource_scope.name
@@ -47,10 +47,10 @@ resource "google_project" "project" {
 
 # Look up existing project when create = false and not forcing for import
 data "google_project" "project" {
-  count      = var.resource_scope.create || var.import_mode ? 0 : 1
+  count      = var.resource_scope.create ? 0 : 1
   project_id = var.resource_scope.name
 }
 
 locals {
-  project = var.resource_scope.create || var.import_mode ? google_project.project[0] : data.google_project.project[0]
+  project = var.resource_scope.create ? google_project.project[0] : data.google_project.project[0]
 }

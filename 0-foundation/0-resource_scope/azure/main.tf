@@ -14,7 +14,7 @@ locals {
 }
 
 resource "azurerm_resource_group" "rd" {
-  count    = var.resource_scope.create || var.import_mode ? 1 : 0
+  count    = var.resource_scope.create ? 1 : 0
   name     = var.resource_scope.name
   location = local.default_region
 
@@ -28,10 +28,10 @@ resource "azurerm_resource_group" "rd" {
 
 # Look up existing resource group when create = false and not forcing for import
 data "azurerm_resource_group" "rd" {
-  count = var.resource_scope.create || var.import_mode ? 0 : 1
+  count = var.resource_scope.create ? 0 : 1
   name  = var.resource_scope.name
 }
 
 locals {
-  rg = var.resource_scope.create || var.import_mode ? azurerm_resource_group.rd[0] : data.azurerm_resource_group.rd[0]
+  rg = var.resource_scope.create ? azurerm_resource_group.rd[0] : data.azurerm_resource_group.rd[0]
 }

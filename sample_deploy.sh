@@ -32,7 +32,7 @@
 # Optional: use local backend (no remote state) for testing:
 #   TG_USE_LOCAL_BACKEND=1 ./sample_deploy.sh plan 0-foundation azure
 #
-# --- Import examples (all use TF_VAR_import_mode=1 automatically) ---
+# --- Import examples ---
 # Replace <resource-id> with the actual cloud resource ID (project ID, ARM ID, etc.).
 # Use module_dir as full path to the module (e.g. 0-foundation/0-resource_scope).
 #
@@ -285,10 +285,8 @@ if [ "${TG_CMD}" == "import" ]; then
             fi
         done
     else
-        export TF_VAR_import_mode=1
         IMPORT_ADDRESS="$IMPORT_ADDRESS" IMPORT_ID="$IMPORT_ID" MODULE_DIR_FULL="$MODULE_DIR_FULL" bash -c 'cd "$MODULE_DIR_FULL" && terragrunt import "$IMPORT_ADDRESS" "$IMPORT_ID"'
         TG_EXIT=$?
-        unset TF_VAR_import_mode
     fi
 elif [ "${TG_CMD}" == "state" ] || [ "${TG_CMD}" == "state-pull" ] || [ "${TG_CMD}" == "state-show" ]; then
     # State requires a single module: MODULE_DIR must be a leaf path like 0-foundation/0-resource_scope

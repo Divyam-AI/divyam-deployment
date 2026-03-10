@@ -10,7 +10,7 @@ locals {
 }
 
 resource "azurerm_network_interface" "bastion_nic" {
-  count               = var.create || var.import_mode ? 1 : 0
+  count               = var.create ? 1 : 0
   name                = local.bastion_nic_name
   location            = var.location
   resource_group_name = var.resource_group_name
@@ -25,7 +25,7 @@ resource "azurerm_network_interface" "bastion_nic" {
 }
 
 resource "azurerm_public_ip" "bastion_pip" {
-  count               = var.create || var.import_mode ? 1 : 0
+  count               = var.create ? 1 : 0
   name                = local.bastion_pip_name
   location            = var.location
   resource_group_name = var.resource_group_name
@@ -35,7 +35,7 @@ resource "azurerm_public_ip" "bastion_pip" {
 }
 
 resource "azurerm_network_security_group" "bastion_nsg" {
-  count               = var.create || var.import_mode ? 1 : 0
+  count               = var.create ? 1 : 0
   name                = local.bastion_nsg_name
   location            = var.location
   resource_group_name = var.resource_group_name
@@ -43,7 +43,7 @@ resource "azurerm_network_security_group" "bastion_nsg" {
 }
 
 resource "azurerm_network_security_rule" "allow_ssh" {
-  count                       = var.create || var.import_mode ? 1 : 0
+  count                       = var.create ? 1 : 0
   name                        = "allow-ssh"
   priority                    = 1001
   direction                   = "Inbound"
@@ -58,7 +58,7 @@ resource "azurerm_network_security_rule" "allow_ssh" {
 }
 
 resource "azurerm_linux_virtual_machine" "bastion" {
-  count               = var.create || var.import_mode ? 1 : 0
+  count               = var.create ? 1 : 0
   name                = var.bastion_name
   resource_group_name = var.resource_group_name
   location            = var.location
@@ -105,7 +105,7 @@ resource "azurerm_linux_virtual_machine" "bastion" {
 }
 
 resource "azurerm_network_interface_security_group_association" "bastion_nic_nsg" {
-  count                       = var.create || var.import_mode ? 1 : 0
+  count                       = var.create ? 1 : 0
   network_interface_id      = azurerm_network_interface.bastion_nic[0].id
   network_security_group_id = azurerm_network_security_group.bastion_nsg[0].id
 }

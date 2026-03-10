@@ -61,7 +61,7 @@ locals {
     zone            = "${local.zone}"
     address_space   = ["10.0.0.0/16"]
     subnet          = { create = false, subnet_ip = "10.0.0.0/21", name = "${local.deployment_prefix}-subnet" } # (2048 IPs)
-    app_gw_subnet   = { create = false, subnet_ip = "10.0.8.0/27", name = "${local.deployment_prefix}-subnet-app-gw" } # (32 IPs)  - Required for Azure App Gateway or GCP Proxy
+    app_gw_subnet   = { create = false, subnet_ip = "10.0.8.0/26", name = "${local.deployment_prefix}-subnet-app-gw" } # (64 IPs) - Required for Azure App Gateway or GCP proxy-only (min /26)
     # GCP only: enable Shared VPC host and attach service projects (ignored by Azure)
     # Azure: shared_vpc_host = true peers this VNet to remote VNets whose ARM IDs are in service_project_ids.
     shared_vpc_host     = false

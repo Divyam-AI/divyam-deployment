@@ -18,7 +18,7 @@ dependency "vnet" {
     subnet_prefix       = "10.0.0.0/24"
     app_gw_subnet_id    = ""
     app_gw_subnet_name  = "app-gw-subnet"
-    app_gw_subnet_prefix = "10.0.8.0/27"
+    app_gw_subnet_prefix = "10.0.8.0/26"
   }
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply"]
 }

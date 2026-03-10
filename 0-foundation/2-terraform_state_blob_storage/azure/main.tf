@@ -1,6 +1,6 @@
 # Look up the existing Azure Storage Account when create = false and not forcing for import.
 data "azurerm_storage_account" "terraform" {
-  count               = var.create || var.import_mode ? 0 : 1
+  count               = var.create ? 0 : 1
   name                = var.storage_account_name
   resource_group_name = var.resource_group_name
 }
@@ -29,7 +29,7 @@ locals {
 }
 
 resource "azurerm_storage_account" "terraform" {
-  count               = var.create || var.import_mode ? 1 : 0
+  count               = var.create ? 1 : 0
   name                = var.storage_account_name
   resource_group_name = var.resource_group_name
 
@@ -52,13 +52,13 @@ resource "azurerm_storage_account" "terraform" {
 
 # Look up the existing Azure Storage Container when create = false and not forcing for import.
 data "azurerm_storage_container" "container" {
-  count              = var.create || var.import_mode ? 0 : 1
+  count              = var.create ? 0 : 1
   name               = var.storage_container_name
   storage_account_id = data.azurerm_storage_account.terraform[0].id
 }
 
 resource "azurerm_storage_container" "container" {
-  count                 = var.create || var.import_mode ? 1 : 0
+  count                 = var.create ? 1 : 0
   name                  = var.storage_container_name
   storage_account_id    = azurerm_storage_account.terraform[0].id
   container_access_type = "private"

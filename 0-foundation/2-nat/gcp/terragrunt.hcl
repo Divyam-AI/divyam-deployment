@@ -29,7 +29,7 @@ locals {
   subnet_name = try(local.vnet.subnet.name, "default")
   app_gw_subnet_name = try(local.vnet.app_gw_subnet.name, "proxy-only-subnet")
   subnet_prefix_mock     = try(local.vnet.subnet.subnet_ip, "10.0.0.0/24")
-  app_gw_subnet_prefix_mock = try(local.vnet.app_gw_subnet.subnet_ip, "10.0.8.0/27")
+  app_gw_subnet_prefix_mock = try(local.vnet.app_gw_subnet.subnet_ip, "10.0.8.0/26")
 }
 
 dependency "vnet" {

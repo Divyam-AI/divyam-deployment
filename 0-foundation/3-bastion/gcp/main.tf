@@ -1,5 +1,5 @@
 resource "google_compute_firewall" "iap_ssh" {
-  count   = var.create || var.import_mode ? 1 : 0
+  count   = var.create ? 1 : 0
   name    = "allow-ssh-${var.bastion_name}"
   network = var.network
   project = var.project_id
@@ -15,7 +15,7 @@ resource "google_compute_firewall" "iap_ssh" {
 }
 
 resource "google_compute_instance" "bastion" {
-  count        = var.create || var.import_mode ? 1 : 0
+  count        = var.create ? 1 : 0
   name         = var.bastion_name
   machine_type = var.machine_type
   zone         = var.zone

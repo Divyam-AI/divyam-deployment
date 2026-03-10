@@ -1,7 +1,7 @@
 # GCP Cloud NAT — Cloud Router + NAT config for egress (source: gcp/nat).
 
 resource "google_compute_router" "egress_nat_router" {
-  count = var.enabled || var.import_mode ? 1 : 0
+  count = var.enabled ? 1 : 0
 
   name    = var.router_name
   region  = var.region
@@ -15,7 +15,7 @@ resource "google_compute_router" "egress_nat_router" {
 }
 
 resource "google_compute_router_nat" "nat_config" {
-  count = var.enabled || var.import_mode ? 1 : 0
+  count = var.enabled ? 1 : 0
 
   name   = var.nat_config_name
   router = google_compute_router.egress_nat_router[0].name

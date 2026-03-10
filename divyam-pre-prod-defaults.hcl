@@ -10,7 +10,7 @@ locals {
   cloud_provider    = get_env("CLOUD_PROVIDER", "gcp")
   env_name          = "pre-prod"
   org_name          = ""
-  region            = local.cloud_provider == "azure" ? "southindia" : "asia-south"
+  region            = local.cloud_provider == "azure" ? "southindia" : "asia-south1"
   zone              = local.cloud_provider == "azure" ? "southindia-1" : "asia-south1-a"
 
   deployment_prefix = (
