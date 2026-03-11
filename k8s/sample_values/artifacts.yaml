@@ -1,37 +1,33 @@
 # Chart versions and docker image references
-# Merged with cloud.yaml and resources.yaml via helmfile
+# Merged with env.yaml and resources.yaml via helmfile
 
 selector-training:
   chart:
     version: 0.1.0
   values:
     image:
-      repository: michaelf34/selector-training
-      tag: "0.0.1"
+      tag: "0.0.72"
 
 divyam-evaluator:
   chart:
     version: 0.1.0
   values:
     image:
-      repository: michaelf34/divyam-evaluator
-      tag: "0.0.1"
+      tag: "0.1.51"
 
 router-controller:
   chart:
     version: 0.1.0
   values:
     image:
-      repository: michaelf34/router-controller
-      tag: "0.0.1"
+      tag: "0.1.184"
 
 divyam-route-selector:
   chart:
     version: 0.1.0
   values:
     image:
-      repository: michaelf34/divyam-route-selector
-      tag: "0.0.1"
+      tag: "0.1.55"
 
 altinity-clickhouse-operator:
   chart:
@@ -88,5 +84,9 @@ superset:
     version: 0.15.0
 
 superset-ingress:
+  chart:
+    version: 0.1.0
+
+divyam-db-upgrades:
   chart:
     version: 0.1.0

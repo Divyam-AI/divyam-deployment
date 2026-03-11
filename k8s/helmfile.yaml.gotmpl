@@ -51,6 +51,9 @@ repositories:
   "superset-postgres"            "superset"
   "superset"                     "superset"
   "superset-ingress"             "superset"
+
+  "divyam-evaluator"              "eval"
+  "divyam-route-selector"        "route-selector"
 -}}
 
 ###############################################################################
@@ -58,7 +61,7 @@ repositories:
 ###############################################################################
 {{- $dependencyMap := dict
   "altinity-clickhouse-operator" (list)
-  "clickhouse"                   (list "altinity-clickhouse-operator" "external-secrets-operator" "kafka-cluster")
+  "clickhouse"                   (list "altinity-clickhouse-operator" "external-secrets-operator" "kafka-cluster" "mysql")
   "external-secrets-operator"    (list)
   "strimzi-kafka-operator"       (list)
   "kafka-cluster"                (list "strimzi-kafka-operator")
@@ -76,13 +79,16 @@ repositories:
   "divyam-evaluator"             (list "mysql" "clickhouse")
   "router-controller"            (list "otel-collector" "mysql" "divyam-route-selector")
   "router-controller-ingress"    (list "router-controller")
+  "divyam-db-upgrades"           (list "clickhouse" "mysql" "kafka-cluster" "external-secrets-operator")
+
 -}}
 
 ###############################################################################
 # 4. Service Override Map
 ###############################################################################
 {{- $serviceOverrideMap := dict
-  "kafka-cluster" "kafka-%s-cluster-kafka-bootstrap"
+  "kafka-cluster" "kafka-%s-kafka-bootstrap"
+  "clickhouse" "clickhouse-clk-%s"
 -}}
 
 ###############################################################################
@@ -185,7 +191,7 @@ releases:
       {{- end }}
     {{- end }}
 
-- name: {{ $name }}
+- name: {{ $name }}-{{ $env }}  
   namespace: {{ $ns }}
   chart: {{ $chart }}
 
@@ -205,16 +211,15 @@ releases:
             "namespaceGroupMap" $namespaceGroupMap
           ) }}
 
-    - {{ printf "%s/%s" $depNs $dep }}
+    - {{ printf "%s/%s-%s" $depNs $dep $env }}
 
       {{- end }}
     {{- end }}
   {{- end }}
 
   values:
-    - platform:
-        provider: {{ $values.global.platform.provider }}
-
+    - platform: 
+      {{ $values.global.platform | toYaml | nindent 8 }}
     - environment: {{ $env }}
 
     - dependencies:
@@ -225,7 +230,7 @@ releases:
     {{- end }}
 
     {{- $mysqlNs := include "namespace" (dict
-        "namespace" $values.charts.mysql.namespace
+        "namespace" (index $values.charts.mysql "namespace")
         "name" "mysql"
         "env" $env
         "namespaceGroupMap" $namespaceGroupMap

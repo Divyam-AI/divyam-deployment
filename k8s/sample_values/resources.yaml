@@ -1,27 +1,72 @@
 # Database config and per-chart values (resources, nodeSelector, persistence, etc.)
-# Merged with cloud.yaml and artifacts.yaml via helmfile
-# Generated from preprod-values.yaml in each chart under deployment/charts
+# Merged with env.yaml and artifacts.yaml via helmfile
 
 databases:
   mysql:
-    host: "10.25.0.3"
+    host: "<mysql-host-ip>"
     port: 3306
-    database: "divyam_preprod"
+    database: "divyam_<env>"
 
 charts:
+  router-controller:
+    values:
+      resources:
+        requests:
+          cpu: "1"
+          memory: "2Gi"
+        limits:
+          cpu: "1"
+          memory: "2Gi"
+      replicaCount: 1
+      router:
+        workerCount: 1
+      nodeSelector:
+        cloud.google.com/gke-spot: "true"
+  
+  router-controller-ingress:
+    values:
+      resources: {}
+      ingress:
+        deploy: false
+        external: false
+      nodeSelector:
+        cloud.google.com/gke-spot: "true"
+
+  divyam-route-selector:
+    condition: false
+    values:
+      resources:
+        requests:
+          cpu: "1"
+          memory: "2Gi"
+        limits:
+          cpu: "1"
+          memory: "2Gi"
+      replicaCount: 1
+      nodeSelector:
+        cloud.google.com/gke-spot: "true"
+  
+  selector-training:
+    values:
+      schedule: "*/1 * * * *"
+      nodeSelector:
+        cloud.google.com/gke-spot: "true"
+      resources: {}
+  
+  divyam-evaluator:
+    values:
+      resources: {}
+      nodeSelector:
+        cloud.google.com/gke-spot: "true"
+
   altinity-clickhouse-operator:
-    namespace: ""
     values:
       metrics:
         enabled: true
-        resources: {}
       nodeSelector:
         cloud.google.com/gke-spot: "true"
-      operator:
-        resources: {}
 
   clickhouse:
-    namespace: ""
     values:
       clickhouse:
         resources:
@@ -51,7 +96,6 @@ charts:
           storageClass: "standard-rwo"
 
   strimzi-kafka-operator:
-    namespace: ""
     values:
       nodeSelector:
         cloud.google.com/gke-spot: "true"
@@ -64,7 +108,6 @@ charts:
           cpu: 1
 
   kafka-cluster:
-    namespace: ""
     values:
       nodeSelectorConfig:
         kafka:
@@ -75,19 +118,19 @@ charts:
           cloud.google.com/gke-spot: "true"
         entityOperator:
           cloud.google.com/gke-spot: "true"
-      storage:
-        brokerStorageSize: 20Gi
-        zookeeperStorageSize: 2Gi
-        class: "standard-rwo"
-      broker_resources:
-        cpu: 2
-        memory: 4Gi
-      zookeeper_resources:
-        cpu: 1
-        memory: 2Gi
+      nodepool:
+        storage:
+          size: "20Gi"
+          class: "standard-rwo"
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
 
   otel-collector:
-    namespace: ""
     values:
       resources:
         requests:
@@ -102,21 +145,9 @@ charts:
         size: 10Gi
 
   mysql:
-    namespace: ""
     values:
       mysql:
-        persistence:
-          storageClass: "standard-rwo"
-          size: 5Gi
-        nodeSelector:
-          cloud.google.com/gke-spot: "true"
-        resources:
-          requests:
-            memory: "2Gi"
-            cpu: "2"
-          limits:
-            memory: "2Gi"
-            cpu: "2"
+        deploy: false
       adminer:
         deploy: true
         nodeSelector:
@@ -130,24 +161,19 @@ charts:
             cpu: "200m"
 
   divyam-redis:
-    namespace: ""
     values:
       persistence:
         storageClass: "standard-rwo"
-        size: 10Gi
+        size: 5Gi
         enabled: true
-      service:
       nodeSelector:
         cloud.google.com/gke-spot: "true"
       resources: {}
 
   superset-postgres:
-    namespace: ""
     values:
       storage_class: standard-rwo
       storage: 5Gi
-      service:
-        annotations: {}
       nodeSelector:
         cloud.google.com/gke-spot: "true"
       resources:
@@ -159,7 +185,6 @@ charts:
           memory: 2Gi
 
   infinity:
-    namespace: ""
     values:
       nodeSelector:
         cloud.google.com/gke-accelerator: nvidia-l4
@@ -176,13 +201,11 @@ charts:
       replicaCount: 1
 
   qdrant:
-    namespace: ""
     values:
       persistence:
         storageClassName: "standard-rwo"
         size: 10Gi
         accessModes: ["ReadWriteOnce"]
-      service:
       nodeSelector:
         cloud.google.com/gke-spot: "true"
       resources:
@@ -192,10 +215,9 @@ charts:
         requests:
           cpu: 2
           memory: 4Gi
-      replicaCount: 2
+      replicaCount: 3
 
   external-secrets-operator:
-    namespace: ""
     values:
       installCRDs: true
       resources:
@@ -205,42 +227,27 @@ charts:
         limits:
           cpu: 100m
           memory: 512Mi
-      nodeSelector: {}
+      nodeSelector:
+        cloud.google.com/gke-spot: "true"
 
   kafka-connect:
-    namespace: ""
     values:
-      storage_configs:
-        gcp:
-          storage:
-            bucket: "divyam-preprod-gcs-router-raw-logs"
       nodeSelector:
         cloud.google.com/gke-spot: "true"
       resources:
-        cpu: 2
-        memory: 4Gi
-      worker_replica: 2
+        requests:
+          cpu: 1
+          memory: 2Gi
+        limits:
+          cpu: 1
+          memory: 2Gi
+      workerReplicaCount: 2
 
   superset:
-    namespace: ""
     values:
       nodeSelector:
         cloud.google.com/gke-spot: "true"
-      supersetNode:
-        replicas:
-          enabled: true
-          replicaCount: 2
-        resources:
-          limits:
-            cpu: 1
-            memory: 2Gi
-          requests:
-            cpu: 1
-            memory: 2Gi
       supersetWorker:
-        replicas:
-          enabled: true
-          replicaCount: 2
         resources:
           limits:
             cpu: 1
@@ -248,3 +255,15 @@ charts:
           requests:
             cpu: 1
             memory: 2Gi
+
+  superset-ingress:
+    values:
+      ingress:
+        deploy: false
+      backendNodeSelector:
+        cloud.google.com/gke-spot: "true"
+
+  divyam-db-upgrades:
+    values:
+      nodeSelector:
+        cloud.google.com/gke-spot: "true"
