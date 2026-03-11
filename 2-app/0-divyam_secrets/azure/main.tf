@@ -1,8 +1,20 @@
 # Divyam secrets: uses common module for secrets map, creates Azure Key Vault (optional) and Key Vault secrets.
 # Tags use root-generated local.rendered_tags; per-resource names so each resource gets its actual name in tags.
-# common module block is in generated common_module.tf (path set by Terragrunt so it works in cache).
+# common module is in common_module.tf and receives local.merged_secrets_input (connection string from Azure data source when name set).
 
 data "azurerm_client_config" "current" {}
+
+# Look up router-requests-logs storage account in Azure by name (from defaults.hcl) to get connection string for Key Vault secret.
+data "azurerm_storage_account" "router_requests_logs" {
+  count                = (var.router_requests_logs_storage_account_name != null && var.router_requests_logs_storage_account_name != "") ? 1 : 0
+  name                 = var.router_requests_logs_storage_account_name
+  resource_group_name  = var.resource_group_name
+}
+
+locals {
+  router_requests_logs_connection_string = (var.router_requests_logs_storage_account_name != null && var.router_requests_logs_storage_account_name != "") ? try(data.azurerm_storage_account.router_requests_logs[0].primary_connection_string, null) : null
+  merged_secrets_input                   = merge(var.secrets_input, { router_requests_logs_storage_account_connection_string = local.router_requests_logs_connection_string })
+}
 
 # Per-resource tags: key vault and each secret get their actual name in tags.
 locals {

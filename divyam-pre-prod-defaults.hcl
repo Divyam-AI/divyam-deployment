@@ -11,7 +11,7 @@ locals {
   env_name          = "pre-prod"
   org_name          = ""
   region            = local.cloud_provider == "azure" ? "southindia" : "asia-south1"
-  zone              = local.cloud_provider == "azure" ? "southindia-1" : "asia-south1-a"
+  zone              = local.cloud_provider == "azure" ? "southindia-1" : "asia-south1-c"
 
   deployment_prefix = (
     length(local.org_name) > 0 ?
@@ -87,9 +87,9 @@ locals {
   # Azure: Linux VM with public IP, NSG (SSH). GCP: Compute instance with firewall (SSH).
   # Set create = true and override below. Cluster details for kubectl come from k8s section (no cloud-specific names).
   bastion = {
-    create       = false
-    bastion_name = "${local.deployment_prefix}-bastion"
-    spot_instance = true
+    create        = true
+    bastion_name  = "${local.deployment_prefix}-bastion"
+    spot_instance = false
     # configure_kubectl: use only when cluster is pre-created and only the bastion needs to be set up (installs kubectl + setup-kubectl script on bastion at create time).
     # Once the cluster is created (1-platform), either run on the bastion: setup-kubectl, or set k8s.setup_kubectl_on_bastion = true to run it via Terraform.
     # Azure: vnet_subnet_name, vm_size, admin_username, ssh_public_key_path. GCP: machine_type, tags.
@@ -100,8 +100,10 @@ locals {
   # --- Terraform State Backend ---
   # bucket_name: cloud-agnostic logical name for state store (Azure: container + storage account; GCP: bucket).
   # Override here if needed (e.g. storage_account_name, container_name for Azure).
+  # local_state: when true, state is stored locally only (no cloud bucket/container created or used).
   tfstate = {
     create         = true
+    local_state    = true                        # true = local backend only; false = use remote backend (GCS/Azure)
     region         = "${local.region}"
     zone           = "${local.zone}"
     scope_name     = "${local.resource_scope}"                              # Azure Resource Group or GCP Project
@@ -142,7 +144,7 @@ locals {
     public_ip_name  = "${local.deployment_prefix}-ip"  # Name for new public IP, or name of existing if create_public_ip = false
 
     service_name         = "${local.deployment_prefix}-service"
-    backend_service_name = "${local.deployment_prefix}-service-backend"
+    backend_service_name = "divyam-router-${local.env_name}-elb-backend"
 
     tls_enabled     = true
     create_ssl_cert = true  # Used only if tls_enabled is true. When false, use external cert (certificate_secret_id).

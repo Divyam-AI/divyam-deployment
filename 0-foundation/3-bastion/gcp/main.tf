@@ -45,7 +45,9 @@ resource "google_compute_instance" "bastion" {
   })
 
   scheduling {
-    preemptible = var.spot_instance
+    preemptible       = var.spot_instance
+    automatic_restart = !var.spot_instance
+    on_host_maintenance = var.spot_instance ? "TERMINATE" : "MIGRATE"
   }
 
   service_account {

@@ -8,6 +8,25 @@ data "azurerm_resource_group" "selected" {
   name = var.resource_group_name
 }
 
+# Look up router-requests-logs storage account in Azure by name (from defaults.hcl).
+data "azurerm_storage_account" "router_logs" {
+  count                = (var.router_logs_storage_account_name != null && var.router_logs_storage_account_name != "") ? 1 : 0
+  name                 = var.router_logs_storage_account_name
+  resource_group_name  = var.resource_group_name
+}
+
+# Look up AKS cluster in Azure by name (from defaults.hcl k8s.name) to get OIDC issuer URL.
+data "azurerm_kubernetes_cluster" "aks" {
+  count               = (var.aks_cluster_name != null && var.aks_cluster_name != "") ? 1 : 0
+  name                = var.aks_cluster_name
+  resource_group_name = var.resource_group_name
+}
+
+locals {
+  router_logs_storage_account_id = (var.router_logs_storage_account_name != null && var.router_logs_storage_account_name != "") ? data.azurerm_storage_account.router_logs[0].id : var.router_logs_storage_account_id
+  aks_oidc_issuer_url           = (var.aks_cluster_name != null && var.aks_cluster_name != "" && length(data.azurerm_kubernetes_cluster.aks) > 0) ? data.azurerm_kubernetes_cluster.aks[0].oidc_issuer_url : null
+}
+
 ############################################
 # Service Accounts (shared common module)
 ############################################
@@ -29,7 +48,7 @@ locals {
 
   scope_ids = {
     resource_group  = data.azurerm_resource_group.selected.id
-    storage_account = var.router_logs_storage_account_id
+    storage_account = local.router_logs_storage_account_id
     key_vault       = var.azure_key_vault_id
   }
 
@@ -57,10 +76,16 @@ locals {
     ]
   ])
 
+  # Exclude storage_account scope when storage account ID is not available (name not in defaults or lookup failed).
+  role_assignments_flat_filtered = [
+    for ra in local.role_assignments_flat :
+    ra if ra.scope != "storage_account" || local.router_logs_storage_account_id != null
+  ]
+
   _sep = "::"
 
   role_assignment_keys = toset([
-    for ra in local.role_assignments_flat :
+    for ra in local.role_assignments_flat_filtered :
     "${ra.sa_name}${local._sep}${ra.scope}${local._sep}${ra.role_definition_name}"
   ])
 
@@ -85,16 +110,16 @@ locals {
     ]))) > 0
   }
 
-  federated_identities = {
+  federated_identities = local.aks_oidc_issuer_url != null ? {
     for sa_name, sa in local.service_accounts :
     sa_name => {
       namespace       = sa.namespace
       service_account = sa_name
-      issuer          = var.aks_oidc_issuer_url
+      issuer          = local.aks_oidc_issuer_url
     }
-  }
+  } : {}
 
-  name_prefix   = var.aks_cluster_name
+  name_prefix   = coalesce(var.aks_cluster_name, "aks")
   uai_display_name = {
     for sa_name in local.service_account_ids :
     sa_name => "${local.name_prefix}-${replace(sa_name, "_", "-")}-uai"

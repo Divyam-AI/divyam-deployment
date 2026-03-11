@@ -1,4 +1,5 @@
 # IAM bindings (GCP): Service accounts, project/bucket IAM, and Workload Identity bindings.
+# Bucket name for router logs comes from defaults.hcl (divyam_object_storages type = \"router-requests-logs\").
 
 include "root" {
   path   = find_in_parent_folders("root.hcl")
@@ -6,25 +7,13 @@ include "root" {
 }
 
 terraform {
-  source = "${get_repo_root()}/1-platform/2-iam_bindings//gcp"
-}
-
-dependency "divyam_object_storage" {
-  config_path = "../../0-divyam_object_storage/gcp"
-  mock_outputs = {
-    router_requests_logs_bucket_name = "mock-bucket"
-  }
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
-}
-
-dependency "k8s" {
-  config_path = "../../1-k8s/gcp"
-  skip_outputs = true
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
+  source = "${get_repo_root()}/2-app/1-iam_bindings//gcp"
 }
 
 locals {
   root = include.root.locals.merged
+  # From defaults.hcl: bucket name for router-requests-logs (container_name in divyam_object_storages).
+  router_logs_bucket_name = try(one([for s in local.root.divyam_object_storages : s.container_name if s.type == "router-requests-logs"]), null)
 }
 
 inputs = {
@@ -36,5 +25,5 @@ inputs = {
   tag_context = {
     resource_name = local.root.deployment_prefix
   }
-  router_logs_bucket_name = dependency.divyam_object_storage.outputs.router_requests_logs_bucket_name
+  router_logs_bucket_name = local.router_logs_bucket_name
 }

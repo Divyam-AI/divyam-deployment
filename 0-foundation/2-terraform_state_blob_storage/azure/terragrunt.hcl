@@ -41,7 +41,8 @@ locals {
       tag_context = {
         resource_name = include.root.locals.merged.tfstate.bucket_name
       }
-      create                  = local.root.tfstate.create
+      create                  = local.root.tfstate.create && !try(local.root.tfstate.local_state, false)
+      local_state             = try(local.root.tfstate.local_state, false)
       storage_account_name    = include.root.locals.merged.tfstate.bucket_name
       storage_container_name  = include.root.locals.merged.tfstate.bucket_name
       vnet_name               = try(local.root.vnet.name, "")

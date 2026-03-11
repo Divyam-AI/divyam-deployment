@@ -18,8 +18,9 @@ generate "common_module" {
   if_exists = "overwrite"
   contents  = <<EOF
 module "common" {
-  source = "${get_terragrunt_dir()}/../common"
-  input  = var.secrets_input
+  source      = "${get_terragrunt_dir()}/../common"
+  input       = var.secrets_input
+  environment = var.environment
 }
 EOF
 }
@@ -28,7 +29,7 @@ locals {
   root         = include.root.locals.merged
   secrets_cfg  = try(local.root.divyam_secrets, {})
   scope_name   = local.root.resource_scope.name
-  secrets_input = merge(include.secrets.locals.secrets_input, { env = local.root.env_name })
+  secrets_input = include.secrets.locals.secrets_input
 }
 
 # Pass divyam_secrets config from defaults. secrets_input from common/secrets_input.hcl.

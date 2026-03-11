@@ -57,7 +57,7 @@ dependency "aks_namespaces" {
 }
 
 dependency "iam_bindings" {
-  config_path = "../../1-platform/iam_bindings"
+  config_path = "../1-iam_bindings/azure"
 
   mock_outputs = {
     uai_client_ids = {

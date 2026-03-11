@@ -50,9 +50,9 @@ _azure_imports() {
   ./sample_deploy.sh import 1-platform/0-divyam_object_storage azure 'azurerm_storage_account.this["divyam-preprod-storage"]' "${sub}/providers/Microsoft.Storage/storageAccounts/divyam-preprod-storage" "$VALUES_FILE"
   ./sample_deploy.sh import 1-platform/0-divyam_object_storage azure 'azurerm_storage_container.container["divyam-preprod-storage/divyam-preprod-gcs-router-raw-logs"]' "https://divyam-preprod-storage.blob.core.windows.net/divyam-preprod-gcs-router-raw-logs" "$VALUES_FILE"
 
-  # 1-platform/0-divyam_secrets (Key Vault and secrets)
-  ./sample_deploy.sh import 1-platform/0-divyam_secrets azure 'azurerm_key_vault.this[0]' "${sub}/providers/Microsoft.KeyVault/vaults/divyam-dev-vault-4048" "$VALUES_FILE"
-  # ./sample_deploy.sh import 1-platform/0-divyam_secrets azure 'azurerm_key_vault_secret.secrets["<secret-name>"]' "https://divyam-dev-vault-4048.vault.azure.net/secrets/<secret-name>" "$VALUES_FILE"
+  # 2-app/0-divyam_secrets (Key Vault and secrets)
+  ./sample_deploy.sh import 2-app/0-divyam_secrets azure 'azurerm_key_vault.this[0]' "${sub}/providers/Microsoft.KeyVault/vaults/divyam-dev-vault-4048" "$VALUES_FILE"
+  # ./sample_deploy.sh import 2-app/0-divyam_secrets azure 'azurerm_key_vault_secret.secrets["<secret-name>"]' "https://divyam-dev-vault-4048.vault.azure.net/secrets/<secret-name>" "$VALUES_FILE"
 
   # 1-platform/0-app_gw (App Gateway, public IP, identities, WAF, DNS zones, certs). Adjust names to match values file.
   ./sample_deploy.sh import 1-platform/0-app_gw azure 'azurerm_public_ip.lb_ip[0]' "${sub}/providers/Microsoft.Network/publicIPAddresses/divyam-pre-prod-ip" "$VALUES_FILE"
@@ -65,8 +65,8 @@ _azure_imports() {
   ./sample_deploy.sh import 1-platform/1-k8s azure 'azurerm_monitor_workspace.prometheus[0]' "${sub}/providers/Microsoft.Monitor/accounts/divyam-pre-prod-k8s-cluster-prometheus" "$VALUES_FILE"
   ./sample_deploy.sh import 1-platform/1-k8s azure 'azurerm_dashboard_grafana.grafana[0]' "${sub}/providers/Microsoft.Dashboard/grafana/divyam-pre-prod-k8s-cluster-grafana" "$VALUES_FILE"
 
-  # 1-platform/2-iam_bindings (user-assigned identities, role assignments, key vault access, federated identity)
-  # ./sample_deploy.sh import 1-platform/2-iam_bindings azure 'azurerm_user_assigned_identity.identities["<identity-name>"]' "${sub}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/<identity-name>" "$VALUES_FILE"
+  # 2-app/1-iam_bindings (user-assigned identities, role assignments, key vault access, federated identity)
+  # ./sample_deploy.sh import 2-app/1-iam_bindings azure 'azurerm_user_assigned_identity.identities["<identity-name>"]' "${sub}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/<identity-name>" "$VALUES_FILE"
 
   # 1-platform/2-alerts (action group, Prometheus rule group)
   # ./sample_deploy.sh import 1-platform/2-alerts azure 'azurerm_monitor_action_group.alerts[0]' "${sub}/providers/Microsoft.Insights/actionGroups/divyam-pre-prod-alerts" "$VALUES_FILE"
@@ -111,8 +111,8 @@ fi
 # 1-platform/0-divyam_object_storage (GCS bucket). Key = storage_account_name/container_name from values. Run in module: terragrunt output import_keys_created
 ./sample_deploy.sh import 1-platform/0-divyam_object_storage gcp 'google_storage_bucket.this["divyam-preprod-storage/divyam-preprod-gcs-router-raw-logs"]' projects/pre-production-project/storage/buckets/divyam-preprod-gcs-router-raw-logs "$VALUES_FILE"
 
-# 1-platform/0-divyam_secrets (Secret Manager). Import each secret: google_secret_manager_secret.secrets["<name>"], then secret version if needed.
-# ./sample_deploy.sh import 1-platform/0-divyam_secrets gcp 'google_secret_manager_secret.secrets["<secret-name>"]' projects/pre-production-project/secrets/<secret-id> "$VALUES_FILE"
+# 2-app/0-divyam_secrets (Secret Manager). Import each secret: google_secret_manager_secret.secrets["<name>"], then secret version if needed.
+# ./sample_deploy.sh import 2-app/0-divyam_secrets gcp 'google_secret_manager_secret.secrets["<secret-name>"]' projects/pre-production-project/secrets/<secret-id> "$VALUES_FILE"
 
 # 1-platform/0-app_gw (Load Balancer: SSL cert, IPs, health check, backend, URL maps, proxies, forwarding rules, WAF)
 ./sample_deploy.sh import 1-platform/0-app_gw gcp 'google_compute_managed_ssl_certificate.lb_cert[0]' projects/pre-production-project/global/sslCertificates/divyam-pre-prod-service-lb-ssl-cert "$VALUES_FILE"
@@ -134,8 +134,8 @@ fi
 # ./sample_deploy.sh import 1-platform/1-k8s gcp 'google_container_node_pool.additional["divyam-pre-prod-k8s-cluster-gpupool"]' projects/pre-production-project/locations/asia-south1/clusters/divyam-pre-prod-k8s-cluster/nodePools/gpupool "$VALUES_FILE"
 # ./sample_deploy.sh import 1-platform/1-k8s gcp 'google_logging_project_bucket_config.default_bucket["_Default"]' projects/pre-production-project/locations/global/buckets/_Default "$VALUES_FILE"
 
-# 1-platform/2-iam_bindings (service accounts and IAM). Import keys from terragrunt output in module.
-# ./sample_deploy.sh import 1-platform/2-iam_bindings gcp 'google_service_account.identities["<sa-name>"]' projects/pre-production-project/serviceAccounts/<email> "$VALUES_FILE"
+# 2-app/1-iam_bindings (service accounts and IAM). Import keys from terragrunt output in module.
+# ./sample_deploy.sh import 2-app/1-iam_bindings gcp 'google_service_account.identities["<sa-name>"]' projects/pre-production-project/serviceAccounts/<email> "$VALUES_FILE"
 
 # 1-platform/2-alerts (notification channels: run in 1-platform/2-alerts/gcp/notification_channels and 1-platform/2-alerts/gcp/alerts)
 # ./sample_deploy.sh import 1-platform/2-alerts/gcp/notification_channels gcp 'google_monitoring_notification_channel.email' projects/pre-production-project/notificationChannels/<channel-id> "$VALUES_FILE"

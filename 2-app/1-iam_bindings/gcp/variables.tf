@@ -14,6 +14,7 @@ variable "region" {
 }
 
 variable "router_logs_bucket_name" {
-  description = "GCS bucket name for router logs (storage_bucket scope)"
+  description = "GCS bucket name for router logs (from defaults.hcl divyam_object_storages type = \"router-requests-logs\" container_name). Optional; when null, storage_bucket IAM bindings are skipped."
   type        = string
+  default     = null
 }

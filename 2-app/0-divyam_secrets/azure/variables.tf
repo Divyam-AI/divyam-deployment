@@ -47,3 +47,16 @@ variable "secrets_input" {
   sensitive   = true
 }
 
+# Router-requests-logs storage account name from defaults.hcl (divyam_object_storages type = \"router-requests-logs\"). When set, looked up in Azure and connection string merged into secrets.
+variable "router_requests_logs_storage_account_name" {
+  description = "Azure storage account name for router-requests-logs (from defaults.hcl). Looked up in Azure to get connection string for Key Vault secret."
+  type        = string
+  default     = null
+}
+
+# Path to common module (set by Terragrunt so it works in cache).
+variable "common_module_source" {
+  description = "Path to the common module (set from get_terragrunt_dir()/../common by Terragrunt)."
+  type        = string
+}
+

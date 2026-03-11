@@ -18,6 +18,12 @@ variable "create" {
   type        = bool
 }
 
+variable "local_state" {
+  description = "When true, do not create or lookup storage; state is stored locally only."
+  type        = bool
+  default     = false
+}
+
 variable "storage_account_name" {
   description = "Name of the Azure Storage Account for Terraform state"
   type        = string
