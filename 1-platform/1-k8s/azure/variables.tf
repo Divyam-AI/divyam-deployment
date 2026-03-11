@@ -85,21 +85,6 @@ variable "vnet_subnet_names" {
   type        = list(string)
 }
 
-variable "app_gateway_subnet_name" {
-  description = "Subnet name where the Application Gateway is deployed (must be in vnet_subnet_names)"
-  type        = string
-}
-
-variable "app_gateway_name" {
-  description = "Name of the Application Gateway for AGIC integration"
-  type        = string
-}
-
-variable "app_gateway_id" {
-  description = "ID of the Application Gateway for AGIC integration"
-  type        = string
-}
-
 variable "nat_gateway_ip" {
   description = "IP of the NAT Gateway for API server authorized IPs (optional; if null and nat_public_ip_name set, resolved via data source)"
   type        = string
@@ -136,8 +121,4 @@ variable "artifacts_path" {
   default     = null
 }
 
-variable "agic_helm_version" {
-  description = "Version of AGIC helm chart"
-  type        = string
-}
 

@@ -1,10 +1,7 @@
-# Helm provider is used for AGIC chart; azurerm comes from root-generated provider.tf.
-# required_providers for helm are merged into root's provider.tf via terragrunt generate in this folder.
 # Define all resource names once; use them for both object creation and tag rendering so tags stay in sync.
 locals {
   # Resource names (single source of truth for name + tags).
   cluster_name           = var.cluster.name
-  agic_identity_name     = "${var.cluster.name}-agic-identity"
   default_node_pool_name = "system"
   log_workspace_name     = "${var.cluster.name}-log-workspace"
   aks_dcr_name           = "${var.cluster.name}-aks-dcr"
@@ -16,7 +13,6 @@ locals {
   tag_context_base = merge(var.tag_globals, var.tag_context)
 
   # Rendered tags: resource_name comes from the names above so tags always match the resource name.
-  rendered_tags_agic_identity = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = local.agic_identity_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
   rendered_tags_cluster      = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = local.cluster_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
   rendered_tags_system       = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = local.default_node_pool_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
   rendered_tags_log_workspace = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = local.log_workspace_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
@@ -95,8 +91,6 @@ locals {
   subnet_ids       = length(var.vnet_subnet_names) > 0 ? { for n in var.vnet_subnet_names : n => data.azurerm_subnet.vnet_subnets[n].id } : {}
   subnet_names    = var.vnet_subnet_names
   subnet_prefixes = length(var.vnet_subnet_names) > 0 ? { for n in var.vnet_subnet_names : n => data.azurerm_subnet.vnet_subnets[n].address_prefixes[0] } : {}
-  app_gateway_subnet_id = try(local.subnet_ids[var.app_gateway_subnet_name], null)
-
   # K8s service/pod CIDRs from VNet fetched from cloud (by vnet name + resource group). cidrsubnet(space, 4, n) = /20 blocks; n=1,2,3 avoid node and app_gw subnets.
   vnet_address_space        = length(data.azurerm_virtual_network.vnet) > 0 ? data.azurerm_virtual_network.vnet[0].address_space[0] : null
   k8s_service_cidr_computed = local.vnet_address_space != null ? cidrsubnet(local.vnet_address_space, 4, 1) : null
@@ -112,94 +106,6 @@ locals {
   nat_gateway_cidr = local.resolved_nat_gateway_ip == null ? null : (
     strcontains(local.resolved_nat_gateway_ip, ":") ? "${local.resolved_nat_gateway_ip}/128" : "${local.resolved_nat_gateway_ip}/32"
   )
-}
-
-# ---------------------------
-# AGIC access setup
-# ---------------------------
-resource "azurerm_user_assigned_identity" "agic_uami" {
-  count               = var.create ? 1 : 0
-  name                = local.agic_identity_name
-  location            = var.location
-  resource_group_name = var.resource_group_name
-
-  tags = local.rendered_tags_agic_identity
-}
-
-# Give the AKS Managed Identity "Contributor" role on the Application Gateway
-resource "azurerm_role_assignment" "agic_appgw_access" {
-  count                = var.create ? 1 : 0
-  scope                = var.app_gateway_id
-  role_definition_name = "Contributor"
-  principal_id         = azurerm_user_assigned_identity.agic_uami[0].principal_id
-
-  lifecycle {
-    prevent_destroy = true
-    ignore_changes = [
-      name,
-      role_definition_name,
-      principal_id,
-      scope,
-    ]
-  }
-}
-
-# Giver read perms on the resource group
-data "azurerm_resource_group" "selected" {
-  name = var.resource_group_name
-}
-
-# Give identity assigned permissions
-resource "azurerm_role_assignment" "agic_identity_assigner" {
-  count                = var.create ? 1 : 0
-  scope                = data.azurerm_resource_group.selected.id
-  role_definition_name = "Managed Identity Operator"
-  principal_id         = azurerm_user_assigned_identity.agic_uami[0].principal_id
-
-  lifecycle {
-    prevent_destroy = true
-    ignore_changes = [
-      name,
-      role_definition_name,
-      principal_id,
-      scope,
-    ]
-  }
-}
-
-resource "azurerm_role_assignment" "resource_group_role" {
-  count                = var.create ? 1 : 0
-  scope                = data.azurerm_resource_group.selected.id
-  role_definition_name = "Reader"
-  principal_id         = azurerm_user_assigned_identity.agic_uami[0].principal_id
-
-  lifecycle {
-    prevent_destroy = true
-    ignore_changes = [
-      name,
-      role_definition_name,
-      principal_id,
-      scope,
-    ]
-  }
-}
-
-# Allow AKS cluster's to have ingress join the app gw subnet (when app gateway subnet is in vnet_subnet_names).
-resource "azurerm_role_assignment" "agic_subnet_permissions" {
-  count                = (var.create) && local.app_gateway_subnet_id != null ? 1 : 0
-  scope                = local.app_gateway_subnet_id
-  role_definition_name = "Network Contributor"
-  principal_id         = azurerm_user_assigned_identity.agic_uami[0].principal_id
-
-  lifecycle {
-    prevent_destroy = true
-    ignore_changes = [
-      name,
-      role_definition_name,
-      principal_id,
-      scope,
-    ]
-  }
 }
 
 # ---------------------------
@@ -239,8 +145,7 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
   }
 
   identity {
-    type         = "UserAssigned"
-    identity_ids = [azurerm_user_assigned_identity.agic_uami[0].id]
+    type = "SystemAssigned"
   }
 
   # Allows for use of Azure Key Vault
@@ -472,66 +377,3 @@ resource "azurerm_role_assignment" "grafana_reader" {
   }
 }
 
-# ---------------------------
-# AGIC for App gateway -> AKS service connect
-# ---------------------------
-resource "azurerm_federated_identity_credential" "agic" {
-  count                = var.create ? 1 : 0
-  name                = "${var.cluster.name}-agic-fic"
-  resource_group_name  = azurerm_user_assigned_identity.agic_uami[0].resource_group_name
-  parent_id           = azurerm_user_assigned_identity.agic_uami[0].id
-  issuer              = azurerm_kubernetes_cluster.aks_cluster[0].oidc_issuer_url
-  subject             = "system:serviceaccount:kube-system:${var.cluster.name}-ingress-azure"
-  audience            = ["api://AzureADTokenExchange"]
-}
-
-provider "helm" {
-  kubernetes = {
-    host                   = local.aks_cluster.kube_config[0].host
-    client_certificate     = base64decode(local.aks_cluster.kube_config[0].client_certificate)
-    client_key             = base64decode(local.aks_cluster.kube_config[0].client_key)
-    cluster_ca_certificate = base64decode(local.aks_cluster.kube_config[0].cluster_ca_certificate)
-  }
-}
-
-resource "helm_release" "agic" {
-  count      = var.create ? 1 : 0
-  name       = "${var.cluster.name}-ingress-azure"
-  repository = "oci://mcr.microsoft.com/azure-application-gateway/charts/"
-  chart      = "ingress-azure"
-  namespace  = "kube-system"
-  version    = var.agic_helm_version
-
-  replace = true
-
-  set = [
-    {
-      name  = "appgw.resourceGroup"
-      value = var.resource_group_name
-    },
-    {
-      name  = "appgw.name"
-      value = var.app_gateway_name
-    },
-    {
-      name  = "armAuth.type"
-      value = "workloadIdentity"
-    },
-    {
-      name  = "armAuth.identityResourceID"
-      value = azurerm_user_assigned_identity.agic_uami[0].id
-    },
-    {
-      name  = "armAuth.identityClientID"
-      value = azurerm_user_assigned_identity.agic_uami[0].client_id
-    },
-    {
-      name  = "rbac.enabled"
-      value = "true"
-    },
-    {
-      name  = "verbosityLevel"
-      value = "3"
-    }
-  ]
-}

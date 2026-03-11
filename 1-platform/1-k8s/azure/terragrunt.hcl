@@ -10,29 +10,6 @@ terraform {
   source = "./"
 }
 
-# Override provider.tf with azurerm + helm in one required_providers block (different block name so no conflict with root's generate "provider").
-generate "provider_k8s" {
-  path      = "provider.tf"
-  if_exists = "overwrite"
-  contents  = replace(
-    include.root.locals.effective_provider_content,
-    "required_providers {",
-    "required_providers {\n    helm = {\n      source  = \"hashicorp/helm\"\n      version = \">= 2.0.0\"\n    }"
-  )
-}
-
-dependency "app_gw" {
-  config_path = "../../0-app_gw/azure"
-
-  mock_outputs = {
-    app_gateway_name        = "mock-app-gateway"
-    app_gateway_id          = "/subscriptions/mock/resourceGroups/mock/providers/Microsoft.Network/applicationGateways/mock"
-    agic_identity_id       = "/subscriptions/mock/resourceGroups/mock/providers/Microsoft.ManagedIdentity/userAssignedIdentities/mock"
-    agic_identity_client_id = "mock-agic-client-id"
-    gateway_subnet_id      = "/subscriptions/mock/resourceGroups/mock/providers/Microsoft.Network/virtualNetworks/mock/subnets/mock"
-  }
-}
-
 locals {
   root    = include.root.locals.merged
   k8s     = local.root.k8s
@@ -46,8 +23,7 @@ locals {
 
   vnet_name                = local.root.vnet.name
   vnet_resource_group_name = local.root.vnet.scope_name
-  vnet_subnet_names        = [local.root.vnet.subnet.name, local.root.vnet.app_gw_subnet.name]
-  app_gateway_subnet_name  = local.root.vnet.app_gw_subnet.name
+  vnet_subnet_names        = [local.root.vnet.subnet.name]
 
   cluster = {
     name                            = local.cluster_name
@@ -106,9 +82,6 @@ inputs = {
   vnet_name                 = local.vnet_name
   vnet_resource_group_name  = local.vnet_resource_group_name
   vnet_subnet_names         = local.vnet_subnet_names
-  app_gateway_subnet_name   = local.app_gateway_subnet_name
-  app_gateway_name          = dependency.app_gw.outputs.app_gateway_name
-  app_gateway_id            = dependency.app_gw.outputs.app_gateway_id
   # NAT IP: from values (optional override) or resolved in-module via data source using nat_public_ip_name.
   nat_gateway_ip     = try(local.root.nat.nat_gateway_ip, null)
   nat_public_ip_name = try(local.root.nat.nat_public_ip_name, null)
@@ -117,5 +90,4 @@ inputs = {
   enable_metrics_collection = try(local.obs.enable_metrics, true)
   logs_retention_days      = min(730, try(local.obs.logs_retention_days, 730))
   artifacts_path           = try(local.root.helm_charts.artifacts_path, null)
-  agic_helm_version        = "1.7.0"
 }
