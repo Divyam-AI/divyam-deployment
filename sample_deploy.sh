@@ -167,8 +167,8 @@ fi
 export ENV="${ENV:-dev}"
 
 if [ "${CLOUD_PROVIDER}" == "azure" ]; then
-    export REGION="${REGION:-southindia}"
-    export ZONE="${ZONE:-southindia-1}"
+    export REGION="${REGION:-centralindia}"
+    export ZONE="${ZONE:-centralindia-2}"
     # https://portal.azure.com/#view/Microsoft_Azure_Billing/SubscriptionsBladeV2 -> Subscription ID
     export ARM_SUBSCRIPTION_ID="${ARM_SUBSCRIPTION_ID:-8645e690-451d-45a4-b10c-159705f63a22}"
     # https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/Overview -> Tenant ID
