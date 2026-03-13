@@ -1,5 +1,6 @@
 # Database config and per-chart values (resources, nodeSelector, persistence, etc.)
 # Merged with env.yaml and artifacts.yaml via helmfile
+# Azure-specific: uses Karpenter node selectors and managed-csi storage class
 
 databases:
   mysql:
@@ -21,8 +22,9 @@ charts:
       router:
         workerCount: 1
       nodeSelector:
-        cloud.google.com/gke-spot: "true"
-  
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
+
   router-controller-ingress:
     values:
       resources: {}
@@ -30,7 +32,8 @@ charts:
         deploy: false
         external: false
       nodeSelector:
-        cloud.google.com/gke-spot: "true"
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
 
   divyam-route-selector:
     condition: false
@@ -44,27 +47,31 @@ charts:
           memory: "2Gi"
       replicaCount: 1
       nodeSelector:
-        cloud.google.com/gke-spot: "true"
-  
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
+
   selector-training:
     values:
       schedule: "*/1 * * * *"
       nodeSelector:
-        cloud.google.com/gke-spot: "true"
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
       resources: {}
-  
+
   divyam-evaluator:
     values:
       resources: {}
       nodeSelector:
-        cloud.google.com/gke-spot: "true"
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
 
   altinity-clickhouse-operator:
     values:
       metrics:
         enabled: true
       nodeSelector:
-        cloud.google.com/gke-spot: "true"
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
 
   clickhouse:
     values:
@@ -77,10 +84,11 @@ charts:
             cpu: "4"
             memory: "4Gi"
         nodeSelector:
-          cloud.google.com/gke-spot: "true"
+          karpenter.sh/capacity-type: on-demand
+          kubernetes.io/os: linux
         persistence:
           size: 20Gi
-          storageClass: "standard-rwo"
+          storageClass: "managed-csi"
       keeper:
         resources:
           requests:
@@ -90,15 +98,17 @@ charts:
             cpu: "1"
             memory: "1Gi"
         nodeSelector:
-          cloud.google.com/gke-spot: "true"
+          karpenter.sh/capacity-type: on-demand
+          kubernetes.io/os: linux
         localStorage:
           size: 10Gi
-          storageClass: "standard-rwo"
+          storageClass: "managed-csi"
 
   strimzi-kafka-operator:
     values:
       nodeSelector:
-        cloud.google.com/gke-spot: "true"
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
       resources:
         limits:
           memory: 1Gi
@@ -111,17 +121,21 @@ charts:
     values:
       nodeSelectorConfig:
         kafka:
-          cloud.google.com/gke-spot: "true"
+          karpenter.sh/capacity-type: on-demand
+          kubernetes.io/os: linux
         zookeeper:
-          cloud.google.com/gke-spot: "true"
+          karpenter.sh/capacity-type: on-demand
+          kubernetes.io/os: linux
         kafkaExporter:
-          cloud.google.com/gke-spot: "true"
+          karpenter.sh/capacity-type: on-demand
+          kubernetes.io/os: linux
         entityOperator:
-          cloud.google.com/gke-spot: "true"
+          karpenter.sh/capacity-type: on-demand
+          kubernetes.io/os: linux
       nodepool:
         storage:
           size: "20Gi"
-          class: "standard-rwo"
+          class: "managed-csi"
         resources:
           requests:
             memory: "4Gi"
@@ -140,7 +154,8 @@ charts:
           memory: "1Gi"
           cpu: 1
       nodeSelector:
-        cloud.google.com/gke-spot: "true"
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
       storage:
         size: 10Gi
 
@@ -151,7 +166,8 @@ charts:
       adminer:
         deploy: true
         nodeSelector:
-          cloud.google.com/gke-spot: "true"
+          karpenter.sh/capacity-type: on-demand
+          kubernetes.io/os: linux
         resources:
           requests:
             memory: "128Mi"
@@ -163,19 +179,21 @@ charts:
   divyam-redis:
     values:
       persistence:
-        storageClass: "standard-rwo"
+        storageClass: "managed-csi"
         size: 5Gi
         enabled: true
       nodeSelector:
-        cloud.google.com/gke-spot: "true"
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
       resources: {}
 
   superset-postgres:
     values:
-      storage_class: standard-rwo
+      storage_class: managed-csi
       storage: 5Gi
       nodeSelector:
-        cloud.google.com/gke-spot: "true"
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
       resources:
         requests:
           cpu: 2
@@ -187,8 +205,8 @@ charts:
   infinity:
     values:
       nodeSelector:
-        cloud.google.com/gke-accelerator: nvidia-l4
-        cloud.google.com/gke-spot: "true"
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
       resources:
         requests:
           memory: 12Gi
@@ -203,11 +221,12 @@ charts:
   qdrant:
     values:
       persistence:
-        storageClassName: "standard-rwo"
+        storageClassName: "managed-csi"
         size: 10Gi
         accessModes: ["ReadWriteOnce"]
       nodeSelector:
-        cloud.google.com/gke-spot: "true"
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
       resources:
         limits:
           cpu: 2
@@ -228,12 +247,14 @@ charts:
           cpu: 100m
           memory: 512Mi
       nodeSelector:
-        cloud.google.com/gke-spot: "true"
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
 
   kafka-connect:
     values:
       nodeSelector:
-        cloud.google.com/gke-spot: "true"
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
       resources:
         requests:
           cpu: 1
@@ -246,7 +267,8 @@ charts:
   superset:
     values:
       nodeSelector:
-        cloud.google.com/gke-spot: "true"
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
       supersetWorker:
         resources:
           limits:
@@ -261,9 +283,11 @@ charts:
       ingress:
         deploy: false
       backendNodeSelector:
-        cloud.google.com/gke-spot: "true"
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
 
   divyam-db-upgrades:
     values:
       nodeSelector:
-        cloud.google.com/gke-spot: "true"
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
