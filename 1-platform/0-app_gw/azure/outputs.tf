@@ -1,0 +1,79 @@
+output "load_balancer_ip" {
+  description = "IP address of the Application Gateway (Public or Private)"
+  value       = var.create_public_lb ? local.public_ip_address : azurerm_application_gateway.appgw.frontend_ip_configuration[0].private_ip_address
+}
+
+output "load_balancer_type" {
+  description = "Type of Application Gateway deployment"
+  value       = var.create_public_lb ? "External Application Gateway" : "Internal Application Gateway"
+}
+
+output "load_balancer_redirects_http_to_https" {
+  description = "True if HTTP traffic is redirected to HTTPS"
+  value       = var.tls_enabled
+}
+
+output "app_gateway_name" {
+  description = "Application Gateway name"
+  value       = azurerm_application_gateway.appgw.name
+}
+
+output "app_gateway_tls_enabled" {
+  description = "Whether TLS is enabled at Application Gateway"
+  value       = var.tls_enabled
+}
+
+output "app_gateway_certificate_name" {
+  description = "TLS certificate name if TLS is enabled, else null"
+  value       = (var.tls_enabled && (var.certificate_secret_id != null || (var.create_ssl_cert && length(azurerm_key_vault_certificate.cert) > 0))) ? "${var.backend_service_name}-cert" : null
+}
+
+output "certificate_secret_id" {
+  description = "Key Vault secret ID of the TLS certificate when create_ssl_cert is true."
+  value       = var.create_ssl_cert && length(azurerm_key_vault_certificate.cert) > 0 ? azurerm_key_vault_certificate.cert[0].secret_id : null
+}
+
+output "certificate_thumbprint" {
+  description = "Thumbprint of the TLS certificate when create_ssl_cert is true."
+  value       = var.create_ssl_cert && length(azurerm_key_vault_certificate.cert) > 0 ? azurerm_key_vault_certificate.cert[0].thumbprint : null
+}
+
+output "app_gateway_id" {
+  description = "Application Gateway ID"
+  value       = azurerm_application_gateway.appgw.id
+}
+
+output "agic_identity_client_id" {
+  description = "Client ID of the AGIC managed identity"
+  value       = azurerm_user_assigned_identity.agic_identity.client_id
+}
+
+output "agic_identity_id" {
+  description = "Resource ID of the AGIC managed identity"
+  value       = azurerm_user_assigned_identity.agic_identity.id
+}
+
+output "appgw_id" {
+  description = "Resource ID of the Application Gateway"
+  value       = azurerm_application_gateway.appgw.id
+}
+
+output "gateway_subnet_id" {
+  description = "Subnet ID of the Application Gateway"
+  value       = azurerm_application_gateway.appgw.gateway_ip_configuration[0].subnet_id
+}
+
+output "waf_policy_id" {
+  description = "WAF policy ID when waf_enabled (created in-module or fetched by name)"
+  value       = local.waf_policy_id
+}
+
+output "router_dns_zone" {
+  description = "Router DNS name (from divyam_load_balancer.router_dns); for TLS SAN and DNS A record."
+  value       = var.router_dns_zone
+}
+
+output "dashboard_dns_zone" {
+  description = "Dashboard DNS name (from divyam_load_balancer.dashboard_dns); for TLS SAN and DNS A record."
+  value       = var.dashboard_dns_zone
+}

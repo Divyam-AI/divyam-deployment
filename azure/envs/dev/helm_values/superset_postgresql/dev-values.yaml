@@ -1,8 +1,0 @@
-deploy: true
-environment: dev
-app_name: superset-postgres
-resources: { }
-storage: 50Gi
-storage_class: divyam-managed-csi
-images:
-  postgresql: bitnamilegacy/postgresql:11.7.0
