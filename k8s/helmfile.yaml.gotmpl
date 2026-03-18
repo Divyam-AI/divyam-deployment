@@ -41,16 +41,26 @@ repositories:
 # 2. Namespace Group Map
 ###############################################################################
 {{- $namespaceGroupMap := dict
-  "altinity-clickhouse-operator" "clickhouse"
-  "clickhouse"                   "clickhouse"
-
-  "strimzi-kafka-operator"       "kafka"
-  "kafka-cluster"                "kafka"
-  "kafka-connect"                "kafka"
-
-  "superset-postgres"            "superset"
-  "superset"                     "superset"
-  "superset-ingress"             "superset"
+  "altinity-clickhouse-operator"         "clickhouse"
+  "clickhouse"                           "clickhouse"
+        
+  "strimzi-kafka-operator"               "kafka"
+  "kafka-cluster"                        "kafka"
+  "kafka-connect"                        "kafka"
+        
+  "superset-postgres"                    "superset"
+  "superset"                             "superset"
+  "superset-ingress"                     "superset"
+        
+  "divyam-evaluator"                     "eval"
+          
+  "divyam-route-selector"                "route-selector"
+          
+  "divyam-selector-training"             "selector-training"
+          
+  "divyam-router-controller"             "router-controller"
+  "divyam-router-controller-ingress"     "router-controller"
+  
 -}}
 
 ###############################################################################
@@ -72,10 +82,12 @@ repositories:
   "infinity"                     (list)
   "qdrant"                       (list)
   "divyam-route-selector"        (list "infinity" "qdrant")
-  "selector-training"            (list "mysql" "divyam-redis" "qdrant" "clickhouse")
+  "divyam-selector-training"     (list "mysql" "divyam-redis" "qdrant" "clickhouse")
   "divyam-evaluator"             (list "mysql" "clickhouse")
-  "router-controller"            (list "otel-collector" "mysql" "divyam-route-selector")
-  "router-controller-ingress"    (list "router-controller")
+  "divyam-router-controller"     (list "otel-collector" "mysql" "divyam-route-selector")
+  "divyam-router-controller-ingress"    (list "divyam-router-controller")
+  "divyam-db-upgrades"           (list "clickhouse" "mysql" "kafka-cluster" "external-secrets-operator")
+
 -}}
 
 ###############################################################################
@@ -225,7 +237,7 @@ releases:
     {{- end }}
 
     {{- $mysqlNs := include "namespace" (dict
-        "namespace" $values.charts.mysql.namespace
+        "namespace" (index $values.charts.mysql "namespace")
         "name" "mysql"
         "env" $env
         "namespaceGroupMap" $namespaceGroupMap
