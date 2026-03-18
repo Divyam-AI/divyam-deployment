@@ -218,9 +218,11 @@ releases:
   {{- end }}
 
   values:
-    - platform: 
+    - platform:
       {{ $values.global.platform | toYaml | nindent 8 }}
     - environment: {{ $env }}
+    - imagePullSecrets:
+      {{ $values.global.imagePullSecrets | toYaml | nindent 8 }}
 
     - dependencies:
 {{ $depDnsMap | toYaml | indent 8 }}
