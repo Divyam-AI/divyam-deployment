@@ -54,3 +54,10 @@ data "google_project" "project" {
 locals {
   project = var.resource_scope.create ? google_project.project[0] : data.google_project.project[0]
 }
+
+# Link billing account to the project (works for both newly created and existing projects).
+resource "google_billing_project_info" "billing" {
+  count           = var.billing_account != "" ? 1 : 0
+  project         = local.project.project_id
+  billing_account = var.billing_account
+}
