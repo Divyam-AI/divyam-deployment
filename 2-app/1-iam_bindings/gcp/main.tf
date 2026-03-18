@@ -54,10 +54,16 @@ locals {
     ]
   ])
 
+  # Exclude storage_bucket scope when bucket name is not set (defaults or optional).
+  role_bindings_flat_filtered = [
+    for rb in local.role_bindings_flat :
+    rb if rb.scope != "storage_bucket" || var.router_logs_bucket_name != null
+  ]
+
   _sep = "::"
 
   role_binding_keys = toset([
-    for rb in local.role_bindings_flat :
+    for rb in local.role_bindings_flat_filtered :
     "${rb.sa_name}${local._sep}${rb.scope}${local._sep}${rb.role}"
   ])
 

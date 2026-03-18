@@ -99,8 +99,10 @@ locals {
   # --- Terraform State Backend ---
   # bucket_name: cloud-agnostic logical name for state store (Azure: container + storage account; GCP: bucket).
   # Override here if needed (e.g. storage_account_name, container_name for Azure).
+  # local_state: when true, state is stored locally only (no cloud bucket/container created or used).
   tfstate = {
     create         = true
+    local_state    = true
     region         = "${local.region}"
     zone           = "${local.zone}"
     scope_name     = "${local.resource_scope}"                              # Azure Resource Group or GCP Project
@@ -140,8 +142,8 @@ locals {
     service_name         = "${local.deployment_prefix}-service"
     backend_service_name = "${local.deployment_prefix}-service-backend"
 
-    tls_enabled     = true
-    create_ssl_cert = true  # Used only if tls_enabled is true. When false, use external cert (certificate_secret_id).
+    tls_enabled     = false
+    create_ssl_cert = false  # Used only if tls_enabled is true. When false, use external cert (certificate_secret_id).
     ssl_cert_name   = "${local.deployment_prefix}-lb-ssl-cert"
 
     # DNS names for TLS SANs and for DNS A records (IP mapping: these names resolve to LB IP — public when public=true, private when false).

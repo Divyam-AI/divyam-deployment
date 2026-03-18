@@ -55,8 +55,9 @@ inputs = merge(
     project_id   = local.project_id
     region       = local.region
     zone         = local.zone
-    network      = dependency.vnet.outputs.vnet_name
-    subnet       = dependency.vnet.outputs.subnet_id
+    # Use dependency outputs only when VNet is in the same project; otherwise use current config so bastion uses its project (avoids cross-project mismatch when vnet state was applied with different values).
+    network      = dependency.vnet.outputs.vnet_resource_group_name == local.project_id ? dependency.vnet.outputs.vnet_name : try(local.root.vnet.name, dependency.vnet.outputs.vnet_name)
+    subnet       = dependency.vnet.outputs.vnet_resource_group_name == local.project_id ? dependency.vnet.outputs.subnet_id : "projects/${local.project_id}/regions/${local.region}/subnetworks/${try(local.root.vnet.subnet.name, dependency.vnet.outputs.subnet_name)}"
     bastion_name = try(local.bastion_config.bastion_name, "${local.root.deployment_prefix}-bastion")
     machine_type = try(local.bastion_config.machine_type, "e2-micro")
     spot_instance = try(local.bastion_config.spot_instance, false)

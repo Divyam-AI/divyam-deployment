@@ -41,7 +41,8 @@ locals {
       tag_context = {
         resource_name = include.root.locals.merged.tfstate.bucket_name
       }
-      create      = local.root.tfstate.create
+      create      = local.root.tfstate.create && !try(local.root.tfstate.local_state, false)
+      local_state = try(local.root.tfstate.local_state, false)
       bucket_name = include.root.locals.merged.tfstate.bucket_name
     }
   )

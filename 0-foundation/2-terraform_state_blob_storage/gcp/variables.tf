@@ -18,6 +18,12 @@ variable "create" {
   type        = bool
 }
 
+variable "local_state" {
+  description = "When true, do not create or lookup a bucket; state is stored locally only."
+  type        = bool
+  default     = false
+}
+
 variable "bucket_name" {
   description = "Name of the GCS bucket for Terraform state (must be globally unique)"
   type        = string

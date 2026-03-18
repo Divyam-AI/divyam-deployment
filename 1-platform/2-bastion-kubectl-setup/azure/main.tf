@@ -79,3 +79,20 @@ resource "null_resource" "bastion_setup_kubectl" {
     interpreter = ["bash", "-c"]
   }
 }
+
+# Fetch bastion VM from Azure to get its managed identity principal_id
+data "azurerm_virtual_machine" "bastion" {
+  count               = var.create && var.bastion_name != "" && var.resource_group_name != "" ? 1 : 0
+  name                = var.bastion_name
+  resource_group_name = var.resource_group_name
+}
+
+resource "azurerm_role_assignment" "bastion_aks_cluster_user" {
+  count = var.create && var.cluster_id != "" && length(data.azurerm_virtual_machine.bastion) > 0 ? 1 : 0
+
+  scope                = var.cluster_id
+  role_definition_name = "Azure Kubernetes Service Cluster User Role"
+  principal_id         = data.azurerm_virtual_machine.bastion[0].identity[0].principal_id
+
+  depends_on = [data.azurerm_virtual_machine.bastion]
+}

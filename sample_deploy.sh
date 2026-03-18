@@ -78,10 +78,10 @@
 #     With divyam-pre-prod-defaults.hcl the key is "divyam-preprod-storage/divyam-preprod-gcs-router-raw-logs". Run: terragrunt output import_keys_created (in module dir) to see keys.
 #     ./sample_deploy.sh import 1-platform/0-divyam_object_storage gcp 'google_storage_bucket.this["divyam-preprod-storage/divyam-preprod-gcs-router-raw-logs"]' projects/<project>/storage/buckets/<bucket-name> [values_file]
 #   GCP 0-divyam_secrets (Secret Manager secret):
-#     ./sample_deploy.sh import 1-platform/0-divyam_secrets gcp 'google_secret_manager_secret.secrets["<secret-name>"]' projects/<project>/secrets/<secret-id>
+#     ./sample_deploy.sh import 2-app/0-divyam_secrets gcp 'google_secret_manager_secret.secrets["<secret-name>"]' projects/<project>/secrets/<secret-id>
 #   Azure 0-divyam_secrets (Key Vault / secret):
-#     ./sample_deploy.sh import 1-platform/0-divyam_secrets azure 'azurerm_key_vault.this[0]' /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.KeyVault/vaults/<vault-name>
-#     ./sample_deploy.sh import 1-platform/0-divyam_secrets azure 'azurerm_key_vault_secret.secrets["<secret-name>"]' https://<vault-name>.vault.azure.net/secrets/<secret-name>
+#     ./sample_deploy.sh import 2-app/0-divyam_secrets azure 'azurerm_key_vault.this[0]' /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.KeyVault/vaults/<vault-name>
+#     ./sample_deploy.sh import 2-app/0-divyam_secrets azure 'azurerm_key_vault_secret.secrets["<secret-name>"]' https://<vault-name>.vault.azure.net/secrets/<secret-name>
 #   Azure 1-k8s (AKS cluster):
 #     ./sample_deploy.sh import 1-platform/1-k8s azure 'azurerm_kubernetes_cluster.aks_cluster[0]' /subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.ContainerService/managedClusters/<cluster-name>
 #

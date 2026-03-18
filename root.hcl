@@ -16,6 +16,8 @@ locals {
 
   # Set TG_USE_LOCAL_BACKEND=1 (or true) to use local state for all modules — no remote backend, no state download. Useful for testing.
   use_local_backend = get_env("TG_USE_LOCAL_BACKEND", "0") != "0"
+  # When tfstate.local_state is true, state is stored locally only (no cloud bucket/container).
+  use_local_state_config = try(local.default_locals.tfstate.local_state, false)
 
   # Azure: ARM_SUBSCRIPTION_ID, ARM_TENANT_ID only read when cloud_provider is azure (inside branch below). GCP: uses ADC.
   cloud_locals = local.cloud_provider == "gcp" ? {
@@ -107,14 +109,14 @@ terraform {
 
 # Remote state: config from values/defaults.hcl tfstate + resource_scope; backend type by CLOUD_PROVIDER.
 # Applies to all modules that include this root (e.g. 1-platform/0-*, 0-foundation/*, 2-app/*).
-# path_relative_to_include() gives each module its own state key/prefix. Use TG_USE_LOCAL_BACKEND=1 for local state.
+# path_relative_to_include() gives each module its own state key/prefix. Use TG_USE_LOCAL_BACKEND=1 or tfstate.local_state = true for local state.
 remote_state {
-  backend = (local.use_local_backend || local.at_repo_root) ? "local" : (local.cloud_provider == "gcp" ? "gcs" : "azurerm")
+  backend = (local.use_local_backend || local.use_local_state_config || local.at_repo_root) ? "local" : (local.cloud_provider == "gcp" ? "gcs" : "azurerm")
   generate = {
     path      = "backend.tf"
     if_exists = "overwrite"
   }
-  config = (local.use_local_backend || local.at_repo_root) ? {
+  config = (local.use_local_backend || local.use_local_state_config || local.at_repo_root) ? {
     path = local.local_state_file
   } : (local.cloud_provider == "gcp" ? merge(
     { bucket = local.merged.tfstate.bucket_name },

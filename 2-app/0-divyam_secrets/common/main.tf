@@ -2,7 +2,7 @@
 # Single variable "input" so callers pass one object (no repetition in Azure/GCP).
 
 locals {
-  env   = coalesce(var.input.env, "dev")
+  env   = coalesce(var.environment, "dev")
   db_user_name = coalesce(var.input.divyam_db_user_name, "divyam-${local.env}")
 }
 
