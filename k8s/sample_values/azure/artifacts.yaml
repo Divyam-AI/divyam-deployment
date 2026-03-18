@@ -6,7 +6,7 @@ selector-training:
     version: 0.1.0
   values:
     image:
-      tag: "0.0.72"
+      tag: "0.0.74"
 
 divyam-evaluator:
   chart:
@@ -65,6 +65,9 @@ infinity:
   chart:
     subPath: infinity
     version: 1.4.0
+  values:
+    image:
+      tag: 0.0.76
 
 qdrant:
   chart:

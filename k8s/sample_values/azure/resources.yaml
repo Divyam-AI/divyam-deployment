@@ -2,11 +2,6 @@
 # Merged with env.yaml and artifacts.yaml via helmfile
 # Azure-specific: uses Karpenter node selectors and managed-csi storage class
 
-databases:
-  mysql:
-    host: "<mysql-host-ip>"
-    port: 3306
-    database: "divyam_<env>"
 
 charts:
   router-controller:
@@ -162,7 +157,7 @@ charts:
   mysql:
     values:
       mysql:
-        deploy: false
+        deploy: true
       adminer:
         deploy: true
         nodeSelector:
@@ -202,6 +197,7 @@ charts:
           cpu: 2
           memory: 2Gi
 
+  #TODO: add gpu for infinity
   infinity:
     values:
       nodeSelector:
@@ -211,11 +207,9 @@ charts:
         requests:
           memory: 12Gi
           cpu: 3
-          nvidia.com/gpu: 1
         limits:
           memory: 12Gi
           cpu: 3
-          nvidia.com/gpu: 1
       replicaCount: 1
 
   qdrant:

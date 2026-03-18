@@ -74,7 +74,7 @@ repositories:
   "superset-ingress"             (list "superset")
   "infinity"                     (list)
   "qdrant"                       (list)
-  "divyam-route-selector"        (list "infinity" "qdrant")
+  "divyam-route-selector"        (list "infinity" "qdrant" "mysql")
   "selector-training"            (list "mysql" "divyam-redis" "qdrant" "clickhouse")
   "divyam-evaluator"             (list "mysql" "clickhouse")
   "router-controller"            (list "otel-collector" "mysql" "divyam-route-selector")
@@ -243,9 +243,9 @@ releases:
         "serviceOverrideMap" $serviceOverrideMap
       ) }}
     - mysql_integration:
-        host: {{ $values.databases.mysql.host | default (printf "%s.%s.%s" $mysqlSvc $mysqlNs $clusterDomain | trimSuffix ".") }}
-        port: {{ $values.databases.mysql.port | default 3306 }}
-        database: {{ $values.databases.mysql.database | default (printf "divyam-%s" $env) }}
+        host: {{ $values | dig "databases" "mysql" "host" (printf "%s.%s.%s" $mysqlSvc $mysqlNs $clusterDomain | trimSuffix ".") }}
+        port: {{ $values | dig "databases" "mysql" "port" 3306 }}
+        database: {{ $values | dig "databases" "mysql" "database" (printf "divyam-%s" $env) }}
 
   {{- end }}
 {{- end }}
