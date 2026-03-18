@@ -33,12 +33,12 @@ locals {
     }
 
     db-upgrades = {
-      namespace_prefix = "db_upgrades"
+      namespace_prefix = "db-upgrades"
       roles            = ["secret_writer", "resource_reader"]
     }
 
     router-controller = {
-      namespace_prefix = "router_controller"
+      namespace_prefix = "router-controller"
       roles            = ["secret_writer", "resource_reader"]
     }
 
@@ -48,12 +48,27 @@ locals {
     }
 
     selector-training = {
-      namespace_prefix = "selector_training"
+      namespace_prefix = "selector-training"
       roles = [
         "secret_writer",
         "blob_writer",
         "resource_reader"
       ]
+    }
+
+    mysql = {
+      namespace_prefix = "mysql"
+      roles            = ["secret_writer", "resource_reader"]
+    }
+
+    superset-postgres = {
+      namespace_prefix = "superset"
+      roles            = ["secret_reader"]
+    }
+
+    route-selector = {
+      namespace_prefix = "route-selector"
+      roles            = ["secret_reader"]
     }
   }
 
