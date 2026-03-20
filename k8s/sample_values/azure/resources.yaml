@@ -1,0 +1,287 @@
+# Database config and per-chart values (resources, nodeSelector, persistence, etc.)
+# Merged with env.yaml and artifacts.yaml via helmfile
+# Azure-specific: uses Karpenter node selectors and managed-csi storage class
+
+
+charts:
+  router-controller:
+    values:
+      resources:
+        requests:
+          cpu: "1"
+          memory: "2Gi"
+        limits:
+          cpu: "1"
+          memory: "2Gi"
+      replicaCount: 1
+      router:
+        workerCount: 1
+      nodeSelector:
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
+
+  router-controller-ingress:
+    values:
+      resources: {}
+      ingress:
+        deploy: false
+        external: false
+      nodeSelector:
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
+
+  divyam-route-selector:
+    condition: false
+    values:
+      resources:
+        requests:
+          cpu: "1"
+          memory: "2Gi"
+        limits:
+          cpu: "1"
+          memory: "2Gi"
+      replicaCount: 1
+      nodeSelector:
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
+
+  selector-training:
+    values:
+      schedule: "*/1 * * * *"
+      nodeSelector:
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
+      resources: {}
+
+  divyam-evaluator:
+    values:
+      resources: {}
+      nodeSelector:
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
+
+  altinity-clickhouse-operator:
+    values:
+      metrics:
+        enabled: true
+      nodeSelector:
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
+
+  clickhouse:
+    values:
+      clickhouse:
+        resources:
+          requests:
+            cpu: "4"
+            memory: "4Gi"
+          limits:
+            cpu: "4"
+            memory: "4Gi"
+        nodeSelector:
+          karpenter.sh/capacity-type: on-demand
+          kubernetes.io/os: linux
+        persistence:
+          size: 20Gi
+          storageClass: "managed-csi"
+      keeper:
+        resources:
+          requests:
+            cpu: "1"
+            memory: "1Gi"
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+        nodeSelector:
+          karpenter.sh/capacity-type: on-demand
+          kubernetes.io/os: linux
+        localStorage:
+          size: 10Gi
+          storageClass: "managed-csi"
+
+  strimzi-kafka-operator:
+    values:
+      nodeSelector:
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
+      resources:
+        limits:
+          memory: 1Gi
+          cpu: 1
+        requests:
+          memory: 1Gi
+          cpu: 1
+
+  kafka-cluster:
+    values:
+      nodeSelectorConfig:
+        kafka:
+          karpenter.sh/capacity-type: on-demand
+          kubernetes.io/os: linux
+        zookeeper:
+          karpenter.sh/capacity-type: on-demand
+          kubernetes.io/os: linux
+        kafkaExporter:
+          karpenter.sh/capacity-type: on-demand
+          kubernetes.io/os: linux
+        entityOperator:
+          karpenter.sh/capacity-type: on-demand
+          kubernetes.io/os: linux
+      nodepool:
+        storage:
+          size: "20Gi"
+          class: "managed-csi"
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+
+  otel-collector:
+    values:
+      resources:
+        requests:
+          memory: "1Gi"
+          cpu: 1
+        limits:
+          memory: "1Gi"
+          cpu: 1
+      nodeSelector:
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
+      storage:
+        size: 10Gi
+
+  mysql:
+    values:
+      mysql:
+        deploy: true
+      adminer:
+        deploy: true
+        nodeSelector:
+          karpenter.sh/capacity-type: on-demand
+          kubernetes.io/os: linux
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+
+  divyam-redis:
+    values:
+      persistence:
+        storageClass: "managed-csi"
+        size: 5Gi
+        enabled: true
+      nodeSelector:
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
+      resources: {}
+
+  superset-postgres:
+    values:
+      storage_class: managed-csi
+      storage: 5Gi
+      nodeSelector:
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
+      resources:
+        requests:
+          cpu: 2
+          memory: 2Gi
+        limits:
+          cpu: 2
+          memory: 2Gi
+
+  #TODO: add gpu for infinity
+  infinity:
+    values:
+      nodeSelector:
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
+      resources:
+        requests:
+          memory: 12Gi
+          cpu: 3
+        limits:
+          memory: 12Gi
+          cpu: 3
+      replicaCount: 1
+
+  qdrant:
+    values:
+      persistence:
+        storageClassName: "managed-csi"
+        size: 10Gi
+        accessModes: ["ReadWriteOnce"]
+      nodeSelector:
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
+      resources:
+        limits:
+          cpu: 2
+          memory: 4Gi
+        requests:
+          cpu: 2
+          memory: 4Gi
+      replicaCount: 3
+
+  external-secrets-operator:
+    values:
+      installCRDs: true
+      resources:
+        requests:
+          cpu: 100m
+          memory: 512Mi
+        limits:
+          cpu: 100m
+          memory: 512Mi
+      nodeSelector:
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
+
+  kafka-connect:
+    values:
+      nodeSelector:
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
+      resources:
+        requests:
+          cpu: 1
+          memory: 2Gi
+        limits:
+          cpu: 1
+          memory: 2Gi
+      workerReplicaCount: 2
+
+  superset:
+    values:
+      nodeSelector:
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
+      supersetWorker:
+        resources:
+          limits:
+            cpu: 1
+            memory: 2Gi
+          requests:
+            cpu: 1
+            memory: 2Gi
+
+  superset-ingress:
+    values:
+      ingress:
+        deploy: false
+      backendNodeSelector:
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux
+
+  divyam-db-upgrades:
+    values:
+      nodeSelector:
+        karpenter.sh/capacity-type: on-demand
+        kubernetes.io/os: linux

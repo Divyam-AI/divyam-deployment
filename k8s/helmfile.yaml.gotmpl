@@ -68,7 +68,7 @@ repositories:
 ###############################################################################
 {{- $dependencyMap := dict
   "altinity-clickhouse-operator" (list)
-  "clickhouse"                   (list "altinity-clickhouse-operator" "external-secrets-operator" "kafka-cluster")
+  "clickhouse"                   (list "altinity-clickhouse-operator" "external-secrets-operator" "kafka-cluster" "mysql")
   "external-secrets-operator"    (list)
   "strimzi-kafka-operator"       (list)
   "kafka-cluster"                (list "strimzi-kafka-operator")
@@ -81,7 +81,7 @@ repositories:
   "superset-ingress"             (list "superset")
   "infinity"                     (list)
   "qdrant"                       (list)
-  "divyam-route-selector"        (list "infinity" "qdrant")
+  "divyam-route-selector"        (list "infinity" "qdrant" "mysql")
   "divyam-selector-training"     (list "mysql" "divyam-redis" "qdrant" "clickhouse")
   "divyam-evaluator"             (list "mysql" "clickhouse")
   "divyam-router-controller"     (list "otel-collector" "mysql" "divyam-route-selector")
@@ -94,7 +94,8 @@ repositories:
 # 4. Service Override Map
 ###############################################################################
 {{- $serviceOverrideMap := dict
-  "kafka-cluster" "kafka-%s-cluster-kafka-bootstrap"
+  "kafka-cluster" "kafka-%s-kafka-bootstrap"
+  "clickhouse" "clickhouse-clk-%s"
 -}}
 
 ###############################################################################
@@ -197,7 +198,7 @@ releases:
       {{- end }}
     {{- end }}
 
-- name: {{ $name }}
+- name: {{ $name }}-{{ $env }}  
   namespace: {{ $ns }}
   chart: {{ $chart }}
 
@@ -217,7 +218,7 @@ releases:
             "namespaceGroupMap" $namespaceGroupMap
           ) }}
 
-    - {{ printf "%s/%s" $depNs $dep }}
+    - {{ printf "%s/%s-%s" $depNs $dep $env }}
 
       {{- end }}
     {{- end }}
@@ -225,9 +226,10 @@ releases:
 
   values:
     - platform:
-        provider: {{ $values.global.platform.provider }}
-
+      {{ $values.global.platform | toYaml | nindent 8 }}
     - environment: {{ $env }}
+    - imagePullSecrets:
+      {{ $values.global.imagePullSecrets | toYaml | nindent 8 }}
 
     - dependencies:
 {{ $depDnsMap | toYaml | indent 8 }}
@@ -250,9 +252,9 @@ releases:
         "serviceOverrideMap" $serviceOverrideMap
       ) }}
     - mysql_integration:
-        host: {{ $values.databases.mysql.host | default (printf "%s.%s.%s" $mysqlSvc $mysqlNs $clusterDomain | trimSuffix ".") }}
-        port: {{ $values.databases.mysql.port | default 3306 }}
-        database: {{ $values.databases.mysql.database | default (printf "divyam-%s" $env) }}
+        host: {{ $values | dig "databases" "mysql" "host" (printf "%s.%s.%s" $mysqlSvc $mysqlNs $clusterDomain | trimSuffix ".") }}
+        port: {{ $values | dig "databases" "mysql" "port" 3306 }}
+        database: {{ $values | dig "databases" "mysql" "database" (printf "divyam-%s" $env) }}
 
   {{- end }}
 {{- end }}
