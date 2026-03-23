@@ -22,20 +22,59 @@ Terraform v1.14.6
 ```
 
 # Setup Divyam 
-## Option 1: create entire infrastructure by using the default names and values
+## Creating values file with right configuration for setup
+### Option 1: Using the default names and values
 This will create entire infrastructure right from creation of project name, network, Kubenetes clusters.
 Note: Please review the values/defaults.hcl file for your cloud specific policies or setup names.
-If there is no change required, proceed:
+
+Export the below cloud specific variables or can update these values inside the values file itself
 ```
-ENV=dev CLOUD_PROVIDER=gcp ZONE=asia-south1-a REGION=asia-south1 VALUES_FILE=values/defaults.hcl terragrunt init -reconfigure  
-ENV=dev CLOUD_PROVIDER=gcp ZONE=asia-south1-a REGION=asia-south1 VALUES_FILE=values/defaults.hcl terragrunt plan  
+export ENV=dev 
+export CLOUD_PROVIDER=gcp 
+export ZONE=asia-south1-a 
+export REGION=asia-south1 
+
+export VALUES_FILE=values/defaults.hcl
 ```
 
 ## Option 2: Selectively reusing existing infrastructure or using custom names
 You can edit the values file and pass the same as input:
 ```
-VALUES_FILE=divyam-pre-prod-defaults.hcl terragrunt init -reconfigure  
-VALUES_FILE=divyam-pre-prod-defaults.hcl terragrunt plan  
+export VALUES_FILE=divyam-pre-prod-defaults.hcl
+```
+
+## Creating Foundation: 
+Proceed with this step, if we need to create any one of the following:
+Enable apis, resource_scope, vnet, nat, terraform_state_blob_storage, bastion
+
+Make sure VALUES_FILE variable is exported and review the plan output before applying.
+```
+cd 0-foundation
+terragrunt init -reconfigure
+terragrunt plan -out tg-foundation.out
+terragrunt apply tg-foundation.out
+```
+
+## Creating Platform Components: 
+Proceed with this step, if we need to create any one of the following:
+app_gw, divyam_object_storage, k8s cluster, alerts, bastion-kubectl-setup
+
+Make sure VALUES_FILE variable is exported and review the plan output before applying.
+```
+cd 1-platform
+terragrunt init -reconfigure  
+terragrunt plan -out tg-platform.out
+terragrunt apply tg-platform.out
+```
+
+## Creating Divyam Application Entities: 
+This step is required to setup the secrets and IAM bindings required for divyam application to work.
+Make sure VALUES_FILE variable is exported and review the plan output before applying.
+```
+cd 2-app
+terragrunt init -reconfigure  
+terragrunt plan -out tg-app.out
+terragrunt apply tg-app.out
 ```
 
 # Troubleshooting
