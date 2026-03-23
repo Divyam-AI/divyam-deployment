@@ -51,8 +51,8 @@ Make sure VALUES_FILE variable is exported and review the plan output before app
 ```
 cd 0-foundation
 terragrunt init -reconfigure --all --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run --all plan --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run --all apply --filter "./**/${CLOUD_PROVIDER}"
+terragrunt run plan  --all --filter "./**/${CLOUD_PROVIDER}"
+terragrunt run apply --all --filter "./**/${CLOUD_PROVIDER}"
 ```
 
 ## Creating Platform Components: 
@@ -63,8 +63,8 @@ Make sure VALUES_FILE variable is exported and review the plan output before app
 ```
 cd 1-platform
 terragrunt init -reconfigure --all --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run --all plan --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run --all apply --filter "./**/${CLOUD_PROVIDER}"
+terragrunt run plan  --all --filter "./**/${CLOUD_PROVIDER}"
+terragrunt run apply --all --filter "./**/${CLOUD_PROVIDER}"
 ```
 
 ## Creating Divyam Application Entities: 
@@ -73,8 +73,8 @@ Make sure VALUES_FILE variable is exported and review the plan output before app
 ```
 cd 2-app
 terragrunt init -reconfigure --all --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run --all plan --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run --all apply --filter "./**/${CLOUD_PROVIDER}"
+terragrunt run plan  --all --filter "./**/${CLOUD_PROVIDER}"
+terragrunt run apply --all --filter "./**/${CLOUD_PROVIDER}"
 ```
 
 # Troubleshooting
