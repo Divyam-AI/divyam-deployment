@@ -1,9 +1,6 @@
-#----------------------------------------------
-# Cloud-agnostic deployment configuration.
-# These values feed into both Azure and GCP. Cloud-specific provider/backend are in root.hcl.
-#
-# When create = false, use existing resources; provide the names below for lookup.
-#----------------------------------------------
+#-------------------------------------------------------------------------------------------------------------------------------
+# Note: when setting in any of the section create = false, edit the values in that section that is to be used to setup Divyam.
+#-------------------------------------------------------------------------------------------------------------------------------
 
 locals {
   # Can replace these with actual values
