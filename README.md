@@ -4,8 +4,8 @@ Tools and scripts to deploy and manage Divyam installation.
 rm -rf .terragrunt-cache   
 
 # Install Terragrunt and Terraform versions
-## On Mac
-% brew install terragrunt terraform
+https://developer.hashicorp.com/terraform/install
+https://docs.terragrunt.com/getting-started/install/
 
 ```
 % terragrunt --version
