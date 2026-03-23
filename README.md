@@ -50,9 +50,9 @@ Enable apis, resource_scope, vnet, nat, terraform_state_blob_storage, bastion
 Make sure VALUES_FILE variable is exported and review the plan output before applying.
 ```
 cd 0-foundation
-terragrunt init -reconfigure
-terragrunt plan -out tg-foundation.out
-terragrunt apply tg-foundation.out
+terragrunt init -reconfigure --all --filter "./**/${CLOUD_PROVIDER}"
+terragrunt run --all plan --filter "./**/${CLOUD_PROVIDER}"
+terragrunt run --all apply --filter "./**/${CLOUD_PROVIDER}"
 ```
 
 ## Creating Platform Components: 
@@ -62,9 +62,9 @@ app_gw, divyam_object_storage, k8s cluster, alerts, bastion-kubectl-setup
 Make sure VALUES_FILE variable is exported and review the plan output before applying.
 ```
 cd 1-platform
-terragrunt init -reconfigure  
-terragrunt plan -out tg-platform.out
-terragrunt apply tg-platform.out
+terragrunt init -reconfigure --all --filter "./**/${CLOUD_PROVIDER}"
+terragrunt run --all plan --filter "./**/${CLOUD_PROVIDER}"
+terragrunt run --all apply --filter "./**/${CLOUD_PROVIDER}"
 ```
 
 ## Creating Divyam Application Entities: 
@@ -72,9 +72,9 @@ This step is required to setup the secrets and IAM bindings required for divyam 
 Make sure VALUES_FILE variable is exported and review the plan output before applying.
 ```
 cd 2-app
-terragrunt init -reconfigure  
-terragrunt plan -out tg-app.out
-terragrunt apply tg-app.out
+terragrunt init -reconfigure --all --filter "./**/${CLOUD_PROVIDER}"
+terragrunt run --all plan --filter "./**/${CLOUD_PROVIDER}"
+terragrunt run --all apply --filter "./**/${CLOUD_PROVIDER}"
 ```
 
 # Troubleshooting
