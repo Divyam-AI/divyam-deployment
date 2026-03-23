@@ -92,6 +92,42 @@ EOT
 
   # When at repo root: flatten merged so resource_scope fields (create, name) are at top level and pass as-is.
   flattened = merge(local.merged, local.merged.resource_scope)
+
+  # Inputs for 2-terraform_state_blob_storage when running from repo root (same mapping as child terragrunt.hcl).
+  # Split by cloud in a map so HCL does not require identical object shapes in a ternary.
+  _tfstate_repo_root_shared = {
+    common_tags = try(local.merged.common_tags, {})
+    tag_globals = {
+      environment    = local.merged.env_name
+      resource_group = local.merged.resource_scope.name
+      region         = local.merged.region
+      org            = local.merged.org_name
+    }
+    tag_context = {
+      resource_name = local.merged.tfstate.bucket_name
+    }
+    create      = local.merged.tfstate.create && !try(local.merged.tfstate.local_state, false)
+    local_state = try(local.merged.tfstate.local_state, false)
+  }
+  _tfstate_repo_root_cloud = {
+    gcp = {
+      project_id   = local.merged.resource_scope.name
+      location     = local.merged.region
+      environment  = local.merged.env_name
+      bucket_name  = local.merged.tfstate.bucket_name
+    }
+    azure = {
+      resource_group_name      = local.merged.resource_scope.name
+      location                 = local.merged.region
+      environment              = local.merged.env_name
+      storage_account_name     = local.merged.tfstate.bucket_name
+      storage_container_name   = local.merged.tfstate.bucket_name
+      vnet_name                = try(local.merged.vnet.name, "")
+      vnet_resource_group_name = try(local.merged.vnet.scope_name, "")
+      subnet_ids               = {}
+    }
+  }
+  tfstate_repo_root_inputs = merge(local._tfstate_repo_root_shared, local._tfstate_repo_root_cloud[local.cloud_provider])
 }
 
 # Default: run resource-scope from repo root. Children override with their own source.
@@ -174,20 +210,21 @@ generate "tagging" {
     EOF
 }
 
-# When at repo root we run resource-scope module; pass merged config with resource_scope flattened to top level.
-# Otherwise children include root and set their own inputs.
-inputs = merge(
+# When at repo root we run 2-terraform_state_blob_storage; map values/* to module inputs (same as
+# 0-foundation/2-terraform_state_blob_storage/<cloud>/terragrunt.hcl). Otherwise pass merged config.
+# jsonencode/jsondecode avoids HCL "inconsistent conditional result types" (tfstate-only map vs full merged).
+inputs = jsondecode(local.at_repo_root ? jsonencode(local.tfstate_repo_root_inputs) : jsonencode(merge(
   local.merged,
   {
     tag_globals = {
-# Add anything else that need to be used in the template for common_tags defined in values/defaults.hcl      
-      environment = local.merged.env_name
+# Add anything else that need to be used in the template for common_tags defined in values/defaults.hcl
+      environment    = local.merged.env_name
       resource_group = local.merged.resource_scope.name
-      region      = local.merged.region
-      org         = local.merged.org_name
+      region         = local.merged.region
+      org            = local.merged.org_name
     }
     tag_context = {
       resource_name = local.merged.resource_scope.name
     }
   }
-)
+)))
