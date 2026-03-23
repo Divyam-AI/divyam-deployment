@@ -18,8 +18,16 @@ Terraform v1.14.6
 
 # Check Cloud login is setup correctly
 ```
-% CLOUD_PROVIDER=gcp ./check_cloud_credentials.sh
+export CLOUD_PROVIDER=gcp
+./check_cloud_credentials.sh
 ```
+For Azure use one of the following:
+* Install Azure CLI and run: az login"
+* Export ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_SUBSCRIPTION_ID, ARM_TENANT_ID environment variables to the values as seen from the cloud console.
+
+For GCP use one of the following:
+* Install GCP CLI and run: gcloud auth application-default login; gcloud auth login
+* Export GOOGLE_APPLICATION_CREDENTIALS to a service account key JSON file.
 
 # Setup Divyam 
 ## Creating values file with right configuration for setup
@@ -89,6 +97,15 @@ Make sure CLOUD_PROVIDER and VALUES_FILE variables are exported.
 ## Clear Terragrunt Cache Folders
 ```
 find . -type d -name ".terragrunt-cache" -exec rm -rf {} +
+```
+
+## Run individual Terragrunt modules
+```
+export CLOUD_PROVIDER=gcp
+export VALUES_FILE=values/defaults.hcl
+cd "0-foundation/0-resource_scope/${CLOUD_PROVIDER}"
+terragrunt plan
+terragrunt apply
 ```
 
 ## Debug Terragrunt - Don't use remote terraform state

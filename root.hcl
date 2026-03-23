@@ -20,6 +20,13 @@ locals {
   use_local_state_config = try(local.default_locals.tfstate.local_state, false)
 
   # Azure: ARM_SUBSCRIPTION_ID, ARM_TENANT_ID only read when cloud_provider is azure (inside branch below). GCP: uses ADC.
+  arm_subscription_id = get_env("ARM_SUBSCRIPTION_ID", "")
+  arm_tenant_id       = get_env("ARM_TENANT_ID", "")
+  arm_provider_auth_block = join("\n", compact([
+    local.arm_subscription_id != "" ? "  subscription_id = \"${local.arm_subscription_id}\"" : "",
+    local.arm_tenant_id != "" ? "  tenant_id       = \"${local.arm_tenant_id}\"" : "",
+  ]))
+
   cloud_locals = local.cloud_provider == "gcp" ? {
     cloud_provider  = "gcp"
     provider_block = <<-EOT
@@ -51,8 +58,11 @@ terraform {
 
 provider "azurerm" {
   features {}
-  subscription_id = "${get_env("ARM_SUBSCRIPTION_ID")}"
-  tenant_id       = "${get_env("ARM_TENANT_ID")}"
+  # 0-foundation/0-apis manages RP registration explicitly via
+  # azurerm_resource_provider_registration; disable provider auto-registration
+  # to avoid duplicate-management conflicts.
+  resource_provider_registrations = "none"
+${local.arm_provider_auth_block}
 }
 EOT
   }
