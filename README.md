@@ -53,7 +53,10 @@ cd 0-foundation
 terragrunt init -reconfigure --all --filter "./**/${CLOUD_PROVIDER}"
 terragrunt run plan  --all --filter "./**/${CLOUD_PROVIDER}"
 terragrunt run apply --all --filter "./**/${CLOUD_PROVIDER}"
+cd ..
 ```
+
+Note that the terraform state is saved locally for the foundation and hence if it is created once, don't run it.
 
 ## Creating Platform Components: 
 Proceed with this step, if we need to create any one of the following:
@@ -65,6 +68,7 @@ cd 1-platform
 terragrunt init -reconfigure --all --filter "./**/${CLOUD_PROVIDER}"
 terragrunt run plan  --all --filter "./**/${CLOUD_PROVIDER}"
 terragrunt run apply --all --filter "./**/${CLOUD_PROVIDER}"
+cd ..
 ```
 
 ## Creating Divyam Application Entities: 
@@ -75,6 +79,7 @@ cd 2-app
 terragrunt init -reconfigure --all --filter "./**/${CLOUD_PROVIDER}"
 terragrunt run plan  --all --filter "./**/${CLOUD_PROVIDER}"
 terragrunt run apply --all --filter "./**/${CLOUD_PROVIDER}"
+cd ..
 ```
 
 # Troubleshooting
