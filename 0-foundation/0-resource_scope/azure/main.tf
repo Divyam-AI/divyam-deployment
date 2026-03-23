@@ -4,7 +4,7 @@ data "azurerm_client_config" "current" {}
 
 locals {
   # When creating and region is empty, use fallback (Azure has no single "default region" per subscription).
-  default_region = var.region != "" ? var.region : "southindia"
+  default_region = var.region != "" ? var.region : "centralindia"
 }
 
 # Create resource group when create = true
