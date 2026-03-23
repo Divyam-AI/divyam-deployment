@@ -84,7 +84,40 @@ cd ..
 ```
 
 # Troubleshooting
+Make sure CLOUD_PROVIDER and VALUES_FILE variables are exported.
+
 ## Clear Terragrunt Cache Folders
 ```
 find . -type d -name ".terragrunt-cache" -exec rm -rf {} +
 ```
+
+## Debug Terragrunt - Don't use remote terraform state
+```
+export TG_USE_LOCAL_BACKEND=1
+```
+
+## View Terraform outputs
+```
+terragrunt show --all --filter "./**/${CLOUD_PROVIDER}"
+```
+
+## Import remote state
+Run terrgrunt import inside the cloud specific folder.
+terragrunt import ADDR ID
+```
+export CLOUD_PROVIDER=gcp
+export VALUES_FILE=values/defaults.hcl
+cd "0-foundation/0-resource_scope/${CLOUD_PROVIDER}"
+terragrunt import 'google_project.project[0]' your-gcp-project-id
+```
+
+Azure (existing resource group):
+
+```
+export CLOUD_PROVIDER=azure
+export VALUES_FILE=values/defaults.hcl
+cd "0-foundation/0-resource_scope/${CLOUD_PROVIDER}"
+terragrunt import 'azurerm_resource_group.rd[0]' /subscriptions/<subscription-id>/resourceGroups/<resource-group-name>
+```
+
+To get the Addr(first argument), use the output of plan or see the 'data' sections in main.tf file of the module. ID(second argument) should be in the format specified in the [Terraform provider documentation](https://registry.terraform.io/browse/providers) for your cloud.
