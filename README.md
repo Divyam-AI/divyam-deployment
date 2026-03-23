@@ -18,8 +18,16 @@ Terraform v1.14.6
 
 # Check Cloud login is setup correctly
 ```
-% CLOUD_PROVIDER=gcp ./check_cloud_credentials.sh
+export CLOUD_PROVIDER=gcp
+./check_cloud_credentials.sh
 ```
+For Azure use one of the following:
+* Install Azure CLI and run: az login"
+* Export ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_SUBSCRIPTION_ID, ARM_TENANT_ID environment variables to the values as seen from the cloud console.
+
+For GCP use one of the following:
+* Install GCP CLI and run: gcloud auth application-default login; gcloud auth login
+* Export GOOGLE_APPLICATION_CREDENTIALS to a service account key JSON file.
 
 # Setup Divyam 
 ## Creating values file with right configuration for setup
@@ -84,7 +92,55 @@ cd ..
 ```
 
 # Troubleshooting
+Make sure CLOUD_PROVIDER and VALUES_FILE variables are exported.
+
 ## Clear Terragrunt Cache Folders
 ```
 find . -type d -name ".terragrunt-cache" -exec rm -rf {} +
 ```
+
+## Run individual Terragrunt modules
+```
+export CLOUD_PROVIDER=gcp
+export VALUES_FILE=values/defaults.hcl
+cd "0-foundation/0-resource_scope/${CLOUD_PROVIDER}"
+terragrunt plan
+terragrunt apply
+```
+
+## Debug Terragrunt - Don't use remote terraform state
+```
+export TG_USE_LOCAL_BACKEND=1
+```
+
+## View Terraform outputs
+```
+terragrunt show --all --filter "./**/${CLOUD_PROVIDER}"
+```
+
+## Import remote state
+Run terrgrunt import inside the cloud specific folder.
+terragrunt import ADDR ID
+```
+export CLOUD_PROVIDER=gcp
+export VALUES_FILE=values/defaults.hcl
+cd "0-foundation/0-resource_scope/${CLOUD_PROVIDER}"
+terragrunt import 'google_project.project[0]' your-gcp-project-id
+```
+
+Azure (existing resource group):
+
+```
+export CLOUD_PROVIDER=azure
+export VALUES_FILE=values/defaults.hcl
+cd "0-foundation/0-resource_scope/${CLOUD_PROVIDER}"
+terragrunt import 'azurerm_resource_group.rd[0]' /subscriptions/<subscription-id>/resourceGroups/<resource-group-name>
+```
+
+To get the Addr(first argument), use the output of plan or see the 'data' sections in main.tf file of the module. ID(second argument) should be in the format specified in the [Terraform provider documentation](https://registry.terraform.io/browse/providers) for your cloud.
+
+## Failure: already exists - to be managed via Terraform this resource needs to be imported into the State
+Failures like below API enablement(0-apis) can be ignored as these are not stored in state"
+  │ Error: a resource with the ID "/subscriptions/8645e690-451d-45a4-b10c-159705f63a22/providers/Microsoft.Logic" already exists - to be managed via Terraform this resource needs to be imported into the State. Please see the resource documentation for "azurerm_resource_provider_registration" for more information
+
+If a resource like VNet already exists and are trying to create it again this error can be fixed by updating "create = false" for vnet(or any such component) and updating the created values like IP, Subnet values in the file specified in the VALUES_FILE environement variable.
