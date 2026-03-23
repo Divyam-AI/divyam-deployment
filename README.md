@@ -32,16 +32,17 @@ Export the below cloud specific variables or can update these values inside the 
 export ENV=dev 
 export CLOUD_PROVIDER=gcp 
 export ZONE=asia-south1-a 
-export REGION=asia-south1 
-
+export REGION=asia-south1
 export VALUES_FILE=values/defaults.hcl
 ```
 
 ## Option 2: Selectively reusing existing infrastructure or using custom names
-You can edit the values file and pass the same as input:
+You can edit the values file and pass the same as input along with the cloud provider environment variable exported as shown below. 
 ```
+export CLOUD_PROVIDER=gcp
 export VALUES_FILE=divyam-pre-prod-defaults.hcl
 ```
+Note: Make sure all required environment variables are substituted in values file or are exported.
 
 ## Creating Foundation: 
 Proceed with this step, if we need to create any one of the following:
