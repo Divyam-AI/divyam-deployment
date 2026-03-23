@@ -7,7 +7,7 @@ rm -rf .terragrunt-cache
 https://developer.hashicorp.com/terraform/install
 https://docs.terragrunt.com/getting-started/install/
 
-Minimum versions of terragrunt and terraform required(tested)
+Versions of terragrunt and terraform tested
 ```
 % terragrunt --version
 terragrunt version 0.99.4
