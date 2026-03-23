@@ -45,7 +45,7 @@ dependency "vnet" {
     app_gw_subnet_id         = "https://www.googleapis.com/compute/v1/projects/${local.project_id}/regions/${local.region}/subnetworks/${local.app_gw_subnet_name}"
     app_gw_subnet_prefix     = local.app_gw_subnet_prefix_mock
   }
-  mock_outputs_allowed_terraform_commands = ["init", "validate"]
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
 }
 
 inputs = merge(
