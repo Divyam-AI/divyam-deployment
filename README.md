@@ -142,3 +142,5 @@ To get the Addr(first argument), use the output of plan or see the 'data' sectio
 ## Failure: already exists - to be managed via Terraform this resource needs to be imported into the State
 Failures like below API enablement(0-apis) can be ignored as these are not stored in state"
   │ Error: a resource with the ID "/subscriptions/8645e690-451d-45a4-b10c-159705f63a22/providers/Microsoft.Logic" already exists - to be managed via Terraform this resource needs to be imported into the State. Please see the resource documentation for "azurerm_resource_provider_registration" for more information
+
+If a resource like VNet already exists and are trying to create it again this error can be fixed by updating "create = false" for vnet(or any such component) and updating the created values like IP, Subnet values in the file specified in the VALUES_FILE environement variable.
