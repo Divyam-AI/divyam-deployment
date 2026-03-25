@@ -1,9 +1,6 @@
-#----------------------------------------------
-# Cloud-agnostic deployment configuration.
-# These values feed into both Azure and GCP. Cloud-specific provider/backend are in root.hcl.
-#
-# When create = false, use existing resources; provide the names below for lookup.
-#----------------------------------------------
+#-------------------------------------------------------------------------------------------------------------------------------
+# Note: when setting in any of the section create = false, edit the values in that section that is to be used to setup Divyam.
+#-------------------------------------------------------------------------------------------------------------------------------
 
 locals {
   # Can replace these with actual values
@@ -37,7 +34,7 @@ locals {
 # --- Resource Scope ---
 # Azure: resource_group_name | GCP: project_id
   resource_scope = {
-    create          = false
+    create          = false   # If this is set to false, edit the name below to the resource name that is to be used for setting up Divyam.
     name            = "${local.deployment_prefix}-rg"
     # Get it from https://portal.azure.com/#view/Microsoft_Azure_Billing/SubscriptionsBladeV2 or https://console.cloud.google.com/billing/
     billing_account = get_env("BILLING_ACCOUNT", "") # BILLING_ACCOUNT is required if create is true
@@ -54,7 +51,7 @@ locals {
   # When create = true (e.g. GCP): create network and subnets. When false: look up existing by name.
   # GCP: set shared_vpc_host = true to enable this project as Shared VPC host; set service_project_ids = ["project-a","project-b"] to attach service projects.
   vnet = {
-    create          = false
+    create          = false  # If this is set to false, edit the below values that is to be used for setting up Divyam.
     name            = "${local.deployment_prefix}-vnet"    
     scope_name      = "${local.resource_scope.name}" # Azure Resource Group or GCP Project where this vnet is to be created/present
     region          = "${local.region}"
@@ -72,7 +69,7 @@ locals {
   # Azure: NAT Gateway + Public IP, associated to VNet subnets. GCP: Cloud NAT on Cloud Router for listed subnetworks.
   # Lookup names: platform modules fetch nat_gateway_ip via data sources (Azure: public IP by name; GCP: router/nat by name). Names must match 0-foundation/2-nat or existing infra.
   nat = {
-    create = true
+    create = true # If this is set to false, edit the below values that is to be used for setting up Divyam.
     resource_name_prefix = "${local.deployment_prefix}"
     # Names for data-source lookup (1-platform resolves NAT IP from these; no dependency on 0-foundation).
     nat_gateway_name   = "${local.deployment_prefix}-nat-gateway"   # Azure: NAT gateway resource name
@@ -85,7 +82,7 @@ locals {
   # --- Bastion ---
   # Set create = true and override below. Cluster details for kubectl come from k8s section (no cloud-specific names).
   bastion = {
-    create       = false
+    create       = false # If this is set to false, edit the below values that is to be used for setting up Divyam.
     bastion_name = "${local.deployment_prefix}-bastion"
     spot_instance = false
     # configure_kubectl: use only when cluster is pre-created and only the bastion needs to be set up (installs kubectl + setup-kubectl script on bastion at create time).
@@ -101,7 +98,7 @@ locals {
   # Override here if needed (e.g. storage_account_name, container_name for Azure).
   # local_state: when true, state is stored locally only (no cloud bucket/container created or used).
   tfstate = {
-    create         = true
+    create         = true # If this is set to false, edit the below values that is to be used for setting up Divyam.
     local_state    = true
     region         = "${local.region}"
     zone           = "${local.zone}"
@@ -113,7 +110,7 @@ locals {
 #################### Platform ##########################
   # --- Divyam Data ---
   divyam_object_storages = [{
-    create               = true
+    create               = true # If this is set to false, edit the below values that is to be used for setting up Divyam.
     type                 = "router-requests-logs"                                  # Identifies this storage for router-requests-logs
     scope_name           = "${local.resource_scope}"                               # Azure Resource Group or GCP Project
     storage_account_name = "${replace(local.deployment_prefix, "-", "")}storage"   # Full Azure storage account name (no dashes). Not for GCP; used for grouping
@@ -122,6 +119,7 @@ locals {
 
   # -- Secrets ---
   divyam_secrets = {
+    # If this is set to false, edit the below values that is to be used for setting up Divyam.
     create_vault   = true   # Azure only: if false, use store_name to look up existing Key Vault
     create_secrets = true   # if false, do not create or update secrets in the vault
     scope_name     = "${local.resource_scope.name}"       # Azure Resource Group or GCP Project
@@ -130,7 +128,7 @@ locals {
 
   # -- Load Balancer (static IP, DNS, TLS) ---
   divyam_load_balancer = {
-    create_ip = true
+    create_ip = true # If this is set to false, edit the below values that is to be used for setting up Divyam.
     # Private IP (internal LB only): address and optional resource name.
     ip               = "10.0.8.10"  # Reserved private IP in VNET app_gw_subnet (ignored when public = true)
     private_ip_name  = "${local.deployment_prefix}-private-ip"  # Name for the private IP resource (e.g. GCP internal address)
@@ -167,7 +165,7 @@ locals {
   # --- Kubernetes Cluster ---
   # Cloud-agnostic schema; 1-platform/1-k8s/<cloud> maps from k8s. Region, vnet names come from root (not duplicated here).
   k8s = {
-    create = true
+    create = true # If this is set to false, edit the below values that is to be used for setting up Divyam.
     name   = "${local.deployment_prefix}-k8s-cluster"
     kubernetes_version = "1.34"
 

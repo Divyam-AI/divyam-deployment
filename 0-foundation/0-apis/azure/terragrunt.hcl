@@ -7,8 +7,8 @@ terraform {
   source = "./"
 }
 
-dependency "resource_scope" {
-  config_path = "../../0-resource_scope/azure"
+dependencies {
+  paths = ["../../0-resource_scope/azure"]
 }
 
 remote_state {
