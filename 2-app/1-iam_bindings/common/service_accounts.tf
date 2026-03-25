@@ -17,7 +17,7 @@ locals {
       roles            = ["metrics_publisher"]
     }
 
-    kafka-connect = {
+    "kafka-${var.env_name}-connect" = {
       namespace_prefix = "kafka"
       roles            = ["blob_writer"]
     }
@@ -32,22 +32,22 @@ locals {
       roles            = ["secret_writer", "resource_reader"]
     }
 
-    db-upgrades = {
+    divyam-db-upgrades = {
       namespace_prefix = "db-upgrades"
       roles            = ["secret_writer", "resource_reader"]
     }
 
-    router-controller = {
+    divyam-router-controller = {
       namespace_prefix = "router-controller"
       roles            = ["secret_writer", "resource_reader"]
     }
 
-    eval = {
+    divyam-evaluator = {
       namespace_prefix = "eval"
       roles            = ["secret_reader", "resource_reader"]
     }
 
-    selector-training = {
+    divyam-selector-training = {
       namespace_prefix = "selector-training"
       roles = [
         "secret_writer",
@@ -66,9 +66,9 @@ locals {
       roles            = ["secret_reader"]
     }
 
-    route-selector = {
+    divyam-route-selector = {
       namespace_prefix = "route-selector"
-      roles            = ["secret_reader"]
+      roles            = ["secret_reader","resource_reader", "blob_reader"]
     }
   }
 

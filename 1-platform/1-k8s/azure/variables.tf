@@ -55,7 +55,7 @@ variable "cluster" {
     additional_node_pools = optional(map(object({
       vm_size          = string
       machine_type     = optional(string)
-      gpu_driver       = optional(string, "Install")
+      gpu_driver       = optional(string, null)
       priority         = optional(string, "Regular") # "Spot" for spot instances; default node pool cannot be Spot on AKS
       auto_scaling     = bool
       count            = optional(number, null)
