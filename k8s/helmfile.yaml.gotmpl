@@ -86,7 +86,7 @@ repositories:
   "divyam-evaluator"             (list "mysql" "clickhouse")
   "divyam-router-controller"     (list "otel-collector" "mysql" "divyam-route-selector")
   "divyam-router-controller-ingress"    (list "divyam-router-controller")
-  "divyam-db-upgrades"           (list "clickhouse" "mysql" "kafka-cluster" "external-secrets-operator")
+  "divyam-db-upgrades"                (list "clickhouse" "mysql" "kafka-cluster" "external-secrets-operator")
 
 -}}
 
@@ -228,8 +228,8 @@ releases:
     - platform:
       {{ $values.global.platform | toYaml | nindent 8 }}
     - environment: {{ $env }}
-    - imagePullSecrets:
-      {{ $values.global.imagePullSecrets | toYaml | nindent 8 }}
+    - imagePullSecretConfig:
+      {{ $values.global.imagePullSecretConfig | toYaml | nindent 8 }}
 
     - dependencies:
 {{ $depDnsMap | toYaml | indent 8 }}

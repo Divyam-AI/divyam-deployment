@@ -4,7 +4,8 @@
 
 
 charts:
-  router-controller:
+  
+  divyam-router-controller:
     values:
       resources:
         requests:
@@ -17,18 +18,18 @@ charts:
       router:
         workerCount: 1
       nodeSelector:
-        karpenter.sh/capacity-type: on-demand
-        kubernetes.io/os: linux
+        karpenter.sh/capacity-type: spot
 
-  router-controller-ingress:
+
+  divyam-router-controller-ingress:
     values:
       resources: {}
       ingress:
         deploy: false
         external: false
       nodeSelector:
-        karpenter.sh/capacity-type: on-demand
-        kubernetes.io/os: linux
+        karpenter.sh/capacity-type: spot
+
 
   divyam-route-selector:
     condition: false
@@ -42,31 +43,31 @@ charts:
           memory: "2Gi"
       replicaCount: 1
       nodeSelector:
-        karpenter.sh/capacity-type: on-demand
-        kubernetes.io/os: linux
+        karpenter.sh/capacity-type: spot
 
-  selector-training:
+
+  divyam-selector-training:
     values:
       schedule: "*/1 * * * *"
       nodeSelector:
-        karpenter.sh/capacity-type: on-demand
-        kubernetes.io/os: linux
+        karpenter.sh/capacity-type: spot
+
       resources: {}
 
   divyam-evaluator:
     values:
       resources: {}
       nodeSelector:
-        karpenter.sh/capacity-type: on-demand
-        kubernetes.io/os: linux
+        karpenter.sh/capacity-type: spot
+
 
   altinity-clickhouse-operator:
     values:
       metrics:
         enabled: true
       nodeSelector:
-        karpenter.sh/capacity-type: on-demand
-        kubernetes.io/os: linux
+        karpenter.sh/capacity-type: spot
+
 
   clickhouse:
     values:
@@ -79,8 +80,8 @@ charts:
             cpu: "4"
             memory: "4Gi"
         nodeSelector:
-          karpenter.sh/capacity-type: on-demand
-          kubernetes.io/os: linux
+          karpenter.sh/capacity-type: spot
+  
         persistence:
           size: 20Gi
           storageClass: "managed-csi"
@@ -93,8 +94,8 @@ charts:
             cpu: "1"
             memory: "1Gi"
         nodeSelector:
-          karpenter.sh/capacity-type: on-demand
-          kubernetes.io/os: linux
+          karpenter.sh/capacity-type: spot
+  
         localStorage:
           size: 10Gi
           storageClass: "managed-csi"
@@ -102,8 +103,8 @@ charts:
   strimzi-kafka-operator:
     values:
       nodeSelector:
-        karpenter.sh/capacity-type: on-demand
-        kubernetes.io/os: linux
+        karpenter.sh/capacity-type: spot
+
       resources:
         limits:
           memory: 1Gi
@@ -116,17 +117,17 @@ charts:
     values:
       nodeSelectorConfig:
         kafka:
-          karpenter.sh/capacity-type: on-demand
-          kubernetes.io/os: linux
+          karpenter.sh/capacity-type: spot
+  
         zookeeper:
-          karpenter.sh/capacity-type: on-demand
-          kubernetes.io/os: linux
+          karpenter.sh/capacity-type: spot
+  
         kafkaExporter:
-          karpenter.sh/capacity-type: on-demand
-          kubernetes.io/os: linux
+          karpenter.sh/capacity-type: spot
+  
         entityOperator:
-          karpenter.sh/capacity-type: on-demand
-          kubernetes.io/os: linux
+          karpenter.sh/capacity-type: spot
+  
       nodepool:
         storage:
           size: "20Gi"
@@ -149,8 +150,8 @@ charts:
           memory: "1Gi"
           cpu: 1
       nodeSelector:
-        karpenter.sh/capacity-type: on-demand
-        kubernetes.io/os: linux
+        karpenter.sh/capacity-type: spot
+
       storage:
         size: 10Gi
 
@@ -161,8 +162,8 @@ charts:
       adminer:
         deploy: true
         nodeSelector:
-          karpenter.sh/capacity-type: on-demand
-          kubernetes.io/os: linux
+          karpenter.sh/capacity-type: spot
+  
         resources:
           requests:
             memory: "128Mi"
@@ -178,8 +179,8 @@ charts:
         size: 5Gi
         enabled: true
       nodeSelector:
-        karpenter.sh/capacity-type: on-demand
-        kubernetes.io/os: linux
+        karpenter.sh/capacity-type: spot
+
       resources: {}
 
   superset-postgres:
@@ -187,8 +188,8 @@ charts:
       storage_class: managed-csi
       storage: 5Gi
       nodeSelector:
-        karpenter.sh/capacity-type: on-demand
-        kubernetes.io/os: linux
+        karpenter.sh/capacity-type: spot
+
       resources:
         requests:
           cpu: 2
@@ -201,15 +202,22 @@ charts:
   infinity:
     values:
       nodeSelector:
-        karpenter.sh/capacity-type: on-demand
-        kubernetes.io/os: linux
+        karpenter.sh/capacity-type: spot
+        node.kubernetes.io/instance-type: Standard_NV6ads_A10_v5
+
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
       resources:
         requests:
           memory: 12Gi
           cpu: 3
+          nvidia.com/gpu: 1
         limits:
           memory: 12Gi
           cpu: 3
+          nvidia.com/gpu: 1
       replicaCount: 1
 
   qdrant:
@@ -219,8 +227,8 @@ charts:
         size: 10Gi
         accessModes: ["ReadWriteOnce"]
       nodeSelector:
-        karpenter.sh/capacity-type: on-demand
-        kubernetes.io/os: linux
+        karpenter.sh/capacity-type: spot
+
       resources:
         limits:
           cpu: 2
@@ -241,14 +249,13 @@ charts:
           cpu: 100m
           memory: 512Mi
       nodeSelector:
-        karpenter.sh/capacity-type: on-demand
-        kubernetes.io/os: linux
+        karpenter.sh/capacity-type: spot
+
 
   kafka-connect:
     values:
       nodeSelector:
-        karpenter.sh/capacity-type: on-demand
-        kubernetes.io/os: linux
+        karpenter.sh/capacity-type: spot
       resources:
         requests:
           cpu: 1
@@ -261,8 +268,8 @@ charts:
   superset:
     values:
       nodeSelector:
-        karpenter.sh/capacity-type: on-demand
-        kubernetes.io/os: linux
+        karpenter.sh/capacity-type: spot
+
       supersetWorker:
         resources:
           limits:
@@ -277,11 +284,11 @@ charts:
       ingress:
         deploy: false
       backendNodeSelector:
-        karpenter.sh/capacity-type: on-demand
-        kubernetes.io/os: linux
+        karpenter.sh/capacity-type: spot
+
 
   divyam-db-upgrades:
     values:
       nodeSelector:
-        karpenter.sh/capacity-type: on-demand
-        kubernetes.io/os: linux
+        karpenter.sh/capacity-type: spot
+
