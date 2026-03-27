@@ -18,7 +18,7 @@ variable "input" {
     divyam_jwt_secret_key              = string
     divyam_provider_keys_encryption_key = string
     divyam_openai_billing_admin_api_key = optional(string, "")
-    divyam_gar_sa_key                  = optional(string, "")
+    divyam_artifactory_docker_auth     = optional(string, "")
     # Azure only: used by Kafka to Blob storage consumer. Omit or null for GCP.
     router_requests_logs_storage_account_connection_string = optional(string)
   })

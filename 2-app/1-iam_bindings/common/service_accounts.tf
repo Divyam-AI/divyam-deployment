@@ -19,7 +19,8 @@ locals {
 
     kafka-connect = {
       namespace_prefix = "kafka"
-      roles            = ["blob_writer"]
+      k8s_service_account_name = "kafka-${var.env_name}-connect"
+      roles            = ["blob_writer", "secret_reader"]
     }
 
     billing = {
@@ -29,36 +30,32 @@ locals {
 
     clickhouse = {
       namespace_prefix = "clickhouse"
-      roles            = ["secret_writer", "resource_reader"]
+      roles            = ["secret_reader", "resource_reader"]
     }
 
-    db-upgrades = {
+    divyam-db-upgrades = {
       namespace_prefix = "db-upgrades"
-      roles            = ["secret_writer", "resource_reader"]
+      roles            = ["secret_reader", "resource_reader"]
     }
 
-    router-controller = {
+    divyam-router-controller = {
       namespace_prefix = "router-controller"
-      roles            = ["secret_writer", "resource_reader"]
+      roles            = ["secret_reader", "resource_reader"]
     }
 
-    eval = {
+    divyam-evaluator = {
       namespace_prefix = "eval"
       roles            = ["secret_reader", "resource_reader"]
     }
 
-    selector-training = {
+    divyam-selector-training = {
       namespace_prefix = "selector-training"
-      roles = [
-        "secret_writer",
-        "blob_writer",
-        "resource_reader"
-      ]
+      roles = [ "secret_reader", "blob_writer", "resource_reader" ]
     }
 
     mysql = {
       namespace_prefix = "mysql"
-      roles            = ["secret_writer", "resource_reader"]
+      roles            = ["secret_reader", "resource_reader"]
     }
 
     superset-postgres = {
@@ -66,9 +63,9 @@ locals {
       roles            = ["secret_reader"]
     }
 
-    route-selector = {
+    divyam-route-selector = {
       namespace_prefix = "route-selector"
-      roles            = ["secret_reader"]
+      roles            = ["secret_reader","resource_reader", "blob_reader"]
     }
   }
 
@@ -78,7 +75,10 @@ locals {
   ##########################################
   service_accounts = {
     for sa_name, sa in local.base_service_accounts :
-    replace("${sa_name}-${var.env_name}-sa", "_", "-") => {
+    (lookup(sa, "k8s_service_account_name", null) != null ?
+      sa.k8s_service_account_name :
+      replace("${sa_name}-${var.env_name}-sa", "_", "-")
+    ) => {
       namespace = lookup(sa, "namespace", null) != null ? sa.namespace : "${sa.namespace_prefix}-${var.env_name}-ns"
       roles     = sa.roles
     }

@@ -1,5 +1,6 @@
 # Single place for secrets_input keys. Included by azure and gcp terragrunt; env overridden in each.
 locals {
+  cloud_provider = get_env("CLOUD_PROVIDER", "")
   secrets_input = merge(
     {
     divyam_db_root_password             = get_env("TF_VAR_divyam_db_root_password", "")
@@ -13,7 +14,8 @@ locals {
     divyam_provider_keys_encryption_key = get_env("TF_VAR_divyam_provider_keys_encryption_key", "")
     divyam_openai_billing_admin_api_key = get_env("TF_VAR_divyam_openai_billing_admin_api_key", "")
     },
-    # Azure only: GAR SA key for container registry. Omit for GCP.
-    include.root.locals.merged.cloud_provider == "azure" ? { divyam_gar_sa_key = get_env("TF_VAR_divyam_gar_sa_key") } : {}
+    # Azure only: Artifactory Docker auth for container registry. Omit for GCP.
+    # Env var holds a file path; read its contents so the secret value is stored in the secret manager.
+    local.cloud_provider == "azure" ? { divyam_artifactory_docker_auth = file(get_env("TF_VAR_divyam_artifactory_docker_auth")) } : {}
   )
 }

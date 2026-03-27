@@ -53,7 +53,7 @@ locals {
     # AKS: default node pool cannot be Spot; only additional pools support priority = "Spot".
     additional_node_pools = { for name, pool in try(local.pools.additional, {}) : name => {
       vm_size          = try(pool.instance_type, pool.vm_size, "Standard_D4s_v3")
-      gpu_driver       = try(pool.gpu_driver, "Install")
+      gpu_driver       = try(pool.gpu_driver, null)
       priority         = try(pool.spot_instance, false) ? "Spot" : "Regular"
       auto_scaling     = try(pool.auto_scaling, false)
       count            = try(pool.count, null)

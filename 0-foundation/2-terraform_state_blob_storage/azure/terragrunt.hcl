@@ -13,7 +13,7 @@ dependency "vnet" {
   mock_outputs = {
     subnet_ids = {}
   }
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply"]
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply","destroy","show"]
 }
 
 # Note: Local state because storing to azure blob store cannot happen until this

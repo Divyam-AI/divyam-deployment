@@ -223,13 +223,13 @@ resource "azurerm_application_gateway" "appgw" {
 data "azurerm_client_config" "current" {}
 
 data "azurerm_key_vault" "divyam" {
-  count               = var.azure_key_vault_name != null ? 1 : 0
+  count               = (var.create_ssl_cert && var.tls_enabled && var.azure_key_vault_name != null) ? 1 : 0
   name                = var.azure_key_vault_name
   resource_group_name = var.resource_group_name
 }
 
 locals {
-  azure_key_vault_id = coalesce(var.azure_key_vault_id, try(data.azurerm_key_vault.divyam[0].id, null))
+  azure_key_vault_id = var.azure_key_vault_id != null ? var.azure_key_vault_id : try(data.azurerm_key_vault.divyam[0].id, null)
 }
 
 # TLS certificate in Key Vault when create_ssl_cert and tls_enabled (config from defaults.hcl divyam_load_balancer).

@@ -1,7 +1,7 @@
 # Chart versions and docker image references
 # Merged with env.yaml and resources.yaml via helmfile
 
-selector-training:
+divyam-selector-training:
   chart:
     version: 0.1.0
   values:
@@ -15,7 +15,7 @@ divyam-evaluator:
     image:
       tag: "0.1.51"
 
-router-controller:
+divyam-router-controller:
   chart:
     version: 0.1.0
   values:
@@ -67,7 +67,7 @@ infinity:
     version: 1.4.0
   values:
     image:
-      tag: 0.0.76
+      tag: 0.0.76-trt-onnx
 
 qdrant:
   chart:

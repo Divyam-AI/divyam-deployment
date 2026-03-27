@@ -377,3 +377,31 @@ resource "azurerm_role_assignment" "grafana_reader" {
   }
 }
 
+
+# ---------------------------
+# AKS subnet permissions fix (CRITICAL)
+# ---------------------------
+
+# Fetch AKS cluster identity (system assigned)
+data "azurerm_kubernetes_cluster" "aks_cluster_identity" {
+  count               = var.create ? 1 : 0
+  name                = azurerm_kubernetes_cluster.aks_cluster[0].name
+  resource_group_name = var.resource_group_name
+
+  depends_on = [
+    azurerm_kubernetes_cluster.aks_cluster
+  ]
+}
+
+# Assign Network Contributor on subnet to AKS identity
+resource "azurerm_role_assignment" "aks_subnet_network_contributor" {
+  count = var.create ? 1 : 0
+
+  scope                = local.subnet_ids[var.cluster.vnet_subnet_name]
+  role_definition_name = "Network Contributor"
+  principal_id         = data.azurerm_kubernetes_cluster.aks_cluster_identity[0].identity[0].principal_id
+
+  depends_on = [
+    azurerm_kubernetes_cluster.aks_cluster
+  ]
+}
