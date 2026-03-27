@@ -87,6 +87,13 @@ superset-ingress:
   chart:
     version: 0.1.0
 
+divyam-control-plane:
+  chart:
+    version: 0.1.5
+  values:
+    image:
+      tag: "latest"
+
 divyam-db-upgrades:
   chart:
     version: 0.1.0
