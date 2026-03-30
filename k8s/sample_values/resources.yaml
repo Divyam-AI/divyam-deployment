@@ -1,10 +1,14 @@
 # Database config and per-chart values (resources, nodeSelector, persistence, etc.)
 # Merged with env.yaml and artifacts.yaml via helmfile
-# Azure-specific: uses Karpenter node selectors and managed-csi storage class
 
+settings:
+  use_spot_nodes: false
+  # storage_class: premiumSsd   # Optional: overrides storageClasses.default in divyam-persistent-storage
 
 charts:
-  
+  divyam-persistent-storage:
+    values: {}
+    
   divyam-router-controller:
     values:
       resources:
@@ -17,8 +21,6 @@ charts:
       replicaCount: 1
       router:
         workerCount: 1
-      nodeSelector:
-        karpenter.sh/capacity-type: spot
 
 
   divyam-router-controller-ingress:
@@ -27,8 +29,6 @@ charts:
       ingress:
         deploy: false
         external: false
-      nodeSelector:
-        karpenter.sh/capacity-type: spot
 
 
   divyam-route-selector:
@@ -42,31 +42,22 @@ charts:
           cpu: "1"
           memory: "2Gi"
       replicaCount: 1
-      nodeSelector:
-        karpenter.sh/capacity-type: spot
 
 
   divyam-selector-training:
     values:
       schedule: "*/1 * * * *"
-      nodeSelector:
-        karpenter.sh/capacity-type: spot
-
       resources: {}
 
   divyam-evaluator:
     values:
       resources: {}
-      nodeSelector:
-        karpenter.sh/capacity-type: spot
 
 
   altinity-clickhouse-operator:
     values:
       metrics:
         enabled: true
-      nodeSelector:
-        karpenter.sh/capacity-type: spot
 
 
   clickhouse:
@@ -79,9 +70,6 @@ charts:
           limits:
             cpu: "4"
             memory: "4Gi"
-        nodeSelector:
-          karpenter.sh/capacity-type: spot
-  
         persistence:
           size: 20Gi
           storageClass: "managed-csi"
@@ -93,18 +81,12 @@ charts:
           limits:
             cpu: "1"
             memory: "1Gi"
-        nodeSelector:
-          karpenter.sh/capacity-type: spot
-  
         localStorage:
           size: 10Gi
           storageClass: "managed-csi"
 
   strimzi-kafka-operator:
     values:
-      nodeSelector:
-        karpenter.sh/capacity-type: spot
-
       resources:
         limits:
           memory: 1Gi
@@ -115,19 +97,6 @@ charts:
 
   kafka-cluster:
     values:
-      nodeSelectorConfig:
-        kafka:
-          karpenter.sh/capacity-type: spot
-  
-        zookeeper:
-          karpenter.sh/capacity-type: spot
-  
-        kafkaExporter:
-          karpenter.sh/capacity-type: spot
-  
-        entityOperator:
-          karpenter.sh/capacity-type: spot
-  
       nodepool:
         storage:
           size: "20Gi"
@@ -149,9 +118,6 @@ charts:
         limits:
           memory: "1Gi"
           cpu: 1
-      nodeSelector:
-        karpenter.sh/capacity-type: spot
-
       storage:
         size: 10Gi
 
@@ -161,9 +127,6 @@ charts:
         deploy: true
       adminer:
         deploy: true
-        nodeSelector:
-          karpenter.sh/capacity-type: spot
-  
         resources:
           requests:
             memory: "128Mi"
@@ -178,18 +141,12 @@ charts:
         storageClass: "managed-csi"
         size: 5Gi
         enabled: true
-      nodeSelector:
-        karpenter.sh/capacity-type: spot
-
       resources: {}
 
   superset-postgres:
     values:
       storage_class: managed-csi
       storage: 5Gi
-      nodeSelector:
-        karpenter.sh/capacity-type: spot
-
       resources:
         requests:
           cpu: 2
@@ -202,7 +159,6 @@ charts:
   infinity:
     values:
       nodeSelector:
-        karpenter.sh/capacity-type: spot
         node.kubernetes.io/instance-type: Standard_NV6ads_A10_v5
 
       tolerations:
@@ -226,9 +182,6 @@ charts:
         storageClassName: "managed-csi"
         size: 10Gi
         accessModes: ["ReadWriteOnce"]
-      nodeSelector:
-        karpenter.sh/capacity-type: spot
-
       resources:
         limits:
           cpu: 2
@@ -254,8 +207,6 @@ charts:
 
   kafka-connect:
     values:
-      nodeSelector:
-        karpenter.sh/capacity-type: spot
       resources:
         requests:
           cpu: 1
@@ -267,9 +218,6 @@ charts:
 
   superset:
     values:
-      nodeSelector:
-        karpenter.sh/capacity-type: spot
-
       supersetWorker:
         resources:
           limits:
@@ -283,12 +231,9 @@ charts:
     values:
       ingress:
         deploy: false
-      backendNodeSelector:
-        karpenter.sh/capacity-type: spot
+      nodeSelector: {}
 
 
   divyam-db-upgrades:
-    values:
-      nodeSelector:
-        karpenter.sh/capacity-type: spot
+    values: {}
 

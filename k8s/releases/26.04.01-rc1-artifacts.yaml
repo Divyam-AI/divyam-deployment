@@ -13,7 +13,7 @@ divyam-evaluator:
     version: 0.1.0
   values:
     image:
-      tag: "0.1.51"
+      tag: "0.1.52"
 
 divyam-router-controller:
   chart:
@@ -27,7 +27,7 @@ divyam-route-selector:
     version: 0.1.0
   values:
     image:
-      tag: "0.1.55"
+      tag: "0.1.57"
 
 altinity-clickhouse-operator:
   chart:

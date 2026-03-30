@@ -4,11 +4,11 @@
 
 locals {
   # Can replace these with actual values
-  cloud_provider    = get_env("CLOUD_PROVIDER") 
-  env_name          = get_env("ENV")
-  org_name          = get_env("ORG_NAME", "")
-  region            = get_env("REGION")
-  zone              = get_env("ZONE")
+  cloud_provider    = get_env("CLOUD_PROVIDER","azure") 
+  env_name          = get_env("ENV","preprod")
+  org_name          = get_env("ORG_NAME", "bkt")
+  region            = get_env("REGION","centralindia")
+  zone              = get_env("ZONE","centralindia-1")
 
   deployment_prefix = (
     length(local.org_name) > 0 ?
@@ -34,7 +34,7 @@ locals {
 # --- Resource Scope ---
 # Azure: resource_group_name | GCP: project_id
   resource_scope = {
-    create          = false   # If this is set to false, edit the name below to the resource name that is to be used for setting up Divyam.
+    create          = true   # If this is set to false, edit the name below to the resource name that is to be used for setting up Divyam.
     name            = "${local.deployment_prefix}-rg"
     # Get it from https://portal.azure.com/#view/Microsoft_Azure_Billing/SubscriptionsBladeV2 or https://console.cloud.google.com/billing/
     billing_account = get_env("BILLING_ACCOUNT", "") # BILLING_ACCOUNT is required if create is true
@@ -43,7 +43,7 @@ locals {
 # --- APIs / Resource Providers (0-foundation/0-apis) ---
 # GCP: enable APIs; Azure: register resource providers. Set enabled = true; override apis (GCP) or provider_namespaces (Azure) here if needed.
   apis = {
-    enabled = true
+    enabled = false
   }
 
 # --- Virtual Network ---
@@ -51,14 +51,14 @@ locals {
   # When create = true (e.g. GCP): create network and subnets. When false: look up existing by name.
   # GCP: set shared_vpc_host = true to enable this project as Shared VPC host; set service_project_ids = ["project-a","project-b"] to attach service projects.
   vnet = {
-    create          = false  # If this is set to false, edit the below values that is to be used for setting up Divyam.
+    create          = true  # If this is set to false, edit the below values that is to be used for setting up Divyam.
     name            = "${local.deployment_prefix}-vnet"    
     scope_name      = "${local.resource_scope.name}" # Azure Resource Group or GCP Project where this vnet is to be created/present
     region          = "${local.region}"
     zone            = "${local.zone}"
     address_space   = ["10.0.0.0/16"]
-    subnet          = { create = false, subnet_ip = "10.0.0.0/21", name = "${local.deployment_prefix}-subnet" } # (2048 IPs)
-    app_gw_subnet   = { create = false, subnet_ip = "10.0.8.0/26", name = "${local.deployment_prefix}-subnet-app-gw" } # (64 IPs) - Required for Azure App Gateway or GCP proxy-only (min /26)
+    subnet          = { create = true, subnet_ip = "10.0.0.0/21", name = "${local.deployment_prefix}-subnet" } # (2048 IPs)
+    app_gw_subnet   = { create = true, subnet_ip = "10.0.8.0/26", name = "${local.deployment_prefix}-subnet-app-gw" } # (64 IPs) - Required for Azure App Gateway or GCP proxy-only (min /26)
     # GCP only: enable Shared VPC host and attach service projects (ignored by Azure)
     # Azure: shared_vpc_host = true peers this VNet to remote VNets whose ARM IDs are in service_project_ids.
     shared_vpc_host     = false
@@ -82,7 +82,7 @@ locals {
   # --- Bastion ---
   # Set create = true and override below. Cluster details for kubectl come from k8s section (no cloud-specific names).
   bastion = {
-    create       = false # If this is set to false, edit the below values that is to be used for setting up Divyam.
+    create       = true # If this is set to false, edit the below values that is to be used for setting up Divyam.
     bastion_name = "${local.deployment_prefix}-bastion"
     spot_instance = false
     # configure_kubectl: use only when cluster is pre-created and only the bastion needs to be set up (installs kubectl + setup-kubectl script on bastion at create time).
@@ -178,24 +178,11 @@ locals {
     node_pools = {
       default = {
         instance_type = local.cloud_provider == "azure" ? "Standard_D4s_v3" : "e2-standard-4"
-        spot_instance = false
+        spot_instance = false           # system agent should not be spot
         auto_scaling  = false
-        min_count    = 1
-        max_count    = 5
         count        = 1
       }
-      additional = {
-        gpupool = {
-          instance_type = local.cloud_provider == "azure" ? "Standard_NV6ads_A10_v5" : "n1-standard-4"
-          spot_instance = false
-          count         = 2
-          auto_scaling = false
-          min_count    = null
-          max_count    = null
-          node_taints  = ["sku=gpu:NoSchedule"]
-          node_labels  = { gpu = "true" }
-        }
-      }
+      additional = {}
     }
 
     observability = {
@@ -234,6 +221,16 @@ locals {
   }
 
 #################### Application ##########################
+
+  # --- Export Details (provider.yaml for Helm) ---
+  # Generates k8s/values/provider.yaml consumed by helmfile. Cloud-specific values (Key Vault URI, WIF, GCS bucket)
+  # are pulled from other module outputs automatically; only shared settings need to be configured here.
+  # When cloudsql.create = true, database connection details are also included.
+  export_details = {
+    cluster_domain            = ""
+    image_pull_secret_enabled = local.cloud_provider == "azure" ? true : false
+    output_dir                = "k8s/values"
+  }
 
   # If not create, can setup mysql inside K8s. Default is inside K8s
   cloudsql = {

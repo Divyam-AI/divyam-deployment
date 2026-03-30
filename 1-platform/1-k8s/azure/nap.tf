@@ -13,71 +13,7 @@ provider "kubernetes" {
 # AKS NodeClasses
 #############################################
 
-# CPU On-Demand
-resource "kubernetes_manifest" "nodeclass_cpu_ondemand" {
-  manifest = {
-    apiVersion = "karpenter.azure.com/v1beta1"
-    kind       = "AKSNodeClass"
-    metadata = {
-      name = "cpu-ondemand"
-    }
-    spec = {
-      skuFamily    = "GeneralPurpose"
-      osDiskSizeGB = 128
-    }
-  }
-}
 
-# CPU Spot
-resource "kubernetes_manifest" "nodeclass_cpu_spot" {
-  manifest = {
-    apiVersion = "karpenter.azure.com/v1beta1"
-    kind       = "AKSNodeClass"
-    metadata = {
-      name = "cpu-spot"
-    }
-    spec = {
-      skuFamily = "GeneralPurpose"
-      osDiskSizeGB = 128
-      spot = {
-        enabled = true
-      }
-    }
-  }
-}
-
-# GPU On-Demand
-resource "kubernetes_manifest" "nodeclass_gpu_ondemand" {
-  manifest = {
-    apiVersion = "karpenter.azure.com/v1beta1"
-    kind       = "AKSNodeClass"
-    metadata = {
-      name = "gpu-ondemand"
-    }
-    spec = {
-      skuFamily    = "GPU"
-      osDiskSizeGB = 256
-    }
-  }
-}
-
-# GPU Spot
-resource "kubernetes_manifest" "nodeclass_gpu_spot" {
-  manifest = {
-    apiVersion = "karpenter.azure.com/v1beta1"
-    kind       = "AKSNodeClass"
-    metadata = {
-      name = "gpu-spot"
-    }
-    spec = {
-      skuFamily    = "GPU"
-      osDiskSizeGB = 256
-      spot = {
-        enabled = true
-      }
-    }
-  }
-}
 
 #############################################
 # NodePools
@@ -85,10 +21,10 @@ resource "kubernetes_manifest" "nodeclass_gpu_spot" {
 
 # CPU On-Demand Pool
 resource "kubernetes_manifest" "nodepool_cpu_ondemand" {
-  depends_on = [kubernetes_manifest.nodeclass_cpu_ondemand]
+  depends_on = [kubernetes_manifest.nodeclass_default]
 
   manifest = {
-    apiVersion = "karpenter.sh/v1beta1"
+    apiVersion = "karpenter.sh/v1"
     kind       = "NodePool"
     metadata = {
       name = "cpu-ondemand"
@@ -102,13 +38,25 @@ resource "kubernetes_manifest" "nodepool_cpu_ondemand" {
         }
         spec = {
           nodeClassRef = {
-            name = "cpu-ondemand"
+            name  = "default"
+            kind  = "AKSNodeClass"
+            group = "karpenter.azure.com"
           }
           requirements = [
             {
               key      = "kubernetes.io/os"
               operator = "In"
               values   = ["linux"]
+            },
+            {
+              key      = "karpenter.sh/capacity-type"
+              operator = "In"
+              values   = ["on-demand"]
+            },
+            {
+              key      = "kubernetes.io/arch"
+              operator = "In"
+              values   = ["amd64"]
             }
           ]
         }
@@ -119,10 +67,10 @@ resource "kubernetes_manifest" "nodepool_cpu_ondemand" {
 
 # CPU Spot Pool
 resource "kubernetes_manifest" "nodepool_cpu_spot" {
-  depends_on = [kubernetes_manifest.nodeclass_cpu_spot]
+  depends_on = [kubernetes_manifest.nodeclass_default]
 
   manifest = {
-    apiVersion = "karpenter.sh/v1beta1"
+    apiVersion = "karpenter.sh/v1"
     kind       = "NodePool"
     metadata = {
       name = "cpu-spot"
@@ -131,19 +79,30 @@ resource "kubernetes_manifest" "nodepool_cpu_spot" {
       template = {
         metadata = {
           labels = {
-            "karpenter.sh/capacity-type" = "spot"
-            workload-type                = "cpu"
+            workload-type = "cpu"
           }
         }
         spec = {
           nodeClassRef = {
-            name = "cpu-spot"
+            name  = "default"
+            kind  = "AKSNodeClass"
+            group = "karpenter.azure.com"
           }
           requirements = [
             {
               key      = "kubernetes.io/os"
               operator = "In"
               values   = ["linux"]
+            },
+            {
+              key      = "karpenter.sh/capacity-type"
+              operator = "In"
+              values   = ["spot"]
+            },
+            {
+              key      = "kubernetes.io/arch"
+              operator = "In"
+              values   = ["amd64"]
             }
           ]
         }
@@ -154,10 +113,10 @@ resource "kubernetes_manifest" "nodepool_cpu_spot" {
 
 # GPU On-Demand Pool
 resource "kubernetes_manifest" "nodepool_gpu_ondemand" {
-  depends_on = [kubernetes_manifest.nodeclass_gpu_ondemand]
+  depends_on = [kubernetes_manifest.nodeclass_default]
 
   manifest = {
-    apiVersion = "karpenter.sh/v1beta1"
+    apiVersion = "karpenter.sh/v1"
     kind       = "NodePool"
     metadata = {
       name = "gpu-ondemand"
@@ -166,18 +125,36 @@ resource "kubernetes_manifest" "nodepool_gpu_ondemand" {
       template = {
         metadata = {
           labels = {
-            accelerator = "gpu"
+            "nvidia.com/gpu.present" = "true"
           }
         }
         spec = {
+          taints = [
+            {
+              key    = "nvidia.com/gpu"
+              effect = "NoSchedule"
+            }
+          ]
           nodeClassRef = {
-            name = "gpu-ondemand"
+            name  = "default"
+            kind  = "AKSNodeClass"
+            group = "karpenter.azure.com"
           }
           requirements = [
             {
               key      = "kubernetes.io/os"
               operator = "In"
               values   = ["linux"]
+            },
+            {
+              key      = "karpenter.sh/capacity-type"
+              operator = "In"
+              values   = ["on-demand"]
+            },
+            {
+              key      = "kubernetes.io/arch"
+              operator = "In"
+              values   = ["amd64"]
             }
           ]
         }
@@ -188,10 +165,10 @@ resource "kubernetes_manifest" "nodepool_gpu_ondemand" {
 
 # GPU Spot Pool
 resource "kubernetes_manifest" "nodepool_gpu_spot" {
-  depends_on = [kubernetes_manifest.nodeclass_gpu_spot]
+  depends_on = [kubernetes_manifest.nodeclass_default]
 
   manifest = {
-    apiVersion = "karpenter.sh/v1beta1"
+    apiVersion = "karpenter.sh/v1"
     kind       = "NodePool"
     metadata = {
       name = "gpu-spot"
@@ -200,19 +177,36 @@ resource "kubernetes_manifest" "nodepool_gpu_spot" {
       template = {
         metadata = {
           labels = {
-            accelerator                    = "gpu"
-            "karpenter.sh/capacity-type" = "spot"
+            "nvidia.com/gpu.present" = "true"
           }
         }
         spec = {
+          taints = [
+            {
+              key    = "nvidia.com/gpu"
+              effect = "NoSchedule"
+            }
+          ]
           nodeClassRef = {
-            name = "gpu-spot"
+            name  = "default"
+            kind  = "AKSNodeClass"
+            group = "karpenter.azure.com"
           }
           requirements = [
             {
               key      = "kubernetes.io/os"
               operator = "In"
               values   = ["linux"]
+            },
+            {
+              key      = "karpenter.sh/capacity-type"
+              operator = "In"
+              values   = ["spot"]
+            },
+            {
+              key      = "kubernetes.io/arch"
+              operator = "In"
+              values   = ["amd64"]
             }
           ]
         }

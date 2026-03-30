@@ -1,0 +1,91 @@
+# Export details (Azure): generates env.yaml for helmfile with platform-specific configuration.
+# Depends on: divyam_secrets (Key Vault name), iam_bindings (WIF client IDs), divyam_object_storage (storage details).
+
+include "root" {
+  path   = find_in_parent_folders("root.hcl")
+  expose = true
+}
+
+terraform {
+  source = "./"
+}
+
+dependency "divyam_secrets" {
+  config_path = "${get_repo_root()}/2-app/0-divyam_secrets/azure"
+  mock_outputs = {
+    key_vault_name = "mock-vault"
+  }
+}
+
+dependency "iam_bindings" {
+  config_path = "${get_repo_root()}/2-app/1-iam_bindings/azure"
+  mock_outputs = {
+    uai_client_ids = {}
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+}
+
+dependency "divyam_object_storage" {
+  config_path = "${get_repo_root()}/1-platform/0-divyam_object_storage/azure"
+  mock_outputs = {
+    router_requests_logs_storage_account_name = ""
+    router_requests_logs_container_names      = []
+  }
+}
+
+locals {
+  root      = include.root.locals.merged
+  repo_root = get_repo_root()
+  env       = local.root.env_name
+
+  export_cfg = try(local.root.export_details, {})
+
+  key_vault_name = try(
+    dependency.divyam_secrets.outputs.key_vault_name,
+    try(local.root.divyam_secrets.store_name, "")
+  )
+
+  storage_account = try(
+    dependency.divyam_object_storage.outputs.router_requests_logs_storage_account_name,
+    try(one([for s in local.root.divyam_object_storages : s.storage_account_name if s.type == "router-requests-logs"]), "")
+  )
+
+  storage_container = try(
+    one(dependency.divyam_object_storage.outputs.router_requests_logs_container_names),
+    try(one([for s in local.root.divyam_object_storages : s.container_name if s.type == "router-requests-logs"]), "")
+  )
+
+  # Map UAI client IDs from iam_bindings to the workload names expected by helmfile.
+  # Keys follow the pattern: <base-sa-name>-<env>-sa_uai_client_id (or k8s_service_account_name_uai_client_id).
+  uai_client_ids = try(dependency.iam_bindings.outputs.uai_client_ids, {})
+
+  wif_client_id_map = {
+    "router-controller"     = try(local.uai_client_ids["divyam-router-controller-${local.env}-sa_uai_client_id"], "")
+    "mysql"                 = try(local.uai_client_ids["mysql-${local.env}-sa_uai_client_id"], "")
+    "clickhouse"            = try(local.uai_client_ids["clickhouse-${local.env}-sa_uai_client_id"], "")
+    "divyam-db-upgrades"    = try(local.uai_client_ids["divyam-db-upgrades-${local.env}-sa_uai_client_id"], "")
+    "divyam-evaluator"      = try(local.uai_client_ids["divyam-evaluator-${local.env}-sa_uai_client_id"], "")
+    "divyam-route-selector" = try(local.uai_client_ids["divyam-route-selector-${local.env}-sa_uai_client_id"], "")
+    "selector-training"     = try(local.uai_client_ids["divyam-selector-training-${local.env}-sa_uai_client_id"], "")
+    "superset-postgres"     = try(local.uai_client_ids["superset-postgres-${local.env}-sa_uai_client_id"], "")
+  }
+}
+
+inputs = {
+  environment               = local.root.env_name
+  key_vault_name            = local.key_vault_name
+  client_secret_ref         = try(local.export_cfg.client_secret_ref, "")
+  storage_container         = local.storage_container
+  storage_account           = local.storage_account
+  tenant_id                 = get_env("ARM_TENANT_ID", "")
+  wif_client_id_map         = local.wif_client_id_map
+  cluster_domain            = try(local.export_cfg.cluster_domain, "")
+  image_pull_secret_enabled = try(local.export_cfg.image_pull_secret_enabled, true)
+  output_path               = "${local.repo_root}/${try(local.export_cfg.output_dir, "k8s/values")}/env.yaml"
+
+  common_tags = try(include.root.inputs.common_tags, {})
+  tag_globals = try(include.root.inputs.tag_globals, {})
+  tag_context = {
+    resource_name = local.root.deployment_prefix
+  }
+}
