@@ -264,17 +264,11 @@ charts:
       backendNodeSelector:
         cloud.google.com/gke-spot: "true"
 
-  # Control-plane export CronJob (chart: divyam-helm-charts/charts/divyam-control-plane).
-  # platform.gcp.secretsProjectId comes from env.yaml; bind a GCP SA to the KSA for Secret Manager.
-  divyam-control-plane:
+  # Client-side control-plane exporter.
+  divyam-control-plane-exporter:
     values:
       export:
-        credentialsFromSecretManager: false
-        # When true, set GSM secret ids and grant the export KSA secretAccessor:
-        # gcpSecretNames:
-        #   base_url: cp-export-divyam-base-url
-        #   deployment_id: cp-export-deployment-id
-        #   bearer_token: cp-export-bearer-token
+        credentialsFromSecretManager: true
       wif:
         gcp:
           saName: ""
