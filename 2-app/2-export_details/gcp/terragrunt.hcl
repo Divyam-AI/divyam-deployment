@@ -23,7 +23,6 @@ dependency "cloudsql" {
     private_ip_address = ""
     database_name      = ""
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
 }
 
 locals {
@@ -36,16 +35,13 @@ locals {
   cloudsql_cfg     = try(local.root.cloudsql, {})
   cloudsql_created = try(local.cloudsql_cfg.create, false)
 
-  storage_bucket = try(
-    dependency.divyam_object_storage.outputs.router_requests_logs_bucket_name,
-    try(one([for s in local.root.divyam_object_storages : s.container_name if s.type == "router-requests-logs"]), "")
-  )
+  storage_bucket = try(one([for s in local.root.divyam_object_storages : s.container_name if s.type == "router-requests-logs"]), "")
 }
 
 inputs = {
   environment               = local.env
   project_id                = local.root.resource_scope.name
-  storage_bucket            = local.storage_bucket
+  storage_bucket            = try(dependency.divyam_object_storage.outputs.router_requests_logs_bucket_name, local.storage_bucket)
   cluster_domain            = try(local.export_cfg.cluster_domain, "")
   image_pull_secret_enabled = try(local.export_cfg.image_pull_secret_enabled, false)
   output_path               = "${local.repo_root}/${try(local.export_cfg.output_dir, "k8s/values")}/provider.yaml"

@@ -159,7 +159,7 @@ resource "azurerm_role_assignment" "role_assignments" {
   principal_id         = azurerm_user_assigned_identity.identities[each.value.sa_name].principal_id
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
     ignore_changes = [
       name,
       role_definition_name,

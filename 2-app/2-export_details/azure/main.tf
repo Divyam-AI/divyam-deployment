@@ -1,12 +1,3 @@
-terraform {
-  required_providers {
-    local = {
-      source  = "hashicorp/local"
-      version = ">= 2.0.0"
-    }
-  }
-}
-
 locals {
   key_vault_uri = "https://${var.key_vault_name}.vault.azure.net/"
 

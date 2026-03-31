@@ -234,6 +234,10 @@ charts:
       nodeSelector: {}
 
 
+  # Client-side control-plane exporter.
+  divyam-control-plane-exporter:
+    values: {}
+
   divyam-db-upgrades:
     values: {}
 

@@ -1,3 +1,4 @@
+
 variable "location" {
   description = "Azure provider location"
   type        = string
