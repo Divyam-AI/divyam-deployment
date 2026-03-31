@@ -1,5 +1,5 @@
-# Export details (GCP): generates env.yaml for helmfile with platform-specific configuration.
-# Values from defaults.hcl; storage bucket from divyam_object_storage outputs.
+# Export details (GCP): generates provider.yaml for helmfile with platform-specific configuration.
+# Values from defaults.hcl; storage bucket from divyam_object_storage; databases from cloudsql (when created).
 
 include "root" {
   path   = find_in_parent_folders("root.hcl")
@@ -17,11 +17,24 @@ dependency "divyam_object_storage" {
   }
 }
 
+dependency "cloudsql" {
+  config_path = "${get_repo_root()}/2-app/0-cloudsql/gcp"
+  mock_outputs = {
+    private_ip_address = ""
+    database_name      = ""
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+}
+
 locals {
   root      = include.root.locals.merged
   repo_root = get_repo_root()
+  env       = local.root.env_name
 
   export_cfg = try(local.root.export_details, {})
+
+  cloudsql_cfg     = try(local.root.cloudsql, {})
+  cloudsql_created = try(local.cloudsql_cfg.create, false)
 
   storage_bucket = try(
     dependency.divyam_object_storage.outputs.router_requests_logs_bucket_name,
@@ -30,12 +43,17 @@ locals {
 }
 
 inputs = {
-  environment               = local.root.env_name
+  environment               = local.env
   project_id                = local.root.resource_scope.name
   storage_bucket            = local.storage_bucket
   cluster_domain            = try(local.export_cfg.cluster_domain, "")
   image_pull_secret_enabled = try(local.export_cfg.image_pull_secret_enabled, false)
-  output_path               = "${local.repo_root}/${try(local.export_cfg.output_dir, "k8s/values")}/env.yaml"
+  output_path               = "${local.repo_root}/${try(local.export_cfg.output_dir, "k8s/values")}/provider.yaml"
+
+  cloudsql_created = local.cloudsql_created
+  mysql_host       = local.cloudsql_created ? try(dependency.cloudsql.outputs.private_ip_address, "") : ""
+  mysql_port       = 3306
+  mysql_database   = local.cloudsql_created ? try(dependency.cloudsql.outputs.database_name, "divyam_${local.env}") : "divyam_${local.env}"
 
   common_tags = try(include.root.inputs.common_tags, {})
   tag_globals = try(include.root.inputs.tag_globals, {})

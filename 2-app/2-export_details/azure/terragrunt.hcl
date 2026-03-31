@@ -1,5 +1,6 @@
-# Export details (Azure): generates env.yaml for helmfile with platform-specific configuration.
-# Depends on: divyam_secrets (Key Vault name), iam_bindings (WIF client IDs), divyam_object_storage (storage details).
+# Export details (Azure): generates provider.yaml for helmfile with platform-specific configuration.
+# Depends on: divyam_secrets (Key Vault name), iam_bindings (WIF client IDs),
+#             divyam_object_storage (storage details), cloudsql (MySQL details when created).
 
 include "root" {
   path   = find_in_parent_folders("root.hcl")
@@ -33,12 +34,24 @@ dependency "divyam_object_storage" {
   }
 }
 
+dependency "cloudsql" {
+  config_path = "${get_repo_root()}/2-app/0-cloudsql/azure"
+  mock_outputs = {
+    mysql_server_fqdn  = ""
+    mysql_database_name = ""
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+}
+
 locals {
   root      = include.root.locals.merged
   repo_root = get_repo_root()
   env       = local.root.env_name
 
   export_cfg = try(local.root.export_details, {})
+
+  cloudsql_cfg     = try(local.root.cloudsql, {})
+  cloudsql_created = try(local.cloudsql_cfg.create, false)
 
   key_vault_name = try(
     dependency.divyam_secrets.outputs.key_vault_name,
@@ -72,16 +85,20 @@ locals {
 }
 
 inputs = {
-  environment               = local.root.env_name
+  environment               = local.env
   key_vault_name            = local.key_vault_name
-  client_secret_ref         = try(local.export_cfg.client_secret_ref, "")
   storage_container         = local.storage_container
   storage_account           = local.storage_account
   tenant_id                 = get_env("ARM_TENANT_ID", "")
   wif_client_id_map         = local.wif_client_id_map
   cluster_domain            = try(local.export_cfg.cluster_domain, "")
   image_pull_secret_enabled = try(local.export_cfg.image_pull_secret_enabled, true)
-  output_path               = "${local.repo_root}/${try(local.export_cfg.output_dir, "k8s/values")}/env.yaml"
+  output_path               = "${local.repo_root}/${try(local.export_cfg.output_dir, "k8s/values")}/provider.yaml"
+
+  cloudsql_created = local.cloudsql_created
+  mysql_host       = local.cloudsql_created ? try(dependency.cloudsql.outputs.mysql_server_fqdn, "") : ""
+  mysql_port       = 3306
+  mysql_database   = local.cloudsql_created ? try(dependency.cloudsql.outputs.mysql_database_name, "divyam_${local.env}") : "divyam_${local.env}"
 
   common_tags = try(include.root.inputs.common_tags, {})
   tag_globals = try(include.root.inputs.tag_globals, {})

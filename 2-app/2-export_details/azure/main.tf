@@ -14,16 +14,15 @@ locals {
     for name, client_id in var.wif_client_id_map : "        ${name}: \"${client_id}\""
   ])
 
-  env_yaml_content = <<-EOT
+  platform_block = <<-EOT
 # Global config and platform provider (Azure)
-# Combined with artifacts.yaml and resources.yaml via helmfile
+# Combined with resources.yaml and artifacts.yaml via helmfile
 
 environment: ${var.environment}
 platform:
   provider: AZURE
   azure:
     keyVaultUri: "${local.key_vault_uri}"
-    clientSecretRef: ${var.client_secret_ref}
     storage_configs:
       container: "${var.storage_container}"
       storage_account: "${var.storage_account}"
@@ -37,10 +36,21 @@ clusterDomain: "${var.cluster_domain}"
 imagePullSecretConfig:
   enabled: ${var.image_pull_secret_enabled}
 EOT
+
+  databases_block = <<-EOT
+
+databases:
+  mysql:
+    host: "${var.mysql_host}"
+    port: ${var.mysql_port}
+    database: "${var.mysql_database}"
+EOT
+
+  provider_yaml_content = var.cloudsql_created ? "${local.platform_block}${local.databases_block}" : local.platform_block
 }
 
 resource "local_file" "provider_yaml" {
   filename        = var.output_path
-  content         = local.env_yaml_content
+  content         = local.provider_yaml_content
   file_permission = "0644"
 }

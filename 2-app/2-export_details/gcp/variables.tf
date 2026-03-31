@@ -4,7 +4,7 @@ variable "environment" {
 }
 
 variable "project_id" {
-  description = "GCP project ID (used as secretsProjectId in env.yaml)."
+  description = "GCP project ID (used as secretsProjectId in provider.yaml)."
   type        = string
 }
 
@@ -27,6 +27,30 @@ variable "image_pull_secret_enabled" {
 }
 
 variable "output_path" {
-  description = "Absolute path for the generated env.yaml file."
+  description = "Absolute path for the generated provider.yaml file."
   type        = string
+}
+
+variable "cloudsql_created" {
+  description = "Whether Cloud SQL was created. When true, the databases section is included in provider.yaml."
+  type        = bool
+  default     = false
+}
+
+variable "mysql_host" {
+  description = "MySQL host IP (Cloud SQL private IP)."
+  type        = string
+  default     = ""
+}
+
+variable "mysql_port" {
+  description = "MySQL port."
+  type        = number
+  default     = 3306
+}
+
+variable "mysql_database" {
+  description = "MySQL database name."
+  type        = string
+  default     = ""
 }
