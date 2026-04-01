@@ -1,5 +1,5 @@
 # Database config and per-chart values (resources, nodeSelector, persistence, etc.)
-# Merged with env.yaml and artifacts.yaml via helmfile
+# Merged with provider.yaml and artifacts.yaml via helmfile
 
 settings:
   use_spot_nodes: false
