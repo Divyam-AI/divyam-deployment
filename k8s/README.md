@@ -113,7 +113,7 @@ git commit -m "Add environment config for <env>"
 git push origin main
 
 # 5. First-time install
-ARTIFACTS_VERSION=26.04.01-rc1 helmfile sync
+ARTIFACTS_VERSION=26.04.01-rc1 helmfile -f helmfile.yaml.gotmpl sync
 ```
 
 ---
@@ -143,7 +143,7 @@ git merge upstream/main --no-edit
 
 # 3. Deploy
 cd k8s
-helmfile apply
+helmfile -f helmfile.yaml.gotmpl apply
 ```
 
 > It is recommended to use `helmfile apply` in CD pipelines, as it only upgrades releases where a diff is detected, resulting in incremental and efficient updates.  

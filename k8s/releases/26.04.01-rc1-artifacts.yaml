@@ -1,5 +1,5 @@
 # Chart versions and docker image references
-# Merged with env.yaml and resources.yaml via helmfile
+# Merged with provider.yaml and resources.yaml via helmfile
 
 divyam-selector-training:
   chart:
