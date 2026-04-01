@@ -21,9 +21,10 @@ dependency "divyam_secrets" {
 dependency "iam_bindings" {
   config_path = "${get_repo_root()}/2-app/1-iam_bindings/azure"
   mock_outputs = {
-    uai_client_ids = {}
+    uai_client_ids   = {}
+    uai_ids          = {}
+    service_accounts = {}
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
 }
 
 dependency "divyam_object_storage" {
@@ -64,14 +65,15 @@ inputs = {
   storage_container = try(one(dependency.divyam_object_storage.outputs.router_requests_logs_container_names), local.storage_container)
   tenant_id         = get_env("ARM_TENANT_ID", "")
   wif_client_id_map = {
-    "router-controller"     = try(dependency.iam_bindings.outputs.uai_client_ids["divyam-router-controller-${local.env}-sa_uai_client_id"], "")
+    "divyam-router-controller"     = try(dependency.iam_bindings.outputs.uai_client_ids["divyam-router-controller-${local.env}-sa_uai_client_id"], "")
     "mysql"                 = try(dependency.iam_bindings.outputs.uai_client_ids["mysql-${local.env}-sa_uai_client_id"], "")
     "clickhouse"            = try(dependency.iam_bindings.outputs.uai_client_ids["clickhouse-${local.env}-sa_uai_client_id"], "")
     "divyam-db-upgrades"    = try(dependency.iam_bindings.outputs.uai_client_ids["divyam-db-upgrades-${local.env}-sa_uai_client_id"], "")
     "divyam-evaluator"      = try(dependency.iam_bindings.outputs.uai_client_ids["divyam-evaluator-${local.env}-sa_uai_client_id"], "")
     "divyam-route-selector" = try(dependency.iam_bindings.outputs.uai_client_ids["divyam-route-selector-${local.env}-sa_uai_client_id"], "")
-    "selector-training"     = try(dependency.iam_bindings.outputs.uai_client_ids["divyam-selector-training-${local.env}-sa_uai_client_id"], "")
+    "divyam-selector-training"     = try(dependency.iam_bindings.outputs.uai_client_ids["divyam-selector-training-${local.env}-sa_uai_client_id"], "")
     "superset-postgres"     = try(dependency.iam_bindings.outputs.uai_client_ids["superset-postgres-${local.env}-sa_uai_client_id"], "")
+    "kafka-connect"         = try(dependency.iam_bindings.outputs.uai_client_ids["kafka-${local.env}-connect_uai_client_id"], "")
   }
   cluster_domain            = try(local.export_cfg.cluster_domain, "")
   image_pull_secret_enabled = try(local.export_cfg.image_pull_secret_enabled, true)

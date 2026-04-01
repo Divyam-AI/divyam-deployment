@@ -23,19 +23,12 @@ locals {
   rendered_tags_for_pool     = { for pk in keys(var.cluster.additional_node_pools) : pk => { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = pk }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) } }
 
   log_streams = [
-    "Microsoft-ContainerLog",
     "Microsoft-ContainerLogV2",
     "Microsoft-KubeEvents",
     "Microsoft-KubePodInventory",
     "Microsoft-KubeNodeInventory",
     "Microsoft-KubePVInventory",
-    "Microsoft-KubeServices",
-    "Microsoft-KubeMonAgentEvents",
-    "Microsoft-InsightsMetrics",
-    "Microsoft-ContainerInventory",
-    "Microsoft-ContainerNodeInventory",
-    "Microsoft-Perf",
-  ]
+    "Microsoft-KubeServices"  ]
 
   # Optional: namespaces for log collection; from artifacts or empty when artifacts_path not set.
   namespaces = var.artifacts_path != null && var.artifacts_path != "" ? try(
@@ -367,7 +360,7 @@ resource "azurerm_role_assignment" "grafana_reader" {
   principal_id         = azurerm_dashboard_grafana.grafana["enabled"].identity[0].principal_id
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
     ignore_changes = [
       name,
       role_definition_name,

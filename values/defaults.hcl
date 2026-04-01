@@ -229,7 +229,7 @@ locals {
   export_details = {
     cluster_domain            = ""
     image_pull_secret_enabled = local.cloud_provider == "azure" ? true : false
-    output_dir                = "k8s/values"
+    output_dir                = "k8s/helm-values"
   }
 
   # If not create, can setup mysql inside K8s. Default is inside K8s
