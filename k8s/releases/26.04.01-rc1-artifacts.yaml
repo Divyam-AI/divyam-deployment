@@ -1,12 +1,12 @@
 # Chart versions and docker image references
-# Merged with env.yaml and resources.yaml via helmfile
+# Merged with provider.yaml and resources.yaml via helmfile
 
 divyam-selector-training:
   chart:
     version: 0.1.0
   values:
     image:
-      tag: "0.0.74"
+      tag: "0.0.76"
 
 divyam-evaluator:
   chart:
@@ -20,7 +20,7 @@ divyam-router-controller:
     version: 0.1.0
   values:
     image:
-      tag: "0.1.184"
+      tag: "0.1.186"
 
 divyam-route-selector:
   chart:

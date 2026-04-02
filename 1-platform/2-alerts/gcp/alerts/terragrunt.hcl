@@ -65,4 +65,7 @@ inputs = merge(
   }
 )
 
-skip = !try(local.alerts_cfg.enabled, false)
+exclude {
+  if = !try(local.alerts_cfg.enabled, false)
+  actions = ["apply", "plan", "destroy", "refresh", "import"]
+}

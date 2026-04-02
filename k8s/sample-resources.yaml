@@ -1,9 +1,6 @@
-# Database config and per-chart values (resources, nodeSelector, persistence, etc.)
-# Merged with env.yaml and artifacts.yaml via helmfile
-
 settings:
-  use_spot_nodes: false
-  # storage_class: premiumSsd   # Optional: overrides storageClasses.default in divyam-persistent-storage
+  use_spot_nodes: true
+  storage_class: economyHdd   # Possible values: economyHdd, standardSsd, premiumSsd
 
 charts:
   divyam-persistent-storage:
@@ -27,12 +24,11 @@ charts:
     values:
       resources: {}
       ingress:
-        deploy: false
+        deploy: true
         external: false
 
 
   divyam-route-selector:
-    condition: false
     values:
       resources:
         requests:
@@ -47,18 +43,28 @@ charts:
   divyam-selector-training:
     values:
       schedule: "*/1 * * * *"
-      resources: {}
+      resources:
+        requests:
+          cpu: "1"
+          memory: "2Gi"
+        limits:
+          cpu: "1"
+          memory: "2Gi"
 
   divyam-evaluator:
     values:
-      resources: {}
-
+      resources:
+        requests:
+          cpu: "1"
+          memory: "2Gi"
+        limits:
+          cpu: "1"
+          memory: "2Gi"
 
   altinity-clickhouse-operator:
     values:
       metrics:
         enabled: true
-
 
   clickhouse:
     values:
@@ -72,7 +78,6 @@ charts:
             memory: "4Gi"
         persistence:
           size: 20Gi
-          storageClass: "managed-csi"
       keeper:
         resources:
           requests:
@@ -83,7 +88,6 @@ charts:
             memory: "1Gi"
         localStorage:
           size: 10Gi
-          storageClass: "managed-csi"
 
   strimzi-kafka-operator:
     values:
@@ -100,7 +104,6 @@ charts:
       nodepool:
         storage:
           size: "20Gi"
-          class: "managed-csi"
         resources:
           requests:
             memory: "4Gi"
@@ -138,14 +141,18 @@ charts:
   divyam-redis:
     values:
       persistence:
-        storageClass: "managed-csi"
         size: 5Gi
         enabled: true
-      resources: {}
+      resources:
+        requests:
+          cpu: "1"
+          memory: "2Gi"
+        limits:
+          cpu: "1"
+          memory: "2Gi"
 
   superset-postgres:
     values:
-      storage_class: managed-csi
       storage: 5Gi
       resources:
         requests:
@@ -179,7 +186,6 @@ charts:
   qdrant:
     values:
       persistence:
-        storageClassName: "managed-csi"
         size: 10Gi
         accessModes: ["ReadWriteOnce"]
       resources:
@@ -201,9 +207,6 @@ charts:
         limits:
           cpu: 100m
           memory: 512Mi
-      nodeSelector:
-        karpenter.sh/capacity-type: spot
-
 
   kafka-connect:
     values:
@@ -230,13 +233,11 @@ charts:
   superset-ingress:
     values:
       ingress:
-        deploy: false
-      nodeSelector: {}
+        deploy: true
 
-
-  # Client-side control-plane exporter.
-  divyam-control-plane-exporter:
-    values: {}
+  # # Client-side control-plane exporter.
+  # divyam-control-plane-exporter:
+  #   values: {}
 
   divyam-db-upgrades:
     values: {}

@@ -1,19 +1,22 @@
 #############################################
-# Kubernetes Provider (uses AKS from main.tf)
+# Kubernetes & Helm Providers (from AKS dependency)
 #############################################
 
 provider "kubernetes" {
-  host                   = local.aks_cluster.kube_config[0].host
-  client_certificate     = base64decode(local.aks_cluster.kube_config[0].client_certificate)
-  client_key             = base64decode(local.aks_cluster.kube_config[0].client_key)
-  cluster_ca_certificate = base64decode(local.aks_cluster.kube_config[0].cluster_ca_certificate)
+  host                   = var.kube_config.host
+  client_certificate     = base64decode(var.kube_config.client_certificate)
+  client_key             = base64decode(var.kube_config.client_key)
+  cluster_ca_certificate = base64decode(var.kube_config.cluster_ca_certificate)
 }
 
-#############################################
-# AKS NodeClasses
-#############################################
-
-
+provider "helm" {
+  kubernetes = {
+    host                   = var.kube_config.host
+    client_certificate     = base64decode(var.kube_config.client_certificate)
+    client_key             = base64decode(var.kube_config.client_key)
+    cluster_ca_certificate = base64decode(var.kube_config.cluster_ca_certificate)
+  }
+}
 
 #############################################
 # NodePools
@@ -21,7 +24,6 @@ provider "kubernetes" {
 
 # CPU On-Demand Pool
 resource "kubernetes_manifest" "nodepool_cpu_ondemand" {
-  depends_on = [kubernetes_manifest.nodeclass_default]
 
   manifest = {
     apiVersion = "karpenter.sh/v1"
@@ -67,7 +69,6 @@ resource "kubernetes_manifest" "nodepool_cpu_ondemand" {
 
 # CPU Spot Pool
 resource "kubernetes_manifest" "nodepool_cpu_spot" {
-  depends_on = [kubernetes_manifest.nodeclass_default]
 
   manifest = {
     apiVersion = "karpenter.sh/v1"
@@ -113,7 +114,6 @@ resource "kubernetes_manifest" "nodepool_cpu_spot" {
 
 # GPU On-Demand Pool
 resource "kubernetes_manifest" "nodepool_gpu_ondemand" {
-  depends_on = [kubernetes_manifest.nodeclass_default]
 
   manifest = {
     apiVersion = "karpenter.sh/v1"
@@ -165,7 +165,6 @@ resource "kubernetes_manifest" "nodepool_gpu_ondemand" {
 
 # GPU Spot Pool
 resource "kubernetes_manifest" "nodepool_gpu_spot" {
-  depends_on = [kubernetes_manifest.nodeclass_default]
 
   manifest = {
     apiVersion = "karpenter.sh/v1"
@@ -216,17 +215,8 @@ resource "kubernetes_manifest" "nodepool_gpu_spot" {
 }
 
 #############################################
-# Helm Provider
+# NVIDIA GPU Device Plugin
 #############################################
-provider "helm" {
-  kubernetes = {
-    host                   = local.aks_cluster.kube_config[0].host
-    client_certificate     = base64decode(local.aks_cluster.kube_config[0].client_certificate)
-    client_key             = base64decode(local.aks_cluster.kube_config[0].client_key)
-    cluster_ca_certificate = base64decode(local.aks_cluster.kube_config[0].cluster_ca_certificate)
-  }
-}
-
 resource "helm_release" "nvidia_device_plugin" {
   name       = "nvidia-device-plugin"
   repository = "https://nvidia.github.io/k8s-device-plugin"
@@ -235,11 +225,5 @@ resource "helm_release" "nvidia_device_plugin" {
 
   create_namespace = false
 
-  # Ensure cluster exists first
-  depends_on = [
-    azurerm_kubernetes_cluster.aks_cluster
-  ]
-
-  # Optional but useful for stability
   timeout = 600
 }
