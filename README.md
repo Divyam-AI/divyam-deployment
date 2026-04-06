@@ -27,7 +27,7 @@ This repository gives your team everything needed to setup up a complete Divyam 
 │   ├── helm-values/                #   provider.yaml, resources.yaml
 │   └── releases/                   #   Versioned artifact files
 ├── scripts/
-│   └── write-outputs-yaml.sh       #   OpenTofu outputs → YAML/JSON for Helm
+│   ├── write-outputs-yaml.sh       #   OpenTofu outputs → YAML/JSON for Helm
 |   └── check_cloud_credentials.sh  #   Cloud login validator
 └── terragrunt.hcl                  # Root Terragrunt entry point
 ```
