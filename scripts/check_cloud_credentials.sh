@@ -37,18 +37,30 @@ check_cloud_credentials() {
         fi
         # Azure CLI (az login)
         if ! command -v az &>/dev/null; then
-            echo "Error: Azure credentials not found. Either:"
+            echo "Error: Azure CLI not found. Either:"
             echo "  1. Export ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_SUBSCRIPTION_ID, ARM_TENANT_ID, or"
             echo "  2. Install Azure CLI and run: az login"
             exit 1
         fi
-        if ! az account show &>/dev/null; then
+        _arm_missing=""
+        _az_account_ok=false
+        if az account show &>/dev/null; then
+            _az_account_ok=true
+        else
             echo "Error: Not logged in to Azure, or session expired."
-            echo "Run: az login"
-            echo "Or export ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_SUBSCRIPTION_ID, ARM_TENANT_ID."
+            echo "Run: export ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_SUBSCRIPTION_ID, ARM_TENANT_ID and run: az login"
             exit 1
         fi
-        echo "Azure credentials OK (az account)."
+        for _v in ARM_CLIENT_ID ARM_CLIENT_SECRET ARM_SUBSCRIPTION_ID ARM_TENANT_ID; do
+            if [ -z "${!_v:-}" ]; then
+                _arm_missing="${_arm_missing}${_arm_missing:+ }${_v}"
+            fi
+        done
+
+        if [ -n "${_arm_missing}" ]; then
+            echo "ARM_* service principal variables unset or empty: ${_arm_missing}"
+            echo "All four are required for non-interactive auth."
+        fi
     else
         echo "Error: Invalid cloud provider: ${CLOUD_PROVIDER}"
         exit 1
