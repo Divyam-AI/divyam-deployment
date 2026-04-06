@@ -53,7 +53,7 @@ az account show
 ```bash
 az ad sp create-for-rbac --role="Contributor" --scopes="/subscriptions/$SUBSCRIPTION/resourceGroups/$RESOURCE_GROUP"
 ```
-* Assing `User Access Administrator` role to the service principal
+* Assign `User Access Administrator` role to the service principal
 ```bash
 az role assignment create \   
   --assignee "<client-id from the step above>" \
