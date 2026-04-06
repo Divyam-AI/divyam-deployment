@@ -47,12 +47,13 @@ After installing the cloud CLI, follow the steps below to setup the credentials 
 ```bash
 az login
 az account set --subscription "<SUBSCRIPTION_NAME_OR_ID>"
+az account show
 ```
 * Create a service principal and assign the role of Contributor to the resource group you want to use 
 ```bash
 az ad sp create-for-rbac --role="Contributor" --scopes="/subscriptions/$SUBSCRIPTION/resourceGroups/$RESOURCE_GROUP"
 ```
-* Assing `User Access Administrator` role to the service principal
+* Assign `User Access Administrator` role to the service principal
 ```bash
 az role assignment create \   
   --assignee "<client-id from the step above>" \
