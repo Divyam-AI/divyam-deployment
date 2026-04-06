@@ -244,7 +244,7 @@ Set up a CD pipeline (GitHub Actions, GitLab CI, ArgoCD, etc.) to deploy or upgr
 Use the following Docker image in your pipeline step.
 
 ```
-ghcr.io/divyam/divyam-deployer:latest 
+ghcr.io/divyam/divyam-deployer:latest
 ```
 
 This image ships with `helmfile`, `helm`, and all required plugins pre-installed.
@@ -266,7 +266,7 @@ cd k8s
 helmfile -f helmfile.yaml.gotmpl apply
 ```
 
-> It is recommended to use `helmfile apply` in CD pipelines, as it only upgrades releases where a diff is detected, resulting in incremental and efficient updates.  
+> It is recommended to use `helmfile apply` in CD pipelines, as it only upgrades releases where a diff is detected, resulting in incremental and efficient updates.
 > In contrast, `helmfile sync` performs a hard upgrade of all releases, regardless of whether there are any changes, which can lead to unnecessary restarts or rollouts.
 
 ---
@@ -321,3 +321,4 @@ Common knobs: `resources`, `nodeSelector`, `persistence`/`storage`, `replicaCoun
 - Always `diff` before `apply` to preview changes.
 - Use `-l name=<chart>-<env>` to target a single release.
 - Set `enabled: false` on any chart in `resources.yaml` to skip it.
+- Namespace mapping is group-driven in `helmfile.yaml.gotmpl`.
