@@ -11,14 +11,14 @@ terraform {
 }
 
 dependency "divyam_object_storage" {
-  config_path = "${get_repo_root()}/1-platform/0-divyam_object_storage/gcp"
+  config_path = "${get_repo_root()}/iac/1-platform/0-divyam_object_storage/gcp"
   mock_outputs = {
     router_requests_logs_bucket_name = ""
   }
 }
 
 dependency "cloudsql" {
-  config_path = "${get_repo_root()}/2-app/0-cloudsql/gcp"
+  config_path = "${get_repo_root()}/iac/2-app/0-cloudsql/gcp"
   mock_outputs = {
     private_ip_address = ""
     database_name      = ""

@@ -12,14 +12,14 @@ terraform {
 }
 
 dependency "divyam_secrets" {
-  config_path = "${get_repo_root()}/2-app/0-divyam_secrets/azure"
+  config_path = "${get_repo_root()}/iac/2-app/0-divyam_secrets/azure"
   mock_outputs = {
     key_vault_name = "mock-vault"
   }
 }
 
 dependency "iam_bindings" {
-  config_path = "${get_repo_root()}/2-app/1-iam_bindings/azure"
+  config_path = "${get_repo_root()}/iac/2-app/1-iam_bindings/azure"
   mock_outputs = {
     uai_client_ids   = {}
     uai_ids          = {}
@@ -28,7 +28,7 @@ dependency "iam_bindings" {
 }
 
 dependency "divyam_object_storage" {
-  config_path = "${get_repo_root()}/1-platform/0-divyam_object_storage/azure"
+  config_path = "${get_repo_root()}/iac/1-platform/0-divyam_object_storage/azure"
   mock_outputs = {
     router_requests_logs_storage_account_name = ""
     router_requests_logs_container_names      = []
@@ -36,7 +36,7 @@ dependency "divyam_object_storage" {
 }
 
 dependency "cloudsql" {
-  config_path = "${get_repo_root()}/2-app/0-cloudsql/azure"
+  config_path = "${get_repo_root()}/iac/2-app/0-cloudsql/azure"
   mock_outputs = {
     mysql_server_fqdn  = ""
     mysql_database_name = ""

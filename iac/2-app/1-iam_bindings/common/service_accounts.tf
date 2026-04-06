@@ -67,6 +67,16 @@ locals {
       namespace_prefix = "route-selector"
       roles            = ["secret_reader","resource_reader", "blob_reader"]
     }
+
+    divyam-control-plane-exporter = {
+      namespace_prefix = "control-plane-exporter"
+      roles            = ["secret_reader","resource_reader"]
+    }
+
+    divyam-e2e-test-runner = {
+      namespace_prefix = "e2e-test-runner"
+      roles            = ["secret_reader","resource_reader","blob_reader", "blob_writer"]
+    }
   }
 
   ##########################################

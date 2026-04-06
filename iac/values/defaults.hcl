@@ -5,8 +5,8 @@
 locals {
   # Can replace these with actual values
   cloud_provider    = get_env("CLOUD_PROVIDER","azure") 
-  env_name          = get_env("ENV","prod")
-  org_name          = get_env("ORG_NAME", "")
+  env_name          = get_env("ENV","preprod")
+  org_name          = get_env("ORG_NAME", "bkt")
   region            = get_env("REGION","centralindia")
   zone              = get_env("ZONE","centralindia-1")
 
@@ -34,7 +34,7 @@ locals {
 # --- Resource Scope ---
 # Azure: resource_group_name | GCP: project_id
   resource_scope = {
-    create          = true   # If this is set to false, edit the name below to the resource name that is to be used for setting up Divyam.
+    create          = false   # If this is set to false, edit the name below to the resource name that is to be used for setting up Divyam.
     name            = "${local.deployment_prefix}-rg"
     # Get it from https://portal.azure.com/#view/Microsoft_Azure_Billing/SubscriptionsBladeV2 or https://console.cloud.google.com/billing/
     billing_account = get_env("BILLING_ACCOUNT", "") # BILLING_ACCOUNT is required if create is true
@@ -51,7 +51,7 @@ locals {
   # When create = true (e.g. GCP): create network and subnets. When false: look up existing by name.
   # GCP: set shared_vpc_host = true to enable this project as Shared VPC host; set service_project_ids = ["project-a","project-b"] to attach service projects.
   vnet = {
-    create          = true  # If this is set to false, edit the below values that is to be used for setting up Divyam.
+    create          = false  # If this is set to false, edit the below values that is to be used for setting up Divyam.
     name            = "${local.deployment_prefix}-vnet"    
     scope_name      = "${local.resource_scope.name}" # Azure Resource Group or GCP Project where this vnet is to be created/present
     region          = "${local.region}"
@@ -69,7 +69,7 @@ locals {
   # Azure: NAT Gateway + Public IP, associated to VNet subnets. GCP: Cloud NAT on Cloud Router for listed subnetworks.
   # Lookup names: platform modules fetch nat_gateway_ip via data sources (Azure: public IP by name; GCP: router/nat by name). Names must match 0-foundation/2-nat or existing infra.
   nat = {
-    create = true # If this is set to false, edit the below values that is to be used for setting up Divyam.
+    create = false # If this is set to false, edit the below values that is to be used for setting up Divyam.
     resource_name_prefix = "${local.deployment_prefix}"
     # Names for data-source lookup (1-platform resolves NAT IP from these; no dependency on 0-foundation).
     nat_gateway_name   = "${local.deployment_prefix}-nat-gateway"   # Azure: NAT gateway resource name
@@ -82,7 +82,7 @@ locals {
   # --- Bastion ---
   # Set create = true and override below. Cluster details for kubectl come from k8s section (no cloud-specific names).
   bastion = {
-    create       = true # If this is set to false, edit the below values that is to be used for setting up Divyam.
+    create       = false # If this is set to false, edit the below values that is to be used for setting up Divyam.
     bastion_name = "${local.deployment_prefix}-bastion"
     spot_instance = false
     # configure_kubectl: use only when cluster is pre-created and only the bastion needs to be set up (installs kubectl + setup-kubectl script on bastion at create time).
@@ -98,7 +98,7 @@ locals {
   # Override here if needed (e.g. storage_account_name, container_name for Azure).
   # local_state: when true, state is stored locally only (no cloud bucket/container created or used).
   tfstate = {
-    create         = true # If this is set to false, edit the below values that is to be used for setting up Divyam.
+    create         = false # If this is set to false, edit the below values that is to be used for setting up Divyam.
     local_state    = true
     region         = "${local.region}"
     zone           = "${local.zone}"
