@@ -47,6 +47,7 @@ After installing the cloud CLI, follow the steps below to setup the credentials 
 ```bash
 az login
 az account set --subscription "<SUBSCRIPTION_NAME_OR_ID>"
+az account show
 ```
 * Create a service principal and assign the role of Contributor to the resource group you want to use 
 ```bash
