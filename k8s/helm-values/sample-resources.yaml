@@ -1,0 +1,244 @@
+settings:
+  use_spot_nodes: true
+  storage_class: economyHdd   # Possible values: economyHdd, standardSsd, premiumSsd
+
+charts:
+  divyam-persistent-storage:
+    values: {}
+    
+  divyam-router-controller:
+    values:
+      resources:
+        requests:
+          cpu: "1"
+          memory: "2Gi"
+        limits:
+          cpu: "1"
+          memory: "2Gi"
+      replicaCount: 1
+      router:
+        workerCount: 1
+
+
+  divyam-router-controller-ingress:
+    values:
+      resources: {}
+      ingress:
+        deploy: true
+        external: false
+
+
+  divyam-route-selector:
+    values:
+      resources:
+        requests:
+          cpu: "1"
+          memory: "2Gi"
+        limits:
+          cpu: "1"
+          memory: "2Gi"
+      replicaCount: 1
+
+
+  divyam-selector-training:
+    values:
+      schedule: "*/1 * * * *"
+      resources:
+        requests:
+          cpu: "1"
+          memory: "2Gi"
+        limits:
+          cpu: "1"
+          memory: "2Gi"
+
+  divyam-evaluator:
+    values:
+      resources:
+        requests:
+          cpu: "1"
+          memory: "2Gi"
+        limits:
+          cpu: "1"
+          memory: "2Gi"
+
+  altinity-clickhouse-operator:
+    values:
+      metrics:
+        enabled: true
+
+  clickhouse:
+    values:
+      clickhouse:
+        resources:
+          requests:
+            cpu: "4"
+            memory: "4Gi"
+          limits:
+            cpu: "4"
+            memory: "4Gi"
+        persistence:
+          size: 20Gi
+      keeper:
+        resources:
+          requests:
+            cpu: "1"
+            memory: "1Gi"
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+        localStorage:
+          size: 10Gi
+
+  strimzi-kafka-operator:
+    values:
+      resources:
+        limits:
+          memory: 1Gi
+          cpu: 1
+        requests:
+          memory: 1Gi
+          cpu: 1
+
+  kafka-cluster:
+    values:
+      nodepool:
+        storage:
+          size: "20Gi"
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+
+  otel-collector:
+    values:
+      resources:
+        requests:
+          memory: "1Gi"
+          cpu: 1
+        limits:
+          memory: "1Gi"
+          cpu: 1
+      storage:
+        size: 10Gi
+
+  mysql:
+    values:
+      mysql:
+        deploy: true
+      adminer:
+        deploy: true
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+
+  divyam-redis:
+    values:
+      persistence:
+        size: 5Gi
+        enabled: true
+      resources:
+        requests:
+          cpu: "1"
+          memory: "2Gi"
+        limits:
+          cpu: "1"
+          memory: "2Gi"
+
+  superset-postgres:
+    values:
+      storage: 5Gi
+      resources:
+        requests:
+          cpu: 2
+          memory: 2Gi
+        limits:
+          cpu: 2
+          memory: 2Gi
+
+  #TODO: add gpu for infinity
+  infinity:
+    values:
+      nodeSelector:
+        node.kubernetes.io/instance-type: Standard_NV6ads_A10_v5
+
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      resources:
+        requests:
+          memory: 12Gi
+          cpu: 3
+          nvidia.com/gpu: 1
+        limits:
+          memory: 12Gi
+          cpu: 3
+          nvidia.com/gpu: 1
+      replicaCount: 1
+
+  qdrant:
+    values:
+      persistence:
+        size: 10Gi
+        accessModes: ["ReadWriteOnce"]
+      resources:
+        limits:
+          cpu: 2
+          memory: 4Gi
+        requests:
+          cpu: 2
+          memory: 4Gi
+      replicaCount: 3
+
+  external-secrets-operator:
+    values:
+      installCRDs: true
+      resources:
+        requests:
+          cpu: 100m
+          memory: 512Mi
+        limits:
+          cpu: 100m
+          memory: 512Mi
+
+  kafka-connect:
+    values:
+      resources:
+        requests:
+          cpu: 1
+          memory: 2Gi
+        limits:
+          cpu: 1
+          memory: 2Gi
+      workerReplicaCount: 2
+
+  superset:
+    values:
+      supersetWorker:
+        resources:
+          limits:
+            cpu: 1
+            memory: 2Gi
+          requests:
+            cpu: 1
+            memory: 2Gi
+
+  superset-ingress:
+    values:
+      ingress:
+        deploy: true
+
+  # # Client-side control-plane exporter.
+  # divyam-control-plane-exporter:
+  #   values: {}
+
+  divyam-db-upgrades:
+    values: {}
+

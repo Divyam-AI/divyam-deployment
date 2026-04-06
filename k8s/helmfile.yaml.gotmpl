@@ -10,6 +10,10 @@ helmDefaults:
   wait: true
   timeout: 600
   atomic: true
+  diffArgs:
+    - "--normalize-manifests"
+    - "--three-way-merge"
+  
 
 repositories:
   - name: external-secrets
@@ -19,12 +23,40 @@ repositories:
 # 1. Load and Merge Values
 ###############################################################################
 
-{{- $valuesDir := env "HELMFILE_VALUES_DIR" | default "./values" }}
-{{- $envVals := readFile (printf "%s/env.yaml" $valuesDir) | fromYaml }}
+{{- $valuesDir := env "HELMFILE_VALUES_DIR" | default "." }}
+{{- $providerVals := readFile (printf "%s/provider.yaml" $valuesDir) | fromYaml }}
 {{- $resources := readFile (printf "%s/resources.yaml" $valuesDir) | fromYaml }}
-{{- $artifacts := readFile (printf "%s/artifacts.yaml" $valuesDir) | fromYaml }}
 
-{{- $global := merge ($envVals | default dict) }}
+{{/* Resolve artifacts file: explicit version > local artifacts.yaml > latest release */}}
+{{- $artifactsVersion := env "ARTIFACTS_VERSION" }}
+{{- $artifactsFile := "" }}
+
+{{- if $artifactsVersion }}
+  {{- $artifactsFile = printf "%s/releases/%s-artifacts.yaml" $valuesDir $artifactsVersion }}
+  {{- $exists := exec "sh" (list "-c" (printf "test -f '%s' && echo true || echo false" $artifactsFile)) | trim }}
+  {{- if ne $exists "true" }}
+    {{- fail (printf "ERROR: Artifacts file not found at '%s'. Check that ARTIFACTS_VERSION '%s' is correct." $artifactsFile $artifactsVersion) }}
+  {{- end }}
+{{- else }}
+  {{- $localExists := exec "sh" (list "-c" (printf "test -f '%s/artifacts.yaml' && echo true || echo false" $valuesDir)) | trim }}
+  {{- if eq $localExists "true" }}
+    {{- $artifactsFile = printf "%s/artifacts.yaml" $valuesDir }}
+  {{- else }}
+    {{- $latest := exec "sh" (list "-c" (printf "ls -1 '%s'/releases/*-artifacts.yaml 2>/dev/null | sort | tail -1" $valuesDir)) | trim }}
+    {{- if eq $latest "" }}
+      {{- fail (printf "ERROR: No artifacts found. Set ARTIFACTS_VERSION, place artifacts.yaml in '%s', or add release files to '%s/releases/'." $valuesDir $valuesDir) }}
+    {{- end }}
+    {{- $artifactsFile = $latest }}
+    {{- $_ := exec "sh" (list "-c" (printf "echo '[INFO] No ARTIFACTS_VERSION set. Auto-selected latest artifacts: %s' >&2" $latest)) }}
+  {{- end }}
+{{- end }}
+
+{{- $artifacts := readFile $artifactsFile | fromYaml }}
+{{- $base := $artifacts.chartBasePath | required "ERROR: 'chartBasePath' must be set in the artifacts file" }}
+{{- $_ := unset $artifacts "chartBasePath" }}
+
+{{- $settings := merge ($resources.settings | default dict) (dict "use_spot_nodes" false) }}
+{{- $global := merge ($providerVals | default dict) }}
 {{- $charts := merge ($resources.charts | default dict) ($artifacts | default dict) }}
 
 {{- $values := merge $resources (dict
@@ -32,8 +64,12 @@ repositories:
   "charts" $charts
 ) }}
 
+{{/* databases from provider.yaml (e.g. Cloud SQL) */}}
+{{- if hasKey $providerVals "databases" }}
+{{- $_ := set $values "databases" $providerVals.databases }}
+{{- end }}
+
 {{- $env := $values.global.environment | default "dev" }}
-{{- $base := $values.global.chartBasePath }}
 {{- $clusterDomain := $values.global.clusterDomain }}
 {{- $externalSecretsChartName := "external-secrets/external-secrets" }}
 
@@ -61,7 +97,9 @@ repositories:
   "divyam-router-controller"             "router-controller"
   "divyam-router-controller-ingress"     "router-controller"
 
-  "divyam-control-plane-exporter"       "divyam-control-plane"
+  "divyam-control-plane-exporter"       "control-plane"
+
+  "divyam-db-upgrades"                   "db-upgrades"
   
 -}}
 
@@ -99,6 +137,7 @@ repositories:
 {{- $serviceOverrideMap := dict
   "kafka-cluster" "kafka-%s-kafka-bootstrap"
   "clickhouse" "clickhouse-clk-%s"
+  "divyam-route-selector" "route-selector-%s-svc"
 -}}
 
 ###############################################################################
@@ -231,14 +270,21 @@ releases:
     - platform:
       {{ $values.global.platform | toYaml | nindent 8 }}
     - environment: {{ $env }}
-    - imagePullSecrets:
-      {{ $values.global.imagePullSecrets | toYaml | nindent 8 }}
+    - imagePullSecretConfig:
+      {{ $values.global.imagePullSecretConfig | toYaml | nindent 8 }}
 
     - dependencies:
 {{ $depDnsMap | toYaml | indent 8 }}
 
+    - use_spot_nodes: {{ $settings.use_spot_nodes | default false }}
+
     {{- if $cfg.values }}
     - {{ toYaml $cfg.values | nindent 6 }}
+    {{- end }}
+
+    {{- if and (eq $name "divyam-persistent-storage") ($settings.storage_class) }}
+    - storageClasses:
+        default: {{ $settings.storage_class }}
     {{- end }}
 
     {{- $mysqlNs := include "namespace" (dict
