@@ -2,11 +2,131 @@
 
 A single helmfile that deploys the entire Divyam platform stack with correct namespaces, dependency ordering, and cross-service DNS wiring.
 
+# Pre-requisites
+
+## 1. Tools for running the K8s deployment
+- Helm
+- Helmfile
+- Helm Diff Plugin (v3.7.x)
+- K9s (Kubernetes debugging)
+
+### 1. Install Base Dependencies
+
+```bash
+sudo apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release git
+```
+
+---
+
+### 2. Install Helm
+
+👉 https://helm.sh/docs/intro/install/
+
+```bash
+curl -fsSL https://packages.buildkite.com/helm-linux/helm-debian/gpgkey   | gpg --dearmor   | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+
+echo "deb [signed-by=/usr/share/keyrings/helm.gpg] https://packages.buildkite.com/helm-linux/helm-debian/any/ any main"   | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+
+sudo apt-get update
+sudo apt-get install -y helm
+```
+
+#### Verify
+
+```bash
+helm version
+```
+
+---
+
+### 3. Install Helmfile
+
+👉 https://github.com/helmfile/helmfile?tab=readme-ov-file#installation
+
+```bash
+HELMFILE_VERSION="v0.159.0"
+
+curl -L -o helmfile.tar.gz   https://github.com/helmfile/helmfile/releases/download/${HELMFILE_VERSION}/helmfile_${HELMFILE_VERSION}_linux_amd64.tar.gz
+
+tar -xzf helmfile.tar.gz
+sudo mv helmfile /usr/local/bin/helmfile
+sudo chmod +x /usr/local/bin/helmfile
+
+rm helmfile.tar.gz
+```
+
+#### Verify
+
+```bash
+helmfile --version
+```
+
+---
+
+### 4. Install Helm Diff Plugin (v3.7.x)
+
+👉 https://github.com/databus23/helm-diff?tab=readme-ov-file#install
+
+```bash
+helm plugin install https://github.com/databus23/helm-diff --version v3.7.0
+```
+
+#### Verify
+
+```bash
+helm plugin list
+```
+
+---
+
+### 5. Install K9s (Kubernetes Debugging Tool)
+
+👉 https://k9scli.io/topics/install/
+
+```bash
+wget https://github.com/derailed/k9s/releases/latest/download/k9s_linux_amd64.deb
+sudo apt install ./k9s_linux_amd64.deb
+rm k9s_linux_amd64.deb
+```
+
+#### Verify
+
+```bash
+k9s version
+```
+
+---
+## 2. Authentication to the Kubernetes Cluster
+
+### For Azure
+Follow the steps below to authenticate to the Kubernetes Cluster.
+```bash
+az login
+az account set --subscription <subscription-id>
+az aks get-credentials --name <cluster-name> --resource-group <resource-group-name>
+```
+
+### For GCP
+Follow the steps below to authenticate to the Kubernetes Cluster.
+```bash
+gcloud auth application-default login
+gcloud container clusters get-credentials <cluster-name> --zone <zone> --project <project-id>
+```
+
+### Verify the authentication
+```bash
+kubectl get ns
+```
+
+---
+
+# Deployment
 ## 1. Environment Variables
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `HELMFILE_VALUES_DIR` | No | `.` (current directory) | Path to the directory containing your values files. |
-| `ARTIFACTS_VERSION` | No | _(unset)_ | When set, loads `$HELMFILE_VALUES_DIR/releases/<VERSION>-artifacts.yaml` instead of `artifacts.yaml`. |
+| `ARTIFACTS_VERSION` | No | _(unset)_ | When set, loads `releases/<VERSION>-artifacts.yaml` instead of `artifacts.yaml`. |
 ---
 
 ## 2. Expected Directory Structure
@@ -14,7 +134,7 @@ A single helmfile that deploys the entire Divyam platform stack with correct nam
 your_values/
 ├── provider.yaml       # Environment, cloud platform, secrets, DB config (from Terraform)
 ├── resources.yaml      # CPU/memory, storage, node selectors per chart
-├── artifacts.yaml      # (dev only) Chart versions, image tags, chartBasePath
+├── artifacts.yaml      # (dev only) Chart versions, image tags, chartBasePath to be configured manually
 └── releases/           # Versioned artifact files (preferred)
     └── 26.04.01-rc1-artifacts.yaml
 ```

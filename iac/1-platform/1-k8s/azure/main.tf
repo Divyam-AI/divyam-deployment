@@ -398,3 +398,67 @@ resource "azurerm_role_assignment" "aks_subnet_network_contributor" {
     azurerm_kubernetes_cluster.aks_cluster
   ]
 }
+
+
+# ---------------------------
+# AGIC for App gateway -> AKS
+# service connect
+# ---------------------------
+resource "azurerm_federated_identity_credential" "agic" {
+  name                = "${var.cluster.name}-agic-fic"
+  resource_group_name = azurerm_user_assigned_identity.agic_uami.resource_group_name
+  parent_id           = azurerm_user_assigned_identity.agic_uami.id
+  issuer              = azurerm_kubernetes_cluster.aks_cluster.oidc_issuer_url
+  subject             = "system:serviceaccount:kube-system:${var.cluster.name}-ingress-azure"
+  audience            = ["api://AzureADTokenExchange"]
+}
+
+provider "helm" {
+  kubernetes = {
+    host                   = azurerm_kubernetes_cluster.aks_cluster.kube_config[0].host
+    client_certificate     = base64decode(azurerm_kubernetes_cluster.aks_cluster.kube_config[0].client_certificate)
+    client_key             = base64decode(azurerm_kubernetes_cluster.aks_cluster.kube_config[0].client_key)
+    cluster_ca_certificate = base64decode(azurerm_kubernetes_cluster.aks_cluster.kube_config[0].cluster_ca_certificate)
+  }
+}
+
+resource "helm_release" "agic" {
+  name       = "${var.cluster.name}-ingress-azure"
+  repository = "oci://mcr.microsoft.com/azure-application-gateway/charts/"
+  chart      = "ingress-azure"
+  namespace  = "kube-system"
+  version    = var.agic_helm_version
+
+  replace = true
+
+  set = [
+    {
+      name  = "appgw.resourceGroup"
+      value = var.resource_group_name
+    },
+    {
+      name  = "appgw.name"
+      value = var.app_gateway_name
+    },
+    {
+      name  = "armAuth.type"
+      value = "workloadIdentity"
+    },
+    {
+      name  = "armAuth.identityResourceID"
+      value = azurerm_user_assigned_identity.agic_uami.id
+    },
+    {
+      name  = "armAuth.identityClientID"
+      value = azurerm_user_assigned_identity.agic_uami.client_id
+    },
+    {
+      name  = "rbac.enabled"
+      value = "true"
+    },
+    {
+      name  = "verbosityLevel"
+      value = "3"
+    }
+  ]
+}

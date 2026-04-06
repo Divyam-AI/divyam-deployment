@@ -1,146 +1,53 @@
 # divyam-deployment
-Tools and scripts to deploy and manage Divyam installation.
 
-# Install Terragrunt and Terraform versions
-https://developer.hashicorp.com/terraform/install
-https://docs.terragrunt.com/getting-started/install/
+Provision cloud infrastructure and deploy the Divyam platform stack on Kubernetes.
 
-Versions of terragrunt and terraform tested
-```
-% terragrunt --version
-terragrunt version 0.99.4
-```
+This repository gives your DevOps team everything needed to stand up a complete Divyam environment and maintain it through a CD pipeline. The setup has two phases:
 
-```
-% terraform --version
-Terraform v1.14.6
-```
+1. **Infrastructure** ([`iac/`](iac/README.md)) — Terragrunt/OpenTofu modules that create cloud resources (VPC, K8s cluster, secrets, storage, etc.)
+2. **Application** ([`k8s/`](k8s/README.md)) — A Helmfile that deploys the full Divyam service mesh onto the provisioned cluster
 
-# Check Cloud login is setup correctly
-```
-export CLOUD_PROVIDER=gcp
-./check_cloud_credentials.sh
-```
-For Azure use one of the following:
-* Install Azure CLI and run: az login"
-* Export ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_SUBSCRIPTION_ID, ARM_TENANT_ID environment variables to the values as seen from the cloud console.
+## Supported Clouds
 
-For GCP use one of the following:
-* Install GCP CLI and run: gcloud auth application-default login; gcloud auth login
-* Export GOOGLE_APPLICATION_CREDENTIALS to a service account key JSON file.
+- **Azure** — AKS, Blob Storage, Key Vault, App Gateway, NAT Gateway
+- **GCP** — GKE, GCS, Secret Manager, Cloud NAT, Cloud Armor
 
-# Setup Divyam 
-## Creating values file with right configuration for setup
-### Option 1: Using the default names and values
-This will create entire infrastructure right from creation of project name, network, Kubenetes clusters.
-Note: Please review the values/defaults.hcl file for your cloud specific policies or setup names.
-
-Export the below cloud specific variables or can update these values inside the values file itself
-```
-export ENV=dev 
-export CLOUD_PROVIDER=gcp 
-export ZONE=asia-south1-a 
-export REGION=asia-south1
-export VALUES_FILE=values/defaults.hcl
-```
-
-## Option 2: Selectively reusing existing infrastructure or using custom names
-You can edit the values file and pass the same as input along with the cloud provider environment variable exported as shown below. 
-```
-export CLOUD_PROVIDER=gcp
-export VALUES_FILE=divyam-pre-prod-defaults.hcl
-```
-Note: Make sure all required environment variables are substituted in values file or are exported.
-
-## Creating Foundation: 
-Proceed with this step, if we need to create any one of the following:
-Enable apis, resource_scope, vnet, nat, terraform_state_blob_storage, bastion
-
-Make sure VALUES_FILE variable is exported and review the plan output before applying.
-```
-cd 0-foundation
-terragrunt init -reconfigure --all --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run plan  --all --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run apply --all --filter "./**/${CLOUD_PROVIDER}"
-cd ..
-```
-
-Note that the terraform state is saved locally for the foundation and hence if it is created once, don't run it.
-
-## Creating Platform Components: 
-Proceed with this step, if we need to create any one of the following:
-app_gw, divyam_object_storage, k8s cluster, alerts, bastion-kubectl-setup
-
-Make sure VALUES_FILE variable is exported and review the plan output before applying.
-```
-cd 1-platform
-terragrunt init -reconfigure --all --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run plan  --all --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run apply --all --filter "./**/${CLOUD_PROVIDER}"
-cd ..
-```
-
-## Creating Divyam Application Entities: 
-This step is required to setup the secrets and IAM bindings required for divyam application to work.
-Make sure VALUES_FILE variable is exported and review the plan output before applying.
-```
-cd 2-app
-terragrunt init -reconfigure --all --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run plan  --all --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run apply --all --filter "./**/${CLOUD_PROVIDER}"
-cd ..
-```
-
-# Troubleshooting
-Make sure CLOUD_PROVIDER and VALUES_FILE variables are exported.
-
-## Clear Terragrunt Cache Folders
-```
-find . -type d -name ".terragrunt-cache" -exec rm -rf {} +
-```
-
-## Run individual Terragrunt modules
-```
-export CLOUD_PROVIDER=gcp
-export VALUES_FILE=values/defaults.hcl
-cd "0-foundation/0-resource_scope/${CLOUD_PROVIDER}"
-terragrunt plan
-terragrunt apply
-```
-
-## Debug Terragrunt - Don't use remote terraform state
-```
-export TG_USE_LOCAL_BACKEND=1
-```
-
-## View Terraform outputs
-```
-terragrunt show --all --filter "./**/${CLOUD_PROVIDER}"
-```
-
-## Import remote state
-Run terrgrunt import inside the cloud specific folder.
-terragrunt import ADDR ID
-```
-export CLOUD_PROVIDER=gcp
-export VALUES_FILE=values/defaults.hcl
-cd "0-foundation/0-resource_scope/${CLOUD_PROVIDER}"
-terragrunt import 'google_project.project[0]' your-gcp-project-id
-```
-
-Azure (existing resource group):
+## Repository Layout
 
 ```
-export CLOUD_PROVIDER=azure
-export VALUES_FILE=values/defaults.hcl
-cd "0-foundation/0-resource_scope/${CLOUD_PROVIDER}"
-terragrunt import 'azurerm_resource_group.rd[0]' /subscriptions/<subscription-id>/resourceGroups/<resource-group-name>
+├── iac/                            # Infrastructure as Code
+│   ├── root.hcl                    #   Shared Terragrunt configuration
+│   ├── values/defaults.hcl         #   Configuration (resource names, toggles, CIDRs)
+│   ├── 0-foundation/               #   VPC/VNet, NAT, bastion, state backend
+│   ├── 1-platform/                 #   K8s cluster, load balancer, storage, alerts
+│   ├── 2-app/                      #   Secrets, IAM, Cloud SQL, provider.yaml export
+│   ├── sample_deploy.sh            #   Wrapper for plan/apply/destroy/import
+│   └── check_cloud_credentials.sh  #   Cloud login validator
+├── k8s/                            # Kubernetes Deployment
+│   ├── helmfile.yaml.gotmpl        #   Helmfile — deploys entire Divyam stack
+│   ├── helm-values/                #   provider.yaml, resources.yaml
+│   └── releases/                   #   Versioned artifact files
+├── scripts/
+│   └── write-outputs-yaml.sh       #   OpenTofu outputs → YAML/JSON for Helm
+└── terragrunt.hcl                  # Root Terragrunt entry point
 ```
 
-To get the Addr(first argument), use the output of plan or see the 'data' sections in main.tf file of the module. ID(second argument) should be in the format specified in the [Terraform provider documentation](https://registry.terraform.io/browse/providers) for your cloud.
+## Getting Started
 
-## Failure: already exists - to be managed via Terraform this resource needs to be imported into the State
-Failures like below API enablement(0-apis) can be ignored as these are not stored in state"
-  │ Error: a resource with the ID "/subscriptions/8645e690-451d-45a4-b10c-159705f63a22/providers/Microsoft.Logic" already exists - to be managed via Terraform this resource needs to be imported into the State. Please see the resource documentation for "azurerm_resource_provider_registration" for more information
+### Phase 1 — Provision Infrastructure
 
-If a resource like VNet already exists and are trying to create it again this error can be fixed by updating "create = false" for vnet(or any such component) and updating the created values like IP, Subnet values in the file specified in the VALUES_FILE environement variable.
+Follow **[iac/README.md](iac/README.md)** to configure your cloud credentials, customize the values file, and provision resources across the three layers (foundation, platform, application).
+
+After provisioning, the `export_details` module generates `provider.yaml` which is consumed by Helmfile in the next phase.
+
+### Phase 2 — Deploy on Kubernetes
+
+Follow **[k8s/README.md](k8s/README.md)** to configure Helm values, deploy the full Divyam stack with Helmfile, and set up a CD pipeline for ongoing updates.
+
+## Image Access
+
+Divyam Docker images are hosted in a private registry. Contact **support@divyam.io** to obtain access credentials before deploying the Kubernetes stack.
+
+## Contact
+
+For registry access, onboarding, or questions: **support@divyam.io**
