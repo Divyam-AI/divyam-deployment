@@ -3,6 +3,10 @@
 A single helmfile that deploys the entire Divyam platform stack with correct namespaces, dependency ordering, and cross-service DNS wiring.
 
 # Pre-requisites
+## 0. IAC Deployment 
+- The K8s cluster needs to be setup using the IAC modules and the bastion host to be present
+- The following guide to be run from the bastion/jumphost VM
+- Verify the IAC deployment. The final stage creates a providers.yaml file in the k8s/helm-values directory. Review the file for the correct values of thee environment, cloud provider and storage configuration.
 
 ## 1. Tools for running the K8s deployment
 - Helm
