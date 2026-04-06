@@ -100,6 +100,8 @@ repositories:
   "divyam-control-plane-exporter"       "control-plane"
 
   "divyam-db-upgrades"                   "db-upgrades"
+
+  "divyam-e2e-test-runner"               "e2e-test-runner"
   
 -}}
 
@@ -128,6 +130,7 @@ repositories:
   "divyam-router-controller-ingress"    (list "divyam-router-controller")
   "divyam-db-upgrades"           (list "clickhouse" "mysql" "kafka-cluster" "external-secrets-operator")
   "divyam-control-plane-exporter" (list)
+  "divyam-e2e-test-runner"        (list "divyam-router-controller" "divyam-route-selector" "clickhouse" "mysql")
 
 -}}
 
