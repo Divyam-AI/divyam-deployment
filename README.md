@@ -22,14 +22,14 @@ This repository gives your team everything needed to setup up a complete Divyam 
 │   ├── 1-platform/                 #   K8s cluster, load balancer, storage, alerts
 │   ├── 2-app/                      #   Secrets, IAM, Cloud SQL, provider.yaml export
 │   ├── sample_deploy.sh            #   Wrapper for plan/apply/destroy/import
+│   └── terragrunt.hcl              #   Root Terragrunt entry point
 ├── k8s/                            # Kubernetes Deployment
 │   ├── helmfile.yaml.gotmpl        #   Helmfile — deploys entire Divyam stack
 │   ├── helm-values/                #   provider.yaml, resources.yaml
 │   └── releases/                   #   Versioned artifact files
 ├── scripts/
 │   ├── write-outputs-yaml.sh       #   OpenTofu outputs → YAML/JSON for Helm
-|   └── check_cloud_credentials.sh  #   Cloud login validator
-└── terragrunt.hcl                  # Root Terragrunt entry point
+└── └── check_cloud_credentials.sh  #   Cloud login validator
 ```
 
 ## Getting Started
