@@ -5,8 +5,8 @@
 locals {
   # Can replace these with actual values
   cloud_provider    = get_env("CLOUD_PROVIDER","azure") 
-  env_name          = get_env("ENV","preprod")
-  org_name          = get_env("ORG_NAME", "bkt")
+  env_name          = get_env("ENV","")
+  org_name          = get_env("ORG_NAME", "")
   region            = get_env("REGION","centralindia")
   zone              = get_env("ZONE","centralindia-1")
 
