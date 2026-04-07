@@ -13,6 +13,7 @@ platform:
       bucket: "${var.storage_bucket}"
 
 clusterDomain: "${var.cluster_domain}"
+deployment_mode: "${var.deployment_mode}"
 
 imagePullSecretConfig:
   enabled: ${var.image_pull_secret_enabled}

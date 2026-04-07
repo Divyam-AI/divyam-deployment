@@ -105,6 +105,16 @@ repositories:
   
 -}}
 
+{{/*
+  Charts that receive a top-level `ingress` value merged from provider.yaml
+  and per-chart resources (values.ingress in resources.yaml wins on overlap).
+  Add chart names here as "chart-name" true — membership is explicit, not name-based.
+*/}}
+{{- $chartsWithProviderIngress := dict
+  "superset-ingress"                  true
+  "divyam-router-controller-ingress"  true
+-}}
+
 ###############################################################################
 # 3. Dependency Map
 ###############################################################################
@@ -282,7 +292,15 @@ releases:
 
     - use_spot_nodes: {{ $settings.use_spot_nodes | default false }}
 
-    {{- if $cfg.values }}
+    {{- if hasKey $chartsWithProviderIngress $name }}
+    {{- $valsNoIngress := omit ($cfg.values | default dict) "ingress" }}
+    {{- if $valsNoIngress }}
+    - {{ toYaml $valsNoIngress | nindent 6 }}
+    {{- end }}
+    {{- $mergedIngress := merge ($values.global.ingress | default dict) (index ($cfg.values | default dict) "ingress" | default dict) }}
+    - ingress:
+      {{ $mergedIngress | toYaml | nindent 8 }}
+    {{- else if $cfg.values }}
     - {{ toYaml $cfg.values | nindent 6 }}
     {{- end }}
 

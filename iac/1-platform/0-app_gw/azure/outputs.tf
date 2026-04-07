@@ -82,3 +82,8 @@ output "dashboard_dns_zone" {
   description = "Dashboard DNS name (from divyam_load_balancer.dashboard_dns); for TLS SAN and DNS A record."
   value       = var.dashboard_dns_zone
 }
+
+output "controlplane_dns_zone" {
+  description = "Control-plane DNS name (from divyam_load_balancer.controlplane_dns); for TLS SAN and DNS A record."
+  value       = var.controlplane_dns_zone
+}

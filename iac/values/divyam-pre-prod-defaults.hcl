@@ -159,6 +159,10 @@ locals {
     dashboard_dns = (local.org_name != "" ?
       "dashboard.${local.env_name}.${local.org_name}.divyam.local" :
       "dashboard.${local.env_name}.divyam.local")
+    # Optional toggle: set empty string ("") to disable controlplane DNS creation/export and use deployment_mode = "onprem".
+    controlplane_dns = (local.org_name != "" ?
+      "controlplane.${local.env_name}.${local.org_name}.divyam.local" :
+      "controlplane.${local.env_name}.divyam.local")
 
     waf_enabled = true
     create_waf  = true   # When true, create WAF/Cloud Armor policy in-module; when false and waf_enabled, fetch existing by waf_policy_name and attach
