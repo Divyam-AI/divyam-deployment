@@ -53,6 +53,11 @@ output "agic_identity_id" {
   value       = azurerm_user_assigned_identity.agic_identity.id
 }
 
+output "agic_identity_principal_id" {
+  description = "Principal ID of the AGIC managed identity"
+  value       = azurerm_user_assigned_identity.agic_identity.principal_id
+}
+
 output "appgw_id" {
   description = "Resource ID of the Application Gateway"
   value       = azurerm_application_gateway.appgw.id
@@ -76,4 +81,9 @@ output "router_dns_zone" {
 output "dashboard_dns_zone" {
   description = "Dashboard DNS name (from divyam_load_balancer.dashboard_dns); for TLS SAN and DNS A record."
   value       = var.dashboard_dns_zone
+}
+
+output "controlplane_dns_zone" {
+  description = "Control-plane DNS name (from divyam_load_balancer.controlplane_dns); for TLS SAN and DNS A record."
+  value       = var.controlplane_dns_zone
 }

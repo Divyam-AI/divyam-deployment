@@ -20,6 +20,42 @@ variable "cluster_domain" {
   default     = ""
 }
 
+variable "ingress_deploy" {
+  description = "Whether ingress chart resources should be deployed."
+  type        = bool
+  default     = true
+}
+
+variable "ingress_external" {
+  description = "Whether ingress should use public frontend (false = private/internal ingress)."
+  type        = bool
+  default     = false
+}
+
+variable "router_ingress_domain" {
+  description = "Router ingress host/domain."
+  type        = string
+  default     = ""
+}
+
+variable "dashboard_ingress_domain" {
+  description = "Dashboard ingress host/domain."
+  type        = string
+  default     = ""
+}
+
+variable "controlplane_ingress_domain" {
+  description = "Control-plane ingress host/domain for router control APIs."
+  type        = string
+  default     = ""
+}
+
+variable "deployment_mode" {
+  description = "Deployment mode derived from controlplane DNS: managed when set, onprem otherwise."
+  type        = string
+  default     = "onprem"
+}
+
 variable "image_pull_secret_enabled" {
   description = "Whether the cluster needs image pull secrets for a private registry."
   type        = bool

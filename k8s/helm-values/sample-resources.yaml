@@ -242,3 +242,13 @@ charts:
   divyam-db-upgrades:
     values: {}
 
+  divyam-e2e-test-runner: 
+    values:
+      resources:
+        requests:
+          cpu: 1
+          memory: 1Gi
+        limits:
+          cpu: 1
+          memory: 1Gi
+
