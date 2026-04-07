@@ -134,6 +134,7 @@ locals {
 
   # -- Load Balancer (static IP, DNS, TLS) ---
   divyam_load_balancer = {
+    enabled = true
     create_ip = true
     # Private IP (internal LB only): address and optional resource name.
     ip               = "10.0.8.10"  # Reserved private IP in VNET app_gw_subnet (ignored when public = true)
@@ -166,6 +167,15 @@ locals {
     # WAF deny/allow lists (applied when create_waf = true). Empty = no rule.
     waf_deny_ip_ranges  = []  # IP/CIDR to block (e.g. ["203.0.113.0/24"])
     waf_allow_ip_ranges = []  # If non-empty: only these IP/CIDR allowed (allowlist); still apply deny list first
+  }
+
+  # --- Azure Application Gateway Ingress Controller (AGIC) ---
+  agic = {
+    enabled            = true
+    helm_chart_version = "1.8.1"
+    namespace          = "kube-system"
+    release_name       = null
+    verbosity_level    = 3
   }
 
   # --- Kubernetes Cluster ---

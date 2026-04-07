@@ -53,6 +53,11 @@ output "agic_identity_id" {
   value       = azurerm_user_assigned_identity.agic_identity.id
 }
 
+output "agic_identity_principal_id" {
+  description = "Principal ID of the AGIC managed identity"
+  value       = azurerm_user_assigned_identity.agic_identity.principal_id
+}
+
 output "appgw_id" {
   description = "Resource ID of the Application Gateway"
   value       = azurerm_application_gateway.appgw.id

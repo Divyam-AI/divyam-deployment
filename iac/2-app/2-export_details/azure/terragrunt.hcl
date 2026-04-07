@@ -43,12 +43,22 @@ dependency "cloudsql" {
   }
 }
 
+dependency "app_gw" {
+  config_path = "${get_repo_root()}/iac/1-platform/0-app_gw/azure"
+  mock_outputs = {
+    app_gateway_tls_enabled      = false
+    app_gateway_certificate_name = ""
+  }
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
+}
+
 locals {
   root      = include.root.locals.merged
   repo_root = get_repo_root()
   env       = local.root.env_name
 
   export_cfg = try(local.root.export_details, {})
+  lb_cfg     = try(local.root.divyam_load_balancer, {})
 
   cloudsql_cfg     = try(local.root.cloudsql, {})
   cloudsql_created = try(local.cloudsql_cfg.create, false)
@@ -74,10 +84,20 @@ inputs = {
     "divyam-selector-training"     = try(dependency.iam_bindings.outputs.uai_client_ids["divyam-selector-training-${local.env}-sa_uai_client_id"], "")
     "superset-postgres"     = try(dependency.iam_bindings.outputs.uai_client_ids["superset-postgres-${local.env}-sa_uai_client_id"], "")
     "kafka-connect"         = try(dependency.iam_bindings.outputs.uai_client_ids["kafka-${local.env}-connect_uai_client_id"], "")
+    "divyam-e2e-test-runner" = try(dependency.iam_bindings.outputs.uai_client_ids["divyam-e2e-test-runner-${local.env}-sa_uai_client_id"], "")
+    "divyam-control-plane-exporter" = try(dependency.iam_bindings.outputs.uai_client_ids["divyam-control-plane-exporter-${local.env}-sa_uai_client_id"], "")
   }
   cluster_domain            = try(local.export_cfg.cluster_domain, "")
   image_pull_secret_enabled = try(local.export_cfg.image_pull_secret_enabled, true)
   output_path               = "${local.repo_root}/${try(local.export_cfg.output_dir, "k8s/values")}/provider.yaml"
+
+  ingress_deploy             = true
+  ingress_external           = try(local.lb_cfg.public, false)
+  router_ingress_domain      = try(local.lb_cfg.router_dns, "")
+  dashboard_ingress_domain   = try(local.lb_cfg.dashboard_dns, "")
+  controlplane_ingress_domain = try(local.export_cfg.controlplane_domain, "")
+  ingress_tls_enabled        = try(dependency.app_gw.outputs.app_gateway_tls_enabled, try(local.lb_cfg.tls_enabled, false))
+  ingress_certificate_name   = try(dependency.app_gw.outputs.app_gateway_certificate_name, "")
 
   cloudsql_created = local.cloudsql_created
   mysql_host       = local.cloudsql_created ? try(dependency.cloudsql.outputs.mysql_server_fqdn, "") : ""

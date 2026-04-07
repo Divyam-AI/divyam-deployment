@@ -31,6 +31,7 @@ locals {
   env       = local.root.env_name
 
   export_cfg = try(local.root.export_details, {})
+  lb_cfg     = try(local.root.divyam_load_balancer, {})
 
   cloudsql_cfg     = try(local.root.cloudsql, {})
   cloudsql_created = try(local.cloudsql_cfg.create, false)
@@ -43,6 +44,11 @@ inputs = {
   project_id                = local.root.resource_scope.name
   storage_bucket            = try(dependency.divyam_object_storage.outputs.router_requests_logs_bucket_name, local.storage_bucket)
   cluster_domain            = try(local.export_cfg.cluster_domain, "")
+  ingress_deploy            = true
+  ingress_external          = try(local.lb_cfg.public, false)
+  router_ingress_domain     = try(local.lb_cfg.router_dns, "")
+  dashboard_ingress_domain  = try(local.lb_cfg.dashboard_dns, "")
+  controlplane_ingress_domain = try(local.export_cfg.controlplane_domain, "")
   image_pull_secret_enabled = try(local.export_cfg.image_pull_secret_enabled, false)
   output_path               = "${local.repo_root}/${try(local.export_cfg.output_dir, "k8s/values")}/provider.yaml"
 

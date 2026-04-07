@@ -14,7 +14,7 @@ locals {
     divyam_provider_keys_encryption_key = get_env("TF_VAR_divyam_provider_keys_encryption_key", "random_password")
     divyam_openai_billing_admin_api_key = get_env("TF_VAR_divyam_openai_billing_admin_api_key", "random_password")
     # User provided secrets. No default or auto-generation in the secrets module.
-    divyam_superset_pg_superset_password  = get_env("TF_VAR_divyam_superset_password")
+    divyam_superset_password              = get_env("TF_VAR_divyam_superset_password")
     divyam_router_admin_password        = get_env("TF_VAR_divyam_router_admin_password")
     divyam_deployment_id                = get_env("TF_VAR_divyam_deployment_id")
     divyam_deployment_api_key           = get_env("TF_VAR_divyam_deployment_api_key")

@@ -26,6 +26,17 @@ clusterDomain: "${var.cluster_domain}"
 
 imagePullSecretConfig:
   enabled: ${var.image_pull_secret_enabled}
+
+ingress:
+  deploy: ${var.ingress_deploy}
+  external: ${var.ingress_external}
+  domain:
+    router: "${var.router_ingress_domain}"
+    dashboard: "${var.dashboard_ingress_domain}"
+    controlplane: "${var.controlplane_ingress_domain}"
+  azure:
+    tls_enabled: ${var.ingress_tls_enabled}
+    certificate_name: "${var.ingress_certificate_name}"
 EOT
 
   databases_block = <<-EOT
