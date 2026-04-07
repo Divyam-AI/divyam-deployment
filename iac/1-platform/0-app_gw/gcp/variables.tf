@@ -57,6 +57,12 @@ variable "dashboard_dns" {
   description = "Dashboard DNS name for managed SSL cert and DNS (from defaults.hcl divyam_load_balancer.dashboard_dns)"
 }
 
+variable "controlplane_dns" {
+  type        = string
+  default     = ""
+  description = "Control-plane DNS name for managed SSL cert and DNS (from defaults.hcl divyam_load_balancer.controlplane_dns)"
+}
+
 variable "static_ip_name" {
   type        = string
   default     = null

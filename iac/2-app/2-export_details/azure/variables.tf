@@ -68,6 +68,12 @@ variable "controlplane_ingress_domain" {
   default     = ""
 }
 
+variable "deployment_mode" {
+  description = "Deployment mode derived from controlplane DNS: managed when set, onprem otherwise."
+  type        = string
+  default     = "onprem"
+}
+
 variable "ingress_tls_enabled" {
   description = "Whether TLS is enabled for ingress at Application Gateway."
   type        = bool

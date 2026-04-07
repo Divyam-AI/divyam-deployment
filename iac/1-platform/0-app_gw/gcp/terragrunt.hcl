@@ -24,6 +24,7 @@ locals {
   ssl_cert_name        = try(local.lb_cfg.ssl_cert_name, null)
   router_dns           = try(local.lb_cfg.router_dns, "")
   dashboard_dns        = try(local.lb_cfg.dashboard_dns, "")
+  controlplane_dns     = try(local.lb_cfg.controlplane_dns, "")
   backend_service_name = try(local.lb_cfg.backend_service_name, "${local.root.deployment_prefix}-lb")
   target_proxy_name    = try(local.lb_cfg.target_proxy_name, "${local.root.deployment_prefix}-proxy")
 
@@ -60,6 +61,7 @@ inputs = {
   ssl_cert_name         = local.ssl_cert_name
   router_dns            = local.router_dns
   dashboard_dns         = local.dashboard_dns
+  controlplane_dns      = local.controlplane_dns
   static_ip_name        = local.static_ip_name
   private_ip_name   = local.private_ip_name
   create_public_ip       = local.create_public_ip

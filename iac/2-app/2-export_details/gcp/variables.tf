@@ -50,6 +50,12 @@ variable "controlplane_ingress_domain" {
   default     = ""
 }
 
+variable "deployment_mode" {
+  description = "Deployment mode derived from controlplane DNS: managed when set, onprem otherwise."
+  type        = string
+  default     = "onprem"
+}
+
 variable "image_pull_secret_enabled" {
   description = "Whether the cluster needs image pull secrets for a private registry."
   type        = bool

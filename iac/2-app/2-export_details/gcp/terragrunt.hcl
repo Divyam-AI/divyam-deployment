@@ -48,7 +48,8 @@ inputs = {
   ingress_external          = try(local.lb_cfg.public, false)
   router_ingress_domain     = try(local.lb_cfg.router_dns, "")
   dashboard_ingress_domain  = try(local.lb_cfg.dashboard_dns, "")
-  controlplane_ingress_domain = try(local.export_cfg.controlplane_domain, "")
+  controlplane_ingress_domain = try(local.lb_cfg.controlplane_dns, "")
+  deployment_mode          = trimspace(try(local.lb_cfg.controlplane_dns, "")) != "" ? "managed" : "onprem"
   image_pull_secret_enabled = try(local.export_cfg.image_pull_secret_enabled, false)
   output_path               = "${local.repo_root}/${try(local.export_cfg.output_dir, "k8s/values")}/provider.yaml"
 

@@ -8,7 +8,7 @@ data "azurerm_subnet" "appgw" {
 }
 
 data "azurerm_virtual_network" "vnet" {
-  count               = (var.create_dns_records && (var.router_dns_zone != "" || var.dashboard_dns_zone != "")) ? 1 : 0
+  count               = (var.create_dns_records && (var.router_dns_zone != "" || var.dashboard_dns_zone != "" || var.controlplane_dns_zone != "")) ? 1 : 0
   name                = var.vnet_name
   resource_group_name = var.vnet_resource_group_name
 }
@@ -260,10 +260,11 @@ resource "azurerm_key_vault_certificate" "cert" {
       extended_key_usage = ["1.3.6.1.5.5.7.3.1"]
 
       subject_alternative_names {
-        dns_names = [
+        dns_names = compact([
           var.router_dns_zone,
-          var.dashboard_dns_zone
-        ]
+          var.dashboard_dns_zone,
+          var.controlplane_dns_zone
+        ])
       }
 
       key_usage = ["digitalSignature", "keyEncipherment"]
@@ -344,6 +345,32 @@ resource "azurerm_private_dns_zone_virtual_network_link" "dashboard" {
   name                  = "${replace(var.dashboard_dns_zone, ".", "-")}-link"
   resource_group_name   = var.resource_group_name
   private_dns_zone_name = azurerm_private_dns_zone.dashboard[0].name
+  virtual_network_id    = data.azurerm_virtual_network.vnet[0].id
+  tags                  = local.rendered_tags_for["appgw"]
+}
+
+resource "azurerm_private_dns_zone" "controlplane" {
+  count               = var.create_dns_records && var.controlplane_dns_zone != "" ? 1 : 0
+  name                = var.controlplane_dns_zone
+  resource_group_name = var.resource_group_name
+  tags                = local.rendered_tags_for["appgw"]
+}
+
+resource "azurerm_private_dns_a_record" "controlplane" {
+  count               = var.create_dns_records && var.controlplane_dns_zone != "" ? 1 : 0
+  name                = "@"
+  zone_name           = azurerm_private_dns_zone.controlplane[0].name
+  resource_group_name = var.resource_group_name
+  ttl                 = var.dns_record_ttl
+  records             = [local.lb_ip_for_dns]
+  tags                = local.rendered_tags_for["appgw"]
+}
+
+resource "azurerm_private_dns_zone_virtual_network_link" "controlplane" {
+  count                 = var.create_dns_records && var.controlplane_dns_zone != "" ? 1 : 0
+  name                  = "${replace(var.controlplane_dns_zone, ".", "-")}-link"
+  resource_group_name   = var.resource_group_name
+  private_dns_zone_name = azurerm_private_dns_zone.controlplane[0].name
   virtual_network_id    = data.azurerm_virtual_network.vnet[0].id
   tags                  = local.rendered_tags_for["appgw"]
 }

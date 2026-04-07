@@ -145,6 +145,12 @@ variable "dashboard_dns_zone" {
   default     = null
 }
 
+variable "controlplane_dns_zone" {
+  description = "Control-plane DNS name for certificate SAN and DNS A record (from defaults.hcl divyam_load_balancer.controlplane_dns)."
+  type        = string
+  default     = null
+}
+
 variable "cert_issuer" {
   description = "Azure Key Vault certificate issuer (e.g. Self for self-signed)."
   type        = string

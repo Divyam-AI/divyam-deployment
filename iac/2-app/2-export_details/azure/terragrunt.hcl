@@ -95,7 +95,8 @@ inputs = {
   ingress_external           = try(local.lb_cfg.public, false)
   router_ingress_domain      = try(local.lb_cfg.router_dns, "")
   dashboard_ingress_domain   = try(local.lb_cfg.dashboard_dns, "")
-  controlplane_ingress_domain = try(local.export_cfg.controlplane_domain, "")
+  controlplane_ingress_domain = try(local.lb_cfg.controlplane_dns, "")
+  deployment_mode            = trimspace(try(local.lb_cfg.controlplane_dns, "")) != "" ? "managed" : "onprem"
   ingress_tls_enabled        = try(dependency.app_gw.outputs.app_gateway_tls_enabled, try(local.lb_cfg.tls_enabled, false))
   ingress_certificate_name   = try(dependency.app_gw.outputs.app_gateway_certificate_name, "")
 

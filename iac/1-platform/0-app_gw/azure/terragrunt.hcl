@@ -38,6 +38,7 @@ locals {
   key_vault_name           = try(local.secrets_cfg.store_name, "")
   router_dns_zone          = try(local.lb_cfg.router_dns, "")
   dashboard_dns_zone       = try(local.lb_cfg.dashboard_dns, "")
+  controlplane_dns_zone    = try(local.lb_cfg.controlplane_dns, "")
   create_dns_records       = try(local.lb_cfg.create_dns_records, true)
   lb_enabled               = try(local.lb_cfg.enabled, true)
 }
@@ -76,6 +77,7 @@ inputs = {
   cert_name           = local.ssl_cert_name
   router_dns_zone     = local.router_dns_zone
   dashboard_dns_zone  = local.dashboard_dns_zone
+  controlplane_dns_zone = local.controlplane_dns_zone
   create_dns_records  = local.create_dns_records
 }
 
