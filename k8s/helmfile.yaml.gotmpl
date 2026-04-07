@@ -13,7 +13,7 @@ helmDefaults:
   diffArgs:
     - "--normalize-manifests"
     - "--three-way-merge"
-  
+
 
 repositories:
   - name: external-secrets
@@ -79,30 +79,30 @@ repositories:
 {{- $namespaceGroupMap := dict
   "altinity-clickhouse-operator"         "clickhouse"
   "clickhouse"                           "clickhouse"
-        
+
   "strimzi-kafka-operator"               "kafka"
   "kafka-cluster"                        "kafka"
   "kafka-connect"                        "kafka"
-        
+
   "superset-postgres"                    "superset"
   "superset"                             "superset"
   "superset-ingress"                     "superset"
-        
+
   "divyam-evaluator"                     "eval"
-          
+
   "divyam-route-selector"                "route-selector"
-          
+
   "divyam-selector-training"             "selector-training"
-          
+
   "divyam-router-controller"             "router-controller"
   "divyam-router-controller-ingress"     "router-controller"
 
-  "divyam-control-plane-exporter"       "control-plane"
+  "divyam-control-plane-exporter"       "control-plane-exporter"
 
   "divyam-db-upgrades"                   "db-upgrades"
 
   "divyam-e2e-test-runner"               "e2e-test-runner"
-  
+
 -}}
 
 ###############################################################################
@@ -129,7 +129,7 @@ repositories:
   "divyam-router-controller"     (list "otel-collector" "mysql" "divyam-route-selector")
   "divyam-router-controller-ingress"    (list "divyam-router-controller")
   "divyam-db-upgrades"           (list "clickhouse" "mysql" "kafka-cluster" "external-secrets-operator")
-  "divyam-control-plane-exporter" (list)
+  "divyam-control-plane-exporter" (list "mysql" "clickhouse" "divyam-db-upgrades" )
   "divyam-e2e-test-runner"        (list "divyam-router-controller" "divyam-route-selector" "clickhouse" "mysql")
 
 -}}
@@ -221,7 +221,7 @@ releases:
       {{- $depRaw := index $values.charts $depName | default dict }}
       {{- $depCfg := merge (dict "enabled" true "values" dict "namespace" nil) $depRaw }}
 
-      {{- if $depCfg.enabled }}        
+      {{- if $depCfg.enabled }}
 
         {{- $depNs := include "namespace" (dict
             "namespace" $depCfg.namespace
@@ -244,7 +244,7 @@ releases:
       {{- end }}
     {{- end }}
 
-- name: {{ $name }}-{{ $env }}  
+- name: {{ $name }}-{{ $env }}
   namespace: {{ $ns }}
   chart: {{ $chart }}
 
