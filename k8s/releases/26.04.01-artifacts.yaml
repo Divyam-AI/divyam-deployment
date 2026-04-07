@@ -108,6 +108,5 @@ divyam-e2e-test-runner:
     version: 0.1.0
   values:
     image:
-      repository: asia-south1-docker.pkg.dev/prod-benchmarking/divyam-docker-dev-as1/e2e-test-runner
       tag: 0.0.1
   
