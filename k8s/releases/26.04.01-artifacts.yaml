@@ -97,7 +97,7 @@ divyam-control-plane-exporter:
     version: 0.1.0
   values:
     image:
-      tag: "0.1.6"
+      tag: "0.1.7"
 
 divyam-db-upgrades:
   chart:
