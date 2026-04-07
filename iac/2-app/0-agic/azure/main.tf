@@ -41,8 +41,7 @@ resource "azurerm_role_assignment" "agic_identity_assigner" {
 
 resource "azurerm_federated_identity_credential" "agic" {
   name                = "${var.cluster_name}-agic-fic"
-  resource_group_name = var.resource_group_name
-  parent_id           = var.agic_identity_id
+  user_assigned_identity_id           = var.agic_identity_id
   issuer              = var.aks_oidc_issuer_url
   subject             = "system:serviceaccount:${var.namespace}:${local.release_name}"
   audience            = ["api://AzureADTokenExchange"]

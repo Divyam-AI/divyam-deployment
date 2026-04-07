@@ -22,11 +22,6 @@ platform:
       clientIdMap:
 ${local.wif_client_id_lines}
 
-clusterDomain: "${var.cluster_domain}"
-
-imagePullSecretConfig:
-  enabled: ${var.image_pull_secret_enabled}
-
 ingress:
   deploy: ${var.ingress_deploy}
   external: ${var.ingress_external}
@@ -37,6 +32,12 @@ ingress:
   azure:
     tls_enabled: ${var.ingress_tls_enabled}
     certificate_name: "${var.ingress_certificate_name}"
+
+imagePullSecretConfig:
+  enabled: ${var.image_pull_secret_enabled}
+
+clusterDomain: "${var.cluster_domain}"
+
 EOT
 
   databases_block = <<-EOT
