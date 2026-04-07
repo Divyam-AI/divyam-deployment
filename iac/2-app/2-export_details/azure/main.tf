@@ -36,6 +36,7 @@ ingress:
 imagePullSecretConfig:
   enabled: ${var.image_pull_secret_enabled}
 
+deployment_mode: "${var.deployment_mode}"
 clusterDomain: "${var.cluster_domain}"
 
 EOT
