@@ -1,3 +1,9 @@
+variable "create" {
+  description = "When true, create GCP Cloud SQL and supporting resources."
+  type        = bool
+  default     = false
+}
+
 variable "instance_name" {
   description = "The name of the Cloud SQL instance"
   type        = string

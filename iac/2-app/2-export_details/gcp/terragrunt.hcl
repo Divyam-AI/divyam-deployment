@@ -54,7 +54,7 @@ inputs = {
   output_path               = "${local.repo_root}/${try(local.export_cfg.output_dir, "k8s/values")}/provider.yaml"
 
   cloudsql_created = local.cloudsql_created
-  mysql_host       = local.cloudsql_created ? try(dependency.cloudsql.outputs.private_ip_address, "") : ""
+  mysql_host       = local.cloudsql_created ? (try(dependency.cloudsql.outputs.private_ip_address, null) == null ? "" : dependency.cloudsql.outputs.private_ip_address) : ""
   mysql_port       = 3306
   mysql_database   = local.cloudsql_created ? try(dependency.cloudsql.outputs.database_name, "divyam_${local.env}") : "divyam_${local.env}"
 
