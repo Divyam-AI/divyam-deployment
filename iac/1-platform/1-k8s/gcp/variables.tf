@@ -67,3 +67,9 @@ variable "logs_retention_days" {
   type        = number
   default     = 7
 }
+
+variable "manage_project_log_bucket" {
+  description = "When true, manage retention of the project _Default log bucket."
+  type        = bool
+  default     = true
+}

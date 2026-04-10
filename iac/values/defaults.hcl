@@ -214,6 +214,17 @@ locals {
     setup_kubectl_on_bastion = false
   }
 
+  # --- Datadog ---
+  # When enabled:
+  # - set registry to your Datadog site (for example: datadoghq.com, datadoghq.eu, ap1.datadoghq.com)
+  # - set env to the deployment environment tag to be sent to Datadog
+  # - export TF_VAR_datadog_api_key before running terragrunt
+  datadog = {
+    enabled  = false
+    registry = ""
+    env      = ""
+  }
+
   iam_bindings = {
     create = true
   }
