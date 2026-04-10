@@ -3,7 +3,7 @@
 A single helmfile that deploys the entire Divyam platform stack with correct namespaces, dependency ordering, and cross-service DNS wiring.
 
 # Pre-requisites
-## 0. IAC Deployment 
+## 0. IAC Deployment
 - The K8s cluster needs to be setup using the IAC modules and the bastion host to be present
 - The following guide to be run from the bastion/jumphost VM
 - Verify the IAC deployment. The final stage creates a providers.yaml file in the k8s/helm-values directory. Review the file for the correct values of thee environment, cloud provider and storage configuration.
@@ -137,13 +137,15 @@ kubectl get ns
 ```
 your_values/
 ├── provider.yaml       # Environment, cloud platform, secrets, DB config (from Terraform)
-├── resources.yaml      # CPU/memory, storage, node selectors per chart
+├── resources.yaml      # CPU/memory, storage, node selectors per chart (required)
+├── config.yaml         # (optional) Local helm value overrides (see sample-config.yaml)
 ├── artifacts.yaml      # (dev only) Chart versions, image tags, chartBasePath to be configured manually
 └── releases/           # Versioned artifact files (preferred)
     └── 26.04.01-rc1-artifacts.yaml
 ```
 
-`ARTIFACTS_VERSION` is the preferred method. A local `artifacts.yaml` is only needed during development when testing unreleased chart versions or image tags.
+**Priority order for chart values**: `config.yaml` (highest) > `resources.yaml` > `artifacts.yaml` (lowest).
+`ARTIFACTS_VERSION` is the preferred method for image versions. A local `artifacts.yaml` is only needed during development when testing unreleased chart versions or image tags.
 
 ### Artifacts Resolution Order
 
@@ -231,12 +233,17 @@ cp /path/to/terraform-output/provider.yaml .
 cp sample_values/azure/resources.yaml .    # or sample_values/gcp/resources.yaml
 #    Edit resources.yaml → tune CPU/memory, storage classes, node selectors
 
-# 4. Commit your environment config to your internal repo
+# 4. (Optional) Create config.yaml for local-only overrides
+#    Use this to override values without committing changes to resources.yaml
+cp sample-config.yaml config.yaml
+#    Edit config.yaml → add any local overrides (replicaCount, resources, enabled flags, etc.)
+
+# 5. Commit your environment config to your internal repo
 git add provider.yaml resources.yaml
 git commit -m "Add environment config for <env>"
 git push origin main
 
-# 5. First-time install
+# 6. First-time install
 ARTIFACTS_VERSION=26.04.01-rc1 helmfile -f helmfile.yaml.gotmpl sync
 ```
 
@@ -317,6 +324,24 @@ charts:
 ```
 
 Common knobs: `resources`, `nodeSelector`, `persistence`/`storage`, `replicaCount`, `enabled`/`condition` (set `false` to skip a chart).
+
+### `config.yaml` -- Local Value Overrides (Optional)
+
+```bash
+cp sample-config.yaml config.yaml
+```
+
+Use `config.yaml` to override any chart values locally without editing `resources.yaml`.
+
+```yaml
+divyam-control-plane-exporter:
+  values:
+    export:
+      schedule: "* */12 * * *"
+
+```
+
+**Values merge priority**: `config.yaml` (highest) > `resources.yaml` > `artifacts.yaml` (lowest). Deep-merged, so only keys you set in `config.yaml` override the corresponding keys in `resources.yaml`.
 
 ---
 
