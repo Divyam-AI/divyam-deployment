@@ -334,13 +334,11 @@ cp sample-config.yaml config.yaml
 Use `config.yaml` to override any chart values locally without editing `resources.yaml`.
 
 ```yaml
-divyam-router-controller:
-  values:
-    replicaCount: 2
-
 divyam-control-plane-exporter:
-  enabled: true
-  values: {}
+  values:
+    export:
+      schedule: "* */12 * * *"
+
 ```
 
 **Values merge priority**: `config.yaml` (highest) > `resources.yaml` > `artifacts.yaml` (lowest). Deep-merged, so only keys you set in `config.yaml` override the corresponding keys in `resources.yaml`.
