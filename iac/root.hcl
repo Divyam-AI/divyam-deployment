@@ -214,7 +214,7 @@ generate "tagging" {
         k => replace(
           v,
           "/#\\{([^}]+)\\}/",
-          lookup(local.tag_context, regex("#\\{([^}]+)\\}", v)[0], "")
+          lookup(local.tag_context, try(regex("#\\{([^}]+)\\}", v)[0], ""), "")
         )
       }
     }    
