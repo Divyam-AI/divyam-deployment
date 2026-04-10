@@ -4,15 +4,15 @@ locals {
   env = get_env("ENV", "")
   secrets_input = merge(
     {
-    divyam_db_root_password             = get_env("TF_VAR_divyam_db_root_password", "random_password")
-    divyam_db_user_name                 = get_env("TF_VAR_divyam_db_user_name", "divyam-preprod")
-    divyam_db_password                  = get_env("TF_VAR_divyam_db_password", "random_password")
+    divyam_db_root_password             = get_env("TF_VAR_divyam_db_root_password", "")
+    divyam_db_user_name                 = get_env("TF_VAR_divyam_db_user_name", "divyam-${env}")
+    divyam_db_password                  = get_env("TF_VAR_divyam_db_password", "")
     divyam_clickhouse_user_name         = get_env("TF_VAR_divyam_clickhouse_user_name", "default")
-    divyam_clickhouse_password          = get_env("TF_VAR_divyam_clickhouse_password", "random_password")
-    divyam_superset_pg_password         = get_env("TF_VAR_divyam_superset_pg_password", "random_password")
-    divyam_jwt_secret_key              = get_env("TF_VAR_divyam_jwt_secret_key", "random_password")
-    divyam_provider_keys_encryption_key = get_env("TF_VAR_divyam_provider_keys_encryption_key", "random_password")
-    divyam_openai_billing_admin_api_key = get_env("TF_VAR_divyam_openai_billing_admin_api_key", "random_password")
+    divyam_clickhouse_password          = get_env("TF_VAR_divyam_clickhouse_password", "")
+    divyam_superset_pg_password         = get_env("TF_VAR_divyam_superset_pg_password", "")
+    divyam_jwt_secret_key              = get_env("TF_VAR_divyam_jwt_secret_key", "")
+    divyam_provider_keys_encryption_key = get_env("TF_VAR_divyam_provider_keys_encryption_key", "")
+    divyam_openai_billing_admin_api_key = get_env("TF_VAR_divyam_openai_billing_admin_api_key", "")
     # User provided secrets. No default or auto-generation in the secrets module.
     divyam_superset_password              = get_env("TF_VAR_divyam_superset_password")
     divyam_router_admin_password        = get_env("TF_VAR_divyam_router_admin_password")
