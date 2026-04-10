@@ -7,7 +7,7 @@ include "root" {
 }
 
 terraform {
-  source = "${get_repo_root()}/2-app/1-iam_bindings//gcp"
+  source = "${get_repo_root()}/iac/2-app/1-iam_bindings//gcp"
 }
 
 locals {

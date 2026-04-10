@@ -49,6 +49,9 @@ locals {
     "divyam-provider-keys-encryption-key"  = var.input.divyam_provider_keys_encryption_key
     "divyam-openai-billing-admin-api-key"  = local.openai_key
     "divyam-artifactory-docker-auth"       = var.input.divyam_artifactory_docker_auth
+    "divyam-router-admin-password"         = var.input.divyam_router_admin_password
+    "divyam-deployment-id"                 = var.input.divyam_deployment_id
+    "divyam-deployment-api-key"            = var.input.divyam_deployment_api_key
 
     "divyam-billing-secrets" = <<-EOT
       llm_keys:

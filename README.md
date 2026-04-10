@@ -1,8 +1,8 @@
-# divyam-deployment
+# Divyam Deployment
 
 Provision cloud infrastructure and deploy the Divyam platform stack on Kubernetes.
 
-This repository gives your DevOps team everything needed to stand up a complete Divyam environment and maintain it through a CD pipeline. The setup has two phases:
+This repository gives your team everything needed to setup up a complete Divyam environment and maintain it through a CD pipeline. The setup has two phases:
 
 1. **Infrastructure** ([`iac/`](iac/README.md)) — Terragrunt/OpenTofu modules that create cloud resources (VPC, K8s cluster, secrets, storage, etc.)
 2. **Application** ([`k8s/`](k8s/README.md)) — A Helmfile that deploys the full Divyam service mesh onto the provisioned cluster
@@ -22,14 +22,14 @@ This repository gives your DevOps team everything needed to stand up a complete 
 │   ├── 1-platform/                 #   K8s cluster, load balancer, storage, alerts
 │   ├── 2-app/                      #   Secrets, IAM, Cloud SQL, provider.yaml export
 │   ├── sample_deploy.sh            #   Wrapper for plan/apply/destroy/import
+│   └── terragrunt.hcl              #   Root Terragrunt entry point
 ├── k8s/                            # Kubernetes Deployment
 │   ├── helmfile.yaml.gotmpl        #   Helmfile — deploys entire Divyam stack
 │   ├── helm-values/                #   provider.yaml, resources.yaml
 │   └── releases/                   #   Versioned artifact files
 ├── scripts/
-│   └── write-outputs-yaml.sh       #   OpenTofu outputs → YAML/JSON for Helm
-|   └── check_cloud_credentials.sh  #   Cloud login validator
-└── terragrunt.hcl                  # Root Terragrunt entry point
+│   ├── write-outputs-yaml.sh       #   OpenTofu outputs → YAML/JSON for Helm
+└── └── check_cloud_credentials.sh  #   Cloud login validator
 ```
 
 ## Getting Started

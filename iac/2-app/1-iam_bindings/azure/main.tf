@@ -190,7 +190,7 @@ resource "azurerm_federated_identity_credential" "k8s_federation" {
   for_each = local.federated_identities
 
   name                = "${each.key}-k8s-workload"
-  parent_id           = azurerm_user_assigned_identity.identities[each.key].id
+  user_assigned_identity_id           = azurerm_user_assigned_identity.identities[each.key].id
 
   audience = ["api://AzureADTokenExchange"]
   issuer   = each.value.issuer

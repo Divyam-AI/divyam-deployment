@@ -19,7 +19,7 @@ locals {
 
     kafka-connect = {
       namespace_prefix = "kafka"
-      k8s_service_account_name = "kafka-${var.env_name}-connect"
+      service_account_name_override = "kafka-${var.env_name}-connect"
       roles            = ["blob_writer", "secret_reader"]
     }
 
@@ -40,6 +40,7 @@ locals {
 
     divyam-router-controller = {
       namespace_prefix = "router-controller"
+      service_account_name_override = "router-controller-${var.env_name}-sa"
       roles            = ["secret_reader", "resource_reader"]
     }
 
@@ -50,6 +51,7 @@ locals {
 
     divyam-selector-training = {
       namespace_prefix = "selector-training"
+      service_account_name_override = "selector-training-${var.env_name}-sa"
       roles = [ "secret_reader", "blob_writer", "resource_reader" ]
     }
 
@@ -65,7 +67,20 @@ locals {
 
     divyam-route-selector = {
       namespace_prefix = "route-selector"
+      service_account_name_override = "route-selector-${var.env_name}-sa"
       roles            = ["secret_reader","resource_reader", "blob_reader"]
+    }
+
+    divyam-control-plane-exporter = {
+      namespace_prefix = "control-plane-exporter"
+      service_account_name_override = "control-plane-exp-${var.env_name}-sa"
+      roles            = ["secret_reader","resource_reader"]
+    }
+
+    divyam-e2e-test-runner = {
+      namespace_prefix = "e2e-test-runner"
+      service_account_name_override = "e2e-test-runner-${var.env_name}-sa"
+      roles            = ["secret_reader","resource_reader","blob_reader", "blob_writer"]
     }
   }
 
@@ -75,8 +90,8 @@ locals {
   ##########################################
   service_accounts = {
     for sa_name, sa in local.base_service_accounts :
-    (lookup(sa, "k8s_service_account_name", null) != null ?
-      sa.k8s_service_account_name :
+    (lookup(sa, "service_account_name_override", null) != null ?
+      sa.service_account_name_override :
       replace("${sa_name}-${var.env_name}-sa", "_", "-")
     ) => {
       namespace = lookup(sa, "namespace", null) != null ? sa.namespace : "${sa.namespace_prefix}-${var.env_name}-ns"

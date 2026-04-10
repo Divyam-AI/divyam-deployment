@@ -1,7 +1,7 @@
 # Chart versions and docker image references
 # Merged with provider.yaml and resources.yaml via helmfile
 
-chartBasePath: "oci://asia-south1-docker.pkg.dev/prod-benchmarking/divyam-helm-public-as1"
+chartBasePath: "oci://asia-south1-docker.pkg.dev/prod-benchmarking/divyam-public-helm-as1"
 
 divyam-selector-training:
   chart:
@@ -97,8 +97,16 @@ divyam-control-plane-exporter:
     version: 0.1.0
   values:
     image:
-      tag: "latest"
+      tag: "0.1.7"
 
 divyam-db-upgrades:
   chart:
     version: 0.1.0
+
+divyam-e2e-test-runner:
+  chart:
+    version: 0.1.0
+  values:
+    image:
+      tag: 0.0.1
+  

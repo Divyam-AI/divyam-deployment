@@ -8,11 +8,12 @@
 #----------------------------------------------
 locals {
   repo_root      = get_repo_root()
+  iac_root       = "${local.repo_root}/iac"
   # Values file path (relative to repo root). Override with VALUES_FILE env or 3rd script arg.
   values_file = get_env("VALUES_FILE") # VALUES_FILE to be used : values/defaults.hcl
-  default_locals = read_terragrunt_config("${local.repo_root}/${local.values_file}").locals
+  default_locals = read_terragrunt_config("${local.repo_root}/iac/${local.values_file}").locals
   cloud_provider = local.default_locals.cloud_provider
-  at_repo_root   = get_terragrunt_dir() == local.repo_root
+  at_repo_root   = get_terragrunt_dir() == local.iac_root
 
   # Set TG_USE_LOCAL_BACKEND=1 (or true) to use local state for all modules — no remote backend, no state download. Useful for testing.
   use_local_backend = get_env("TG_USE_LOCAL_BACKEND", "0") != "0"
@@ -213,7 +214,7 @@ generate "tagging" {
         k => replace(
           v,
           "/#\\{([^}]+)\\}/",
-          lookup(local.tag_context, regex("#\\{([^}]+)\\}", v)[0], "")
+          lookup(local.tag_context, try(regex("#\\{([^}]+)\\}", v)[0], ""), "")
         )
       }
     }    

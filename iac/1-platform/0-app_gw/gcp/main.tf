@@ -5,7 +5,7 @@ locals {
   has_public_static_ip = var.create_public_lb  # Static IP is created in-module when public
 
   # DNS names for managed SSL cert (from divyam_load_balancer.router_dns and dashboard_dns).
-  ssl_cert_domains   = compact([var.router_dns, var.dashboard_dns])
+  ssl_cert_domains   = compact([var.router_dns, var.dashboard_dns, var.controlplane_dns])
   create_managed_cert = var.create_ssl_cert && var.tls_enabled && var.ssl_certificate_id == null && var.ssl_cert_name != null && length(local.ssl_cert_domains) > 0
   ssl_certificate_id  = local.create_managed_cert ? google_compute_managed_ssl_certificate.lb_cert[0].id : var.ssl_certificate_id
 
