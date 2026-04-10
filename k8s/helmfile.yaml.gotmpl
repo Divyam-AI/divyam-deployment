@@ -49,7 +49,7 @@ repositories:
 {{- $artifactsFile := "" }}
 
 {{- if $artifactsVersion }}
-  {{- $artifactsFile = printf "%s/releases/%s-artifacts.yaml" $valuesDir $artifactsVersion }}
+  {{- $artifactsFile = printf "releases/%s-artifacts.yaml" $artifactsVersion }}
   {{- $exists := exec "sh" (list "-c" (printf "test -f '%s' && echo true || echo false" $artifactsFile)) | trim }}
   {{- if ne $exists "true" }}
     {{- fail (printf "ERROR: Artifacts file not found at '%s'. Check that ARTIFACTS_VERSION '%s' is correct." $artifactsFile $artifactsVersion) }}
@@ -59,9 +59,9 @@ repositories:
   {{- if eq $localExists "true" }}
     {{- $artifactsFile = printf "%s/artifacts.yaml" $valuesDir }}
   {{- else }}
-    {{- $latest := exec "sh" (list "-c" (printf "ls -1 '%s'/releases/*-artifacts.yaml 2>/dev/null | sort | tail -1" $valuesDir)) | trim }}
+    {{- $latest := exec "sh" (list "-c" "ls -1 releases/*-artifacts.yaml 2>/dev/null | sort | tail -1") | trim }}
     {{- if eq $latest "" }}
-      {{- fail (printf "ERROR: No artifacts found. Set ARTIFACTS_VERSION, place artifacts.yaml in '%s', or add release files to '%s/releases/'." $valuesDir $valuesDir) }}
+      {{- fail (printf "ERROR: No artifacts found. Set ARTIFACTS_VERSION, place artifacts.yaml in '%s', or add release files to 'releases/'." $valuesDir) }}
     {{- end }}
     {{- $artifactsFile = $latest }}
     {{- $_ := exec "sh" (list "-c" (printf "echo '[INFO] No ARTIFACTS_VERSION set. Auto-selected latest artifacts: %s' >&2" $latest)) }}
