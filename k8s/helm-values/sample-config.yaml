@@ -1,0 +1,68 @@
+divyam-persistent-storage:
+  values: {}
+
+divyam-router-controller:
+  values: {}
+
+divyam-router-controller-ingress:
+  values: {}
+
+divyam-route-selector:
+  values: {}
+
+divyam-selector-training:
+  values: {}
+
+divyam-evaluator:
+  values: {}
+
+altinity-clickhouse-operator:
+  values: {}
+
+clickhouse:
+  values: {}
+
+strimzi-kafka-operator:
+  values: {}
+
+kafka-cluster:
+  values: {}
+
+otel-collector:
+  values: {}
+
+mysql:
+  values: {}
+
+divyam-redis:
+  values: {}
+
+superset-postgres:
+  values: {}
+
+infinity:
+  values: {}
+
+qdrant:
+  values: {}
+
+external-secrets-operator:
+  values: {}
+
+kafka-connect:
+  values: {}
+
+superset:
+  values: {}
+
+superset-ingress:
+  values: {}
+
+divyam-control-plane-exporter:
+  values: {}
+
+divyam-db-upgrades:
+  values: {}
+
+divyam-e2e-test-runner:
+  values: {}
