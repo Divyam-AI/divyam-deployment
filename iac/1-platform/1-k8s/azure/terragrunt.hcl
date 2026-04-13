@@ -83,8 +83,9 @@ inputs = {
   vnet_resource_group_name  = local.vnet_resource_group_name
   vnet_subnet_names         = local.vnet_subnet_names
   # NAT IP: from values (optional override) or resolved in-module via data source using nat_public_ip_name.
-  nat_gateway_ip     = try(local.root.nat.nat_gateway_ip, null)
-  nat_public_ip_name = try(local.root.nat.nat_public_ip_name, null)
+  nat_gateway_ip          = try(local.root.nat.nat_gateway_ip, null)
+  nat_public_ip_name      = try(local.root.nat.nat_public_ip_name, null)
+  nat_resource_group_name = try(local.root.nat.nat_resource_group_name, null)
 
   enable_log_collection    = try(local.obs.enable_logs, true)
   enable_metrics_collection = try(local.obs.enable_metrics, true)
