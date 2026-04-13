@@ -48,3 +48,8 @@ inputs = {
   notification_email_alert_email   = local.email_addr
   notification_slack_webhook_url   = local.slack_url
 }
+
+exclude {
+  if      = !try(local.alerts_cfg.enabled, false)
+  actions = ["apply", "plan", "destroy", "refresh", "import"]
+}
