@@ -35,8 +35,7 @@ locals {
 # Azure: resource_group_name | GCP: project_id
   resource_scope = {
     create          = false   # If this is set to false, edit the name below to the resource name that is to be used for setting up Divyam.
-    name            = "divyam-bkt-preprod-rg"
-    # name            = "${local.deployment_prefix}-rg"
+    name            = "${local.deployment_prefix}-rg"
     # Get it from https://portal.azure.com/#view/Microsoft_Azure_Billing/SubscriptionsBladeV2 or https://console.cloud.google.com/billing/
     billing_account = get_env("BILLING_ACCOUNT", "") # BILLING_ACCOUNT is required if create is true
   }
@@ -53,17 +52,13 @@ locals {
   # GCP: set shared_vpc_host = true to enable this project as Shared VPC host; set service_project_ids = ["project-a","project-b"] to attach service projects.
   vnet = {
     create          = false  # If this is set to false, edit the below values that is to be used for setting up Divyam.
-    name            = "divyam-ckt-dev-vnet"
-    # name            = "${local.deployment_prefix}-vnet"
-    scope_name      = "az-bharath-dev" # Azure Resource Group or GCP Project where this vnet is to be created/present
-    # scope_name      = "${local.resource_scope.name}" # Azure Resource Group or GCP Project where this vnet is to be created/present
+    name            = "${local.deployment_prefix}-vnet"    
+    scope_name      = "${local.resource_scope.name}" # Azure Resource Group or GCP Project where this vnet is to be created/present
     region          = "${local.region}"
     zone            = "${local.zone}"
-    address_space   = ["10.1.0.0/16"]
-    subnet          = { create = false, subnet_ip = "10.1.0.0/21", name = "divyam-ckt-dev-subnet" } # (2048 IPs)
-    # subnet          = { create = true, subnet_ip = "10.0.0.0/21", name = "${local.deployment_prefix}-subnet" } # (2048 IPs)
-    app_gw_subnet   = { create = false, subnet_ip = "10.1.8.0/26", name = "divyam-ckt-dev-subnet-app-gw" } # (64 IPs) - Required for Azure App Gateway or GCP proxy-only (min /26)    
-    # app_gw_subnet   = { create = true, subnet_ip = "10.0.8.0/26", name = "${local.deployment_prefix}-subnet-app-gw" } # (64 IPs) - Required for Azure App Gateway or GCP proxy-only (min /26)
+    address_space   = ["10.0.0.0/16"]
+    subnet          = { create = true, subnet_ip = "10.0.0.0/21", name = "${local.deployment_prefix}-subnet" } # (2048 IPs)
+    app_gw_subnet   = { create = true, subnet_ip = "10.0.8.0/26", name = "${local.deployment_prefix}-subnet-app-gw" } # (64 IPs) - Required for Azure App Gateway or GCP proxy-only (min /26)
     # GCP only: enable Shared VPC host and attach service projects (ignored by Azure)
     # Azure: shared_vpc_host = true peers this VNet to remote VNets whose ARM IDs are in service_project_ids.
     shared_vpc_host     = false
@@ -75,15 +70,11 @@ locals {
   # Lookup names: platform modules fetch nat_gateway_ip via data sources (Azure: public IP by name; GCP: router/nat by name). Names must match 0-foundation/2-nat or existing infra.
   nat = {
     create = false # If this is set to false, edit the below values that is to be used for setting up Divyam.
-    # resource_name_prefix = "az-bharath-dev"
-    # Azure: resource group where the existing NAT gateway and public IP live (only used when create = false).
-    # Leave unset or null to fall back to resource_scope.name.
-    nat_resource_group_name = "az-bharath-dev" # Resource group containing the existing NAT gateway
+    resource_name_prefix = "${local.deployment_prefix}"
     # Names for data-source lookup (1-platform resolves NAT IP from these; no dependency on 0-foundation).
-    nat_gateway_name   = "divyam-ckt-dev-nat-gateway"   # Azure: NAT gateway resource name
-    # nat_gateway_name   = "${local.deployment_prefix}-nat-gateway"   # Azure: NAT gateway resource name
-    nat_public_ip_name = "divyam-ckt-dev-nat-ip"       # Azure: public IP resource name (used to fetch IP)
-    # nat_public_ip_name = "${local.deployment_prefix}-nat-ip"       # Azure: public IP resource name (used to fetch IP)
+    nat_resource_group_name = ${local.resource_scope.name}" # Resource group containing the existing NAT gateway
+    nat_gateway_name   = "${local.deployment_prefix}-nat-gateway"   # Azure: NAT gateway resource name
+    nat_public_ip_name = "${local.deployment_prefix}-nat-ip"       # Azure: public IP resource name (used to fetch IP)    
     # GCP: Cloud Router and NAT config names (for lookup if needed)
     router_name     = "${local.deployment_prefix}-nat-router"
     nat_config_name = "${local.deployment_prefix}-nat-config"
@@ -93,13 +84,12 @@ locals {
   # Set create = true and override below. Cluster details for kubectl come from k8s section (no cloud-specific names).
   bastion = {
     create       = false # If this is set to false, edit the below values that is to be used for setting up Divyam.
-    bastion_name = "divyam-ckt-dev-bastion"
-    # bastion_name = "${local.deployment_prefix}-bastion"
-    bastion_resource_group_name = "az-bharath-dev" # Resource group containing the existing bastion VM and public IP
+    bastion_name = "${local.deployment_prefix}-bastion"
     spot_instance = false
     # configure_kubectl: use only when cluster is pre-created and only the bastion needs to be set up (installs kubectl + setup-kubectl script on bastion at create time).
     # Once the cluster is created (1-platform), either run on the bastion: setup-kubectl, or set k8s.setup_kubectl_on_bastion = true to run it via Terraform.
     # Azure: vnet_subnet_name, vm_size, admin_username, ssh_public_key_path. GCP: machine_type, tags.
+    bastion_resource_group_name = ${local.resource_scope.name}" # Resource group containing the existing bastion VM and public IP
     vm_size = "Standard_B2s"
   }
 
@@ -110,8 +100,8 @@ locals {
   # Override here if needed (e.g. storage_account_name, container_name for Azure).
   # local_state: when true, state is stored locally only (no cloud bucket/container created or used).
   tfstate = {
-    create         = true # If this is set to false, edit the below values that is to be used for setting up Divyam.
-    local_state    = false
+    create         = false # If this is set to false, edit the below values that is to be used for setting up Divyam.
+    local_state    = true
     region         = "${local.region}"
     zone           = "${local.zone}"
     scope_name     = "${local.resource_scope}"                              # Azure Resource Group or GCP Project
@@ -147,7 +137,7 @@ locals {
     private_ip_name  = "${local.deployment_prefix}-private-ip"  # Name for the private IP resource (e.g. GCP internal address)
 
     public = false
-    create_public_ip = false  # When true and public = true, create new public IP; when false, use existing by public_ip_name    
+    create_public_ip = true  # When true and public = true, create new public IP; when false, use existing by public_ip_name    
     public_ip_name  = "${local.deployment_prefix}-ip"  # Name for new public IP, or name of existing if create_public_ip = false
 
     service_name         = "${local.deployment_prefix}-service"
@@ -213,10 +203,10 @@ locals {
     }
 
     observability = {
-      enable_logs         = false
+      enable_logs         = true
       # Maximum retention: GCP _Default bucket = 3650 days; Azure Log Analytics = 730 days (capped in 1-k8s).
       logs_retention_days = 30
-      enable_metrics      = false
+      enable_metrics      = true
     }
 
     # Upgrade cadence: Azure = automatic_channel_upgrade (stable|rapid|patch|node-image), GCP = release_channel (REGULAR|RAPID|STABLE). Set per cloud.
@@ -231,8 +221,8 @@ locals {
   }
 
   alerts = {
-    create         = false
-    enabled        = false
+    create         = true
+    enabled        = true
     exclude_list   = []
 
     notification_channels = {
