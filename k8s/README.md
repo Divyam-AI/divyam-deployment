@@ -294,6 +294,7 @@ helmfile -f helmfile.yaml.gotmpl apply
 | `platform.azure.*` | Azure Key Vault URI, blob storage, and workload identity config. |
 | `databases.mysql` | External MySQL connection (`host`, `port`, `database`). Falls back to in-cluster MySQL if unset. |
 | `clusterDomain` | K8s cluster domain for cross-service DNS. Leave `""` for default behaviour. |
+| `deployment_mode` | `managed` or `onprem`. |
 | `imagePullSecretConfig` | Whether to inject image pull secrets into releases. |
 
 ### `releases/<version>-artifacts.yaml` -- Chart Versions, Image Tags & Chart Base Path
