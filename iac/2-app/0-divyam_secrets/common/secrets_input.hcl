@@ -5,7 +5,7 @@ locals {
   secrets_input = merge(
     {
     divyam_db_root_password             = get_env("TF_VAR_divyam_db_root_password", "")
-    divyam_db_user_name                 = get_env("TF_VAR_divyam_db_user_name", "divyam-${env}")
+    divyam_db_user_name                 = get_env("TF_VAR_divyam_db_user_name", "divyam-prod")
     divyam_db_password                  = get_env("TF_VAR_divyam_db_password", "")
     divyam_clickhouse_user_name         = get_env("TF_VAR_divyam_clickhouse_user_name", "default")
     divyam_clickhouse_password          = get_env("TF_VAR_divyam_clickhouse_password", "")

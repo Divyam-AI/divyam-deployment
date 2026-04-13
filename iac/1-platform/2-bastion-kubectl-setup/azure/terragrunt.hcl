@@ -57,10 +57,11 @@ locals {
 }
 
 inputs = {
-  create                  = local.run_setup
-  bastion_name            = try(local.bastion_config.bastion_name, "${local.root.deployment_prefix}-bastion")
-  resource_group_name     = local.root.resource_scope.name
-  bastion_admin_username  = try(local.bastion_config.admin_username, "azureuser")
+  create                      = local.run_setup
+  bastion_name                = try(local.bastion_config.bastion_name, "${local.root.deployment_prefix}-bastion")
+  resource_group_name         = local.root.resource_scope.name
+  bastion_resource_group_name = try(local.bastion_config.bastion_resource_group_name, null)
+  bastion_admin_username      = try(local.bastion_config.admin_username, "azureuser")
   ssh_private_key_path    = try(local.bastion_config.ssh_private_key_path, replace(try(local.bastion_config.ssh_public_key_path, "~/.ssh/id_rsa.pub"), ".pub", ""))
   cluster_id              = dependency.k8s.outputs.aks_cluster_id
 }
