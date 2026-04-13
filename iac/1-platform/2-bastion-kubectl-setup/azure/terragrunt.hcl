@@ -56,6 +56,11 @@ locals {
   run_setup      = try(local.k8s_config.setup_kubectl_on_bastion, false)
 }
 
+exclude {
+  if      = !local.run_setup
+  actions = ["apply", "plan", "destroy", "refresh", "import", "init"]
+}
+
 inputs = {
   create                      = local.run_setup
   bastion_name                = try(local.bastion_config.bastion_name, "${local.root.deployment_prefix}-bastion")
