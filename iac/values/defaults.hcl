@@ -160,6 +160,9 @@ locals {
       "controlplane.${local.env_name}.${local.org_name}.divyam.local" :
       "controlplane.${local.env_name}.divyam.local")
 
+    # Options: "Standard_v2" (no WAF, lower cost) or "WAF_v2" (WAF enabled, current default).
+    gateway_sku = "WAF_v2"
+
     waf_enabled = true
     create_waf  = true   # When true, create WAF/Cloud Armor policy in-module; when false and waf_enabled, fetch existing by waf_policy_name and attach
     waf_policy_name = "${local.deployment_prefix}-waf"  # Name for created policy or name of existing to fetch when create_waf = false
@@ -189,6 +192,7 @@ locals {
     # Use spot/preemptible nodes per pool (GKE: spot; AKS: priority Spot). Set spot_instance = true on each pool that should use spot.
     # "Auto" = platform-managed nodes (Azure NAP, GKE Autopilot). "Manual" = explicit node pools / VM size.
     node_provisioning_mode = "Auto" #"Manual"
+    
     # AKS networking settings (used by 1-platform/1-k8s/azure terragrunt input mapping).
     network_plugin = "azure"
     network_plugin_mode = null # Set "overlay" for Azure CNI Overlay.
