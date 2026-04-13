@@ -6,7 +6,7 @@ locals {
 }
 
 resource "azurerm_web_application_firewall_policy" "waf" {
-  count                = var.waf_enabled && var.create_waf ? 1 : 0
+  count                = var.waf_enabled && var.create_waf && var.gateway_sku == "WAF_v2" ? 1 : 0
   name                 = local.waf_policy_name
   resource_group_name  = var.resource_group_name
   location             = var.location
@@ -84,11 +84,11 @@ resource "azurerm_web_application_firewall_policy" "waf" {
 }
 
 data "azurerm_web_application_firewall_policy" "waf_existing" {
-  count                = var.waf_enabled && !var.create_waf ? 1 : 0
+  count                = var.waf_enabled && !var.create_waf && var.gateway_sku == "WAF_v2" ? 1 : 0
   name                 = local.waf_policy_name
   resource_group_name  = var.resource_group_name
 }
 
 locals {
-  waf_policy_id = var.waf_enabled ? (var.create_waf ? azurerm_web_application_firewall_policy.waf[0].id : data.azurerm_web_application_firewall_policy.waf_existing[0].id) : null
+  waf_policy_id = var.waf_enabled && var.gateway_sku == "WAF_v2" ? (var.create_waf ? azurerm_web_application_firewall_policy.waf[0].id : data.azurerm_web_application_firewall_policy.waf_existing[0].id) : null
 }
