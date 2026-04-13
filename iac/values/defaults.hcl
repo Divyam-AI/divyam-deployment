@@ -189,7 +189,14 @@ locals {
     # Use spot/preemptible nodes per pool (GKE: spot; AKS: priority Spot). Set spot_instance = true on each pool that should use spot.
     # "Auto" = platform-managed nodes (Azure NAP, GKE Autopilot). "Manual" = explicit node pools / VM size.
     node_provisioning_mode = "Auto" #"Manual"
-
+    # AKS networking settings (used by 1-platform/1-k8s/azure terragrunt input mapping).
+    network_plugin = "azure"
+    network_plugin_mode = null # Set "overlay" for Azure CNI Overlay.
+    network_policy = "azure"
+    # Optional AKS network ranges. Keep them non-overlapping with VNet/subnets.
+    service_cidr   = null
+    dns_service_ip = null
+    pod_cidr       = null
     api_server_authorized_ip_ranges = []
 
     node_pools = {

@@ -36,9 +36,11 @@ variable "cluster" {
     automatic_channel_upgrade       = optional(string, "stable")
 
     network_plugin = optional(string, "azure")
+    network_plugin_mode = optional(string)
     network_policy = optional(string, "azure")
     dns_service_ip = optional(string)
     service_cidr   = optional(string)
+    pod_cidr       = optional(string)
 
     default_node_pool = object({
       vm_size                     = string

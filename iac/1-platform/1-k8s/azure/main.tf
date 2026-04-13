@@ -87,9 +87,11 @@ locals {
   # K8s service/pod CIDRs from VNet fetched from cloud (by vnet name + resource group). cidrsubnet(space, 4, n) = /20 blocks; n=1,2,3 avoid node and app_gw subnets.
   vnet_address_space        = length(data.azurerm_virtual_network.vnet) > 0 ? data.azurerm_virtual_network.vnet[0].address_space[0] : null
   k8s_service_cidr_computed = local.vnet_address_space != null ? cidrsubnet(local.vnet_address_space, 4, 1) : null
-  k8s_dns_service_ip_computed = local.k8s_service_cidr_computed != null ? cidrhost(local.k8s_service_cidr_computed, 10) : null
   service_cidr   = coalesce(try(var.cluster.service_cidr, null), local.k8s_service_cidr_computed, "10.1.0.0/16")
+  # If dns_service_ip is not provided, derive it from the final service_cidr (including explicit input overrides).
+  k8s_dns_service_ip_computed = local.service_cidr != null ? cidrhost(local.service_cidr, 10) : null
   dns_service_ip = coalesce(try(var.cluster.dns_service_ip, null), local.k8s_dns_service_ip_computed, "10.1.0.10")
+  pod_cidr       = try(var.cluster.pod_cidr, null)
 
   # Resolve NAT gateway IP: from variable or by looking up public IP by name (Azure API).
   resolved_nat_gateway_ip = coalesce(
@@ -158,10 +160,12 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
   }
 
   network_profile {
-    network_plugin = var.cluster.network_plugin
-    network_policy = var.cluster.network_policy
-    service_cidr   = local.service_cidr
-    dns_service_ip = local.dns_service_ip
+    network_plugin      = var.cluster.network_plugin
+    network_plugin_mode = try(var.cluster.network_plugin_mode, null)
+    network_policy      = var.cluster.network_policy
+    service_cidr        = local.service_cidr
+    dns_service_ip      = local.dns_service_ip
+    pod_cidr            = local.pod_cidr
   }
 
   dynamic "oms_agent" {
