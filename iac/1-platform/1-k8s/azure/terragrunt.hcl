@@ -33,11 +33,14 @@ locals {
     private_cluster_enabled         = true
     vnet_subnet_name                = local.vnet_subnet_name
 
-    network_plugin = "azure"
-    network_policy = "azure"
-    # service_cidr and dns_service_ip are computed in Terraform from VNet fetched by name from Azure (data source).
-    dns_service_ip = null
-    service_cidr   = null
+    network_plugin = try(local.k8s.network_plugin, "azure")
+    network_plugin_mode = try(local.k8s.network_plugin_mode, null)
+    network_policy = try(local.k8s.network_policy, "azure")
+    # Optional overrides; when null, service_cidr/dns_service_ip are computed in Terraform from the VNet.
+    dns_service_ip = try(local.k8s.dns_service_ip, null)
+    service_cidr   = try(local.k8s.service_cidr, null)
+    # pod_cidr is used for compatible AKS networking modes (for example, overlay/kubenet).
+    pod_cidr       = try(local.k8s.pod_cidr, null)
 
     node_provisioning_mode = try(local.k8s.node_provisioning_mode, "Manual")
 
