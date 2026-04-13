@@ -84,24 +84,12 @@ locals {
   subnet_ids       = length(var.vnet_subnet_names) > 0 ? { for n in var.vnet_subnet_names : n => data.azurerm_subnet.vnet_subnets[n].id } : {}
   subnet_names    = var.vnet_subnet_names
   subnet_prefixes = length(var.vnet_subnet_names) > 0 ? { for n in var.vnet_subnet_names : n => data.azurerm_subnet.vnet_subnets[n].address_prefixes[0] } : {}
-  # AKS service CIDR must not overlap existing subnet CIDRs.
-  # Derive /20 candidates from fetched VNet address space and pick the first non-overlapping one.
-  vnet_address_space       = length(data.azurerm_virtual_network.vnet) > 0 ? data.azurerm_virtual_network.vnet[0].address_space[0] : null
-  vnet_prefix_length       = local.vnet_address_space != null ? tonumber(regex("[0-9]+$", local.vnet_address_space)) : null
-  service_cidr_prefix      = 20
-  service_cidr_newbits     = local.vnet_prefix_length != null && local.vnet_prefix_length < local.service_cidr_prefix ? local.service_cidr_prefix - local.vnet_prefix_length : 0
-  service_cidr_block_count = local.vnet_address_space != null ? pow(2, local.service_cidr_newbits) : 0
-  service_cidr_candidates  = local.vnet_address_space != null ? [for i in range(local.service_cidr_block_count) : cidrsubnet(local.vnet_address_space, local.service_cidr_newbits, i)] : []
-  k8s_service_cidr_computed = try([
-    for candidate in local.service_cidr_candidates : candidate
-    if alltrue([
-      for existing in values(local.subnet_prefixes) :
-      !(cidrcontains(existing, cidrhost(candidate, 0)) || cidrcontains(candidate, cidrhost(existing, 0)))
-    ])
-  ][0], null)
-  service_cidr            = coalesce(try(var.cluster.service_cidr, null), local.k8s_service_cidr_computed)
-  k8s_dns_service_ip_computed = local.service_cidr != null ? cidrhost(local.service_cidr, 10) : null
-  dns_service_ip          = coalesce(try(var.cluster.dns_service_ip, null), local.k8s_dns_service_ip_computed)
+  # K8s service/pod CIDRs from VNet fetched from cloud (by vnet name + resource group). cidrsubnet(space, 4, n) = /20 blocks; n=1,2,3 avoid node and app_gw subnets.
+  vnet_address_space        = length(data.azurerm_virtual_network.vnet) > 0 ? data.azurerm_virtual_network.vnet[0].address_space[0] : null
+  k8s_service_cidr_computed = local.vnet_address_space != null ? cidrsubnet(local.vnet_address_space, 4, 1) : null
+  k8s_dns_service_ip_computed = local.k8s_service_cidr_computed != null ? cidrhost(local.k8s_service_cidr_computed, 10) : null
+  service_cidr   = coalesce(try(var.cluster.service_cidr, null), local.k8s_service_cidr_computed, "10.1.0.0/16")
+  dns_service_ip = coalesce(try(var.cluster.dns_service_ip, null), local.k8s_dns_service_ip_computed, "10.1.0.10")
 
   # Resolve NAT gateway IP: from variable or by looking up public IP by name (Azure API).
   resolved_nat_gateway_ip = coalesce(
