@@ -16,6 +16,7 @@ locals {
   net     = try(local.k8s.network, {})
   pools   = try(local.k8s.node_pools, {})
   obs     = try(local.k8s.observability, {})
+  datadog_enabled = try(local.root.datadog.enabled, false)
 
   cluster_name = local.k8s.name
   dns_prefix   = local.k8s.name
@@ -33,11 +34,14 @@ locals {
     private_cluster_enabled         = true
     vnet_subnet_name                = local.vnet_subnet_name
 
-    network_plugin = "azure"
-    network_policy = "azure"
-    # service_cidr and dns_service_ip are computed in Terraform from VNet fetched by name from Azure (data source).
-    dns_service_ip = null
-    service_cidr   = null
+    network_plugin = try(local.k8s.network_plugin, "azure")
+    network_plugin_mode = try(local.k8s.network_plugin_mode, null)
+    network_policy = try(local.k8s.network_policy, "azure")
+    # Optional overrides; when null, service_cidr/dns_service_ip are computed in Terraform from the VNet.
+    dns_service_ip = try(local.k8s.dns_service_ip, null)
+    service_cidr   = try(local.k8s.service_cidr, null)
+    # pod_cidr is used for compatible AKS networking modes (for example, overlay/kubenet).
+    pod_cidr       = try(local.k8s.pod_cidr, null)
 
     node_provisioning_mode = try(local.k8s.node_provisioning_mode, "Manual")
 
@@ -83,11 +87,12 @@ inputs = {
   vnet_resource_group_name  = local.vnet_resource_group_name
   vnet_subnet_names         = local.vnet_subnet_names
   # NAT IP: from values (optional override) or resolved in-module via data source using nat_public_ip_name.
-  nat_gateway_ip     = try(local.root.nat.nat_gateway_ip, null)
-  nat_public_ip_name = try(local.root.nat.nat_public_ip_name, null)
+  nat_gateway_ip          = try(local.root.nat.nat_gateway_ip, null)
+  nat_public_ip_name      = try(local.root.nat.nat_public_ip_name, null)
+  nat_resource_group_name = try(local.root.nat.nat_resource_group_name, null)
 
-  enable_log_collection    = try(local.obs.enable_logs, true)
-  enable_metrics_collection = try(local.obs.enable_metrics, true)
+  enable_log_collection    = local.datadog_enabled ? false : try(local.obs.enable_logs, true)
+  enable_metrics_collection = local.datadog_enabled ? false : try(local.obs.enable_metrics, true)
   logs_retention_days      = min(730, try(local.obs.logs_retention_days, 730))
   artifacts_path           = try(local.root.helm_charts.artifacts_path, null)
 }

@@ -36,9 +36,11 @@ variable "cluster" {
     automatic_channel_upgrade       = optional(string, "stable")
 
     network_plugin = optional(string, "azure")
+    network_plugin_mode = optional(string)
     network_policy = optional(string, "azure")
     dns_service_ip = optional(string)
     service_cidr   = optional(string)
+    pod_cidr       = optional(string)
 
     default_node_pool = object({
       vm_size                     = string
@@ -93,6 +95,12 @@ variable "nat_gateway_ip" {
 
 variable "nat_public_ip_name" {
   description = "Name of the NAT gateway's public IP resource in Azure (from defaults.hcl nat.nat_public_ip_name); used to look up IP via data source when nat_gateway_ip is null"
+  type        = string
+  default     = null
+}
+
+variable "nat_resource_group_name" {
+  description = "Resource group where the NAT gateway public IP exists (from defaults.hcl nat.nat_resource_group_name). Defaults to resource_group_name when null."
   type        = string
   default     = null
 }

@@ -36,11 +36,14 @@ locals {
 
 inputs = merge(
   {
-    location             = local.root.region
-    common_tags          = try(local.root.common_tags, {})
-    resource_group_name  = local.root.resource_scope.name
-    resource_name_prefix = try(local.nat_config.resource_name_prefix, "divyam")
-    create               = try(local.nat_config.create, false)
+    location                   = local.root.region
+    common_tags                = try(local.root.common_tags, {})
+    resource_group_name        = local.root.resource_scope.name
+    lookup_resource_group_name = try(local.nat_config.nat_resource_group_name, null)
+    resource_name_prefix       = try(local.nat_config.resource_name_prefix, "divyam")
+    nat_gateway_name           = try(local.nat_config.nat_gateway_name, null)
+    nat_public_ip_name         = try(local.nat_config.nat_public_ip_name, null)
+    create                     = try(local.nat_config.create, false)
     # Build subnet_ids map from 1-vnet outputs for NAT gateway association (dependency only available in inputs).
     subnet_ids = {
       subnet        = dependency.vnet.outputs.subnet_id

@@ -18,6 +18,7 @@ terraform {
 locals {
   root = include.root.locals.merged
   nc   = try(local.root.alerts.notification_channels, {})
+  datadog_enabled = try(local.root.datadog.enabled, false)
 }
 
 inputs = {
@@ -32,4 +33,9 @@ inputs = {
   email_alert_email = try(local.nc.email_alert_email, "")
   slack_enabled     = try(local.nc.slack_enabled, false)
   slack_webhook_url = try(local.nc.slack_webhook_url, "")
+}
+
+exclude {
+  if      = !try(local.root.alerts.enabled, false) || local.datadog_enabled
+  actions = ["apply", "plan", "destroy", "refresh", "import"]
 }

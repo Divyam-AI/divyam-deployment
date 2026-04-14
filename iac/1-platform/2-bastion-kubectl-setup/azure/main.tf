@@ -19,6 +19,12 @@ variable "resource_group_name" {
   default     = ""
 }
 
+variable "bastion_resource_group_name" {
+  description = "Resource group where the existing bastion VM and public IP live (from bastion.bastion_resource_group_name). Defaults to resource_group_name when null or empty."
+  type        = string
+  default     = null
+}
+
 variable "bastion_admin_username" {
   description = "SSH user for the bastion (from bastion config)"
   type        = string
@@ -37,18 +43,22 @@ variable "cluster_id" {
   default     = ""
 }
 
+locals {
+  bastion_rg = coalesce(var.bastion_resource_group_name, var.resource_group_name)
+}
+
 # Fetch bastion VM from Azure to get its managed identity principal_id
 data "azurerm_virtual_machine" "bastion" {
-  count               = var.create && var.bastion_name != "" && var.resource_group_name != "" ? 1 : 0
+  count               = var.create && var.bastion_name != "" && local.bastion_rg != "" ? 1 : 0
   name                = var.bastion_name
-  resource_group_name = var.resource_group_name
+  resource_group_name = local.bastion_rg
 }
 
 # Fetch bastion public IP from Azure when bastion is configured for creation
 data "azurerm_public_ip" "bastion" {
-  count               = var.create && var.bastion_name != "" && var.resource_group_name != "" ? 1 : 0
+  count               = var.create && var.bastion_name != "" && local.bastion_rg != "" ? 1 : 0
   name                = "${var.bastion_name}-pip"
-  resource_group_name = var.resource_group_name
+  resource_group_name = local.bastion_rg
 }
 
 resource "azurerm_role_assignment" "bastion_aks_cluster_user" {
