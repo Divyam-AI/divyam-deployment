@@ -161,10 +161,10 @@ locals {
       "controlplane.${local.env_name}.divyam.local")
 
     # Options: "Standard_v2" (no WAF, lower cost) or "WAF_v2" (WAF enabled, current default).
-    gateway_sku = "WAF_v2"
+    gateway_sku = "Standard_v2"
 
-    waf_enabled = true
-    create_waf  = true   # When true, create WAF/Cloud Armor policy in-module; when false and waf_enabled, fetch existing by waf_policy_name and attach
+    waf_enabled = false
+    create_waf  = false   # When true, create WAF/Cloud Armor policy in-module; when false and waf_enabled, fetch existing by waf_policy_name and attach
     waf_policy_name = "${local.deployment_prefix}-waf"  # Name for created policy or name of existing to fetch when create_waf = false
 
     # WAF deny/allow lists (applied when create_waf = true). Empty = no rule.
