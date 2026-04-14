@@ -10,10 +10,7 @@ terraform {
 locals {
   root     = include.root.locals.merged
   # Subnet names from defaults.hcl: vnet.subnet and vnet.app_gw_subnet are single objects with .name.
-  vnet_subnet_names = [
-    local.root.vnet.subnet.name,
-    local.root.vnet.app_gw_subnet.name,
-  ]
+  vnet_subnet_names = [local.root.vnet.subnet.name]
   storages = try(local.root.divyam_object_storages, [])
   # Group by storage_account_name; each distinct storage_account_name -> one account (full name from config) and container names.
   storage_accounts = length(local.storages) > 0 ? {

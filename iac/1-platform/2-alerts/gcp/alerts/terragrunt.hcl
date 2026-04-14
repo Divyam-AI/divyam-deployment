@@ -28,6 +28,7 @@ terraform {
 locals {
   root        = include.root.locals.merged
   alerts_cfg  = try(local.root.alerts, {})
+  datadog_enabled = try(local.root.datadog.enabled, false)
   project_id  = local.root.resource_scope.name
   cluster_id  = try(local.root.k8s.name, "${local.root.deployment_prefix}-k8s-cluster")
   rules_dir   = "${get_repo_root()}/iac/1-platform/2-alerts/common/rules"
@@ -66,6 +67,6 @@ inputs = merge(
 )
 
 exclude {
-  if = !try(local.alerts_cfg.enabled, false)
+  if = !try(local.alerts_cfg.enabled, false) || local.datadog_enabled
   actions = ["apply", "plan", "destroy", "refresh", "import"]
 }

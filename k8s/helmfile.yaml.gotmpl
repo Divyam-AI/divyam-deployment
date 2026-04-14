@@ -33,6 +33,10 @@ repositories:
   OPTIONAL FILES:
     - config.yaml        (local helm value overrides)
     - artifacts.yaml     (optionally used to override image and chart versions)
+
+  Optional keys in provider.yaml (merged into listed charts when present):
+    - monitoring         (top-level; merged with per-chart values.monitoring; chart wins on overlap)
+    - ingress            (top-level; merged with per-chart values.ingress; chart wins on overlap)
 */}}
 {{- $providerVals := readFile (printf "%s/provider.yaml" $valuesDir) | fromYaml }}
 {{- $resources := readFile (printf "%s/resources.yaml" $valuesDir) | fromYaml }}
@@ -131,6 +135,22 @@ repositories:
 {{- $chartsWithProviderIngress := dict
   "superset-ingress"                  true
   "divyam-router-controller-ingress"  true
+-}}
+
+{{/*
+  Charts whose values.yaml defines a top-level `monitoring` key — merged from
+  provider.yaml `monitoring` (when present) with per-chart resources values
+  (chart wins on overlap). If provider.yaml omits `monitoring`, only chart values apply.
+*/}}
+{{- $chartsWithProviderMonitoring := dict
+  "altinity-clickhouse-operator"  true
+  "kafka-cluster"                 true
+  "strimzi-kafka-operator"        true
+  "otel-collector"                true
+  "qdrant"                        true
+  "divyam-router-controller"      true
+  "divyam-route-selector"         true
+  "infinity"                      true
 -}}
 
 ###############################################################################
@@ -310,16 +330,34 @@ releases:
 
     - use_spot_nodes: {{ $settings.use_spot_nodes | default false }}
 
-    {{- if hasKey $chartsWithProviderIngress $name }}
-    {{- $valsNoIngress := omit ($cfg.values | default dict) "ingress" }}
-    {{- if $valsNoIngress }}
-    - {{ toYaml $valsNoIngress | nindent 6 }}
+    {{- $chartVals := $cfg.values | default dict }}
+    {{- $omitProviderKeys := false }}
+    {{- if or (hasKey $chartsWithProviderIngress $name) (hasKey $chartsWithProviderMonitoring $name) }}
+    {{- $omitProviderKeys = true }}
     {{- end }}
-    {{- $mergedIngress := merge ($values.global.ingress | default dict) (index ($cfg.values | default dict) "ingress" | default dict) }}
-    - ingress:
-      {{ $mergedIngress | toYaml | nindent 8 }}
+    {{- if $omitProviderKeys }}
+    {{- $valsBody := $chartVals }}
+    {{- if hasKey $chartsWithProviderIngress $name }}
+    {{- $valsBody = omit $valsBody "ingress" }}
+    {{- end }}
+    {{- if hasKey $chartsWithProviderMonitoring $name }}
+    {{- $valsBody = omit $valsBody "monitoring" }}
+    {{- end }}
+    {{- if $valsBody }}
+    - {{ toYaml $valsBody | nindent 6 }}
+    {{- end }}
     {{- else if $cfg.values }}
     - {{ toYaml $cfg.values | nindent 6 }}
+    {{- end }}
+    {{- if hasKey $chartsWithProviderIngress $name }}
+    {{- $mergedIngress := merge (index $values.global "ingress" | default dict) (index $chartVals "ingress" | default dict) }}
+    - ingress:
+      {{ $mergedIngress | toYaml | nindent 8 }}
+    {{- end }}
+    {{- if hasKey $chartsWithProviderMonitoring $name }}
+    {{- $mergedMonitoring := merge (index $values.global "monitoring" | default dict) (index $chartVals "monitoring" | default dict) }}
+    - monitoring:
+      {{ $mergedMonitoring | toYaml | nindent 8 }}
     {{- end }}
 
     {{- if and (eq $name "divyam-persistent-storage") ($settings.storage_class) }}

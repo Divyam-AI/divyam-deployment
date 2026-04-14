@@ -160,8 +160,11 @@ locals {
       "controlplane.${local.env_name}.${local.org_name}.divyam.local" :
       "controlplane.${local.env_name}.divyam.local")
 
-    waf_enabled = true
-    create_waf  = true   # When true, create WAF/Cloud Armor policy in-module; when false and waf_enabled, fetch existing by waf_policy_name and attach
+    # Options: "Standard_v2" (no WAF, lower cost) or "WAF_v2" (WAF enabled, current default).
+    gateway_sku = "Standard_v2"
+
+    waf_enabled = false
+    create_waf  = false   # When true, create WAF/Cloud Armor policy in-module; when false and waf_enabled, fetch existing by waf_policy_name and attach
     waf_policy_name = "${local.deployment_prefix}-waf"  # Name for created policy or name of existing to fetch when create_waf = false
 
     # WAF deny/allow lists (applied when create_waf = true). Empty = no rule.
@@ -189,7 +192,14 @@ locals {
     # Use spot/preemptible nodes per pool (GKE: spot; AKS: priority Spot). Set spot_instance = true on each pool that should use spot.
     # "Auto" = platform-managed nodes (Azure NAP, GKE Autopilot). "Manual" = explicit node pools / VM size.
     node_provisioning_mode = "Auto" #"Manual"
-
+    # AKS networking settings (used by 1-platform/1-k8s/azure terragrunt input mapping).
+    network_plugin = "azure"
+    network_plugin_mode = null # Set "overlay" for Azure CNI Overlay.
+    network_policy = "azure"
+    # Optional AKS network ranges. Keep them non-overlapping with VNet/subnets.
+    service_cidr   = null
+    dns_service_ip = null
+    pod_cidr       = null
     api_server_authorized_ip_ranges = []
 
     node_pools = {
@@ -214,6 +224,17 @@ locals {
 
     # When true, enables 1-platform/2-bastion-kubectl-setup (run setup-kubectl on bastion after cluster exists). Bastion must have been created with bastion.configure_kubectl so the script exists.
     setup_kubectl_on_bastion = false
+  }
+
+  # --- Datadog ---
+  # When enabled:
+  # - set registry to your Datadog site (for example: datadoghq.com, datadoghq.eu, ap1.datadoghq.com)
+  # - set env to the deployment environment tag to be sent to Datadog
+  # - export TF_VAR_datadog_api_key before running terragrunt
+  datadog = {
+    enabled  = false
+    registry = ""
+    env      = ""
   }
 
   iam_bindings = {

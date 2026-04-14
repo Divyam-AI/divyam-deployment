@@ -78,12 +78,12 @@ resource "azurerm_application_gateway" "appgw" {
   resource_group_name = var.resource_group_name
 
   sku {
-    name     = "WAF_v2"
-    tier     = "WAF_v2"
+    name     = var.gateway_sku
+    tier     = var.gateway_sku
     capacity = 2
   }
 
-  firewall_policy_id = local.waf_policy_id
+  firewall_policy_id = var.gateway_sku == "WAF_v2" ? local.waf_policy_id : null
 
   identity {
     type         = "UserAssigned"
