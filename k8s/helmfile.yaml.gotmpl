@@ -78,6 +78,7 @@ repositories:
 
 {{- $settings := merge ($resources.settings | default dict) (dict "use_spot_nodes" false) }}
 {{- $global := merge ($providerVals | default dict) }}
+{{- $deploymentMode := $global.deployment_mode | default "onprem" }}
 {{/* config.yaml is flat (chart names at top level) — merge directly as chart overrides */}}
 {{- $charts := merge ($configVals | default dict) ($resources.charts | default dict) ($artifacts | default dict) }}
 
@@ -135,6 +136,18 @@ repositories:
 {{- $chartsWithProviderIngress := dict
   "superset-ingress"                  true
   "divyam-router-controller-ingress"  true
+-}}
+
+{{/*
+  Charts that receive a top-level `deployment_mode` value derived from provider.yaml.
+  The value ("managed" or "onprem") controls server-side vs client-side feature gating
+  within each chart. Add chart names here as "chart-name" true.
+*/}}
+{{- $chartsWithDeploymentMode := dict
+  "divyam-router-controller"  true
+  "divyam-db-upgrades"        true
+  "otel-collector"            true
+  "kafka-cluster"             true
 -}}
 
 {{/*
@@ -329,6 +342,10 @@ releases:
 {{ $depDnsMap | toYaml | indent 8 }}
 
     - use_spot_nodes: {{ $settings.use_spot_nodes | default false }}
+
+    {{- if hasKey $chartsWithDeploymentMode $name }}
+    - deployment_mode: {{ $deploymentMode | quote }}
+    {{- end }}
 
     {{- $chartVals := $cfg.values | default dict }}
     {{- $omitProviderKeys := false }}
