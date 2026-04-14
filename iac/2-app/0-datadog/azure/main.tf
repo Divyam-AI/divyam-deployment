@@ -30,6 +30,13 @@ provider "helm" {
 locals {
   datadog_namespace = "datadog"
   datadog_release   = "datadog-operator"
+  # Shared exclusions are always applied. Granular exclusions are additive.
+  datadog_logs_exclude_namespaces = distinct(concat(var.datadog_exclude_namespaces, var.datadog_exclude_namespaces_logs))
+  datadog_metrics_exclude_namespaces = distinct(concat(var.datadog_exclude_namespaces, var.datadog_exclude_namespaces_metrics))
+
+  # Datadog expects space-separated kube_namespace:<name> filters.
+  datadog_logs_namespace_excludes    = join(" ", formatlist("kube_namespace:%s", local.datadog_logs_exclude_namespaces))
+  datadog_metrics_namespace_excludes = join(" ", formatlist("kube_namespace:%s", local.datadog_metrics_exclude_namespaces))
 }
 
 resource "helm_release" "datadog_operator" {
@@ -88,7 +95,8 @@ resource "kubernetes_manifest" "datadog_agent" {
         tags = [
           "env:${var.datadog_env}",
         ]
-        containerExcludeLogs = "kube_namespace:default kube_namespace:kube-system"
+        containerExcludeLogs    = local.datadog_logs_namespace_excludes
+        containerExcludeMetrics = local.datadog_metrics_namespace_excludes
       }
       features = {
         clusterChecks = {

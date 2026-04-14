@@ -1,5 +1,8 @@
 
 locals {
+  # Expose rendered common tags in provider.yaml under platform.custom_tags for downstream helm values.
+  custom_tags_block = length(local.rendered_tags) > 0 ? format("  custom_tags:\n%s", indent(4, chomp(yamlencode(local.rendered_tags)))) : "  custom_tags: {}"
+
   platform_block = <<-EOT
 # Global config and platform provider (GCP)
 # Combined with resources.yaml and artifacts.yaml via helmfile
@@ -7,6 +10,7 @@ locals {
 environment: ${var.environment}
 platform:
   provider: GCP
+${local.custom_tags_block}
   gcp:
     secretsProjectId: "${var.project_id}"
     storage_configs:

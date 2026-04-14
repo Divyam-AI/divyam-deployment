@@ -74,16 +74,16 @@ output "waf_policy_id" {
 }
 
 output "router_dns_zone" {
-  description = "Router DNS name (from divyam_load_balancer.router_dns); for TLS SAN and DNS A record."
-  value       = var.router_dns_zone
+  description = "API FQDN derived from private DNS zone and dns_records.api."
+  value       = trimspace(coalesce(var.private_dns_zone_name, "")) != "" && trimspace(var.api_dns_record_name) != "" ? "${trimspace(var.api_dns_record_name)}.${trimspace(var.private_dns_zone_name)}" : null
 }
 
 output "dashboard_dns_zone" {
-  description = "Dashboard DNS name (from divyam_load_balancer.dashboard_dns); for TLS SAN and DNS A record."
-  value       = var.dashboard_dns_zone
+  description = "Dashboard FQDN derived from private DNS zone and dns_records.dashboard."
+  value       = trimspace(coalesce(var.private_dns_zone_name, "")) != "" && trimspace(var.dashboard_dns_record_name) != "" ? "${trimspace(var.dashboard_dns_record_name)}.${trimspace(var.private_dns_zone_name)}" : null
 }
 
 output "controlplane_dns_zone" {
-  description = "Control-plane DNS name (from divyam_load_balancer.controlplane_dns); for TLS SAN and DNS A record."
-  value       = var.controlplane_dns_zone
+  description = "Control-plane FQDN derived from private DNS zone and dns_records.controlplane."
+  value       = trimspace(coalesce(var.private_dns_zone_name, "")) != "" && trimspace(var.controlplane_dns_record_name) != "" ? "${trimspace(var.controlplane_dns_record_name)}.${trimspace(var.private_dns_zone_name)}" : null
 }

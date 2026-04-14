@@ -33,6 +33,11 @@ inputs = {
   datadog_enabled = local.datadog_enabled
   datadog_site    = trimspace(try(local.datadog_cfg.registry, ""))
   datadog_env     = trimspace(try(local.datadog_cfg.env, ""))
+  # Shared exclusions always applied to both logs and metrics.
+  datadog_exclude_namespaces = try(local.datadog_cfg.exclude_namespaces, [])
+  # Granular lists are additive and appended to shared exclusions in module logic.
+  datadog_exclude_namespaces_logs    = try(local.datadog_cfg.exclude_namespaces_logs, [])
+  datadog_exclude_namespaces_metrics = try(local.datadog_cfg.exclude_namespaces_metrics, [])
   datadog_api_key = get_env("TF_VAR_datadog_api_key", "")
 }
 

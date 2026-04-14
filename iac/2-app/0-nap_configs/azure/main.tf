@@ -18,9 +18,48 @@ provider "helm" {
   }
 }
 
+locals {
+  nap_tag_context = merge(var.nap_tag_globals, var.nap_tag_context)
+  nap_rendered_tags = {
+    for k, v in var.nap_common_tags :
+    k => replace(
+      v,
+      "/#\\{([^}]+)\\}/",
+      lookup(local.nap_tag_context, try(regex("#\\{([^}]+)\\}", v)[0], ""), "")
+    )
+  }
+
+  # Convert rendered common tags into Kubernetes label-safe key/value pairs for NodePool template labels.
+  # Keep this separate from Azure tags because Azure resource tags can preserve the original rendered values.
+  sanitized_custom_labels = {
+    for k, v in local.nap_rendered_tags :
+    regexreplace(regexreplace(substr(regexreplace(lower(k), "[^a-z0-9_.-]", "-"), 0, 63), "^[^a-z0-9]+", ""), "[^a-z0-9]+$", "") =>
+    coalesce(
+      try(regexreplace(regexreplace(substr(regexreplace(lower(v), "[^a-z0-9_.-]", "-"), 0, 63), "^[^a-z0-9]+", ""), "[^a-z0-9]+$", ""), null),
+      "na"
+    )
+    if length(regexreplace(regexreplace(substr(regexreplace(lower(k), "[^a-z0-9_.-]", "-"), 0, 63), "^[^a-z0-9]+", ""), "[^a-z0-9]+$", "")) > 0
+  }
+}
+
 #############################################
 # NodePools
 #############################################
+
+# Dedicated AKSNodeClass used only to pass rendered common tags to Azure resources created for NAP nodes.
+# Intentionally tag-only: do not set subnet/image/disk or any behavioral fields here.
+resource "kubernetes_manifest" "aks_nodeclass_custom_tags" {
+  manifest = {
+    apiVersion = "karpenter.azure.com/v1beta1"
+    kind       = "AKSNodeClass"
+    metadata = {
+      name = "divyam-custom-nodeclass"
+    }
+    spec = {
+      tags = local.nap_rendered_tags
+    }
+  }
+}
 
 # CPU On-Demand Pool
 resource "kubernetes_manifest" "nodepool_cpu_ondemand" {
@@ -34,13 +73,13 @@ resource "kubernetes_manifest" "nodepool_cpu_ondemand" {
     spec = {
       template = {
         metadata = {
-          labels = {
+          labels = merge({
             workload-type = "cpu"
-          }
+          }, local.sanitized_custom_labels)
         }
         spec = {
           nodeClassRef = {
-            name  = "default"
+            name  = kubernetes_manifest.aks_nodeclass_custom_tags.manifest.metadata.name
             kind  = "AKSNodeClass"
             group = "karpenter.azure.com"
           }
@@ -79,13 +118,13 @@ resource "kubernetes_manifest" "nodepool_cpu_spot" {
     spec = {
       template = {
         metadata = {
-          labels = {
+          labels = merge({
             workload-type = "cpu"
-          }
+          }, local.sanitized_custom_labels)
         }
         spec = {
           nodeClassRef = {
-            name  = "default"
+            name  = kubernetes_manifest.aks_nodeclass_custom_tags.manifest.metadata.name
             kind  = "AKSNodeClass"
             group = "karpenter.azure.com"
           }
@@ -124,9 +163,9 @@ resource "kubernetes_manifest" "nodepool_gpu_ondemand" {
     spec = {
       template = {
         metadata = {
-          labels = {
+          labels = merge({
             "nvidia.com/gpu.present" = "true"
-          }
+          }, local.sanitized_custom_labels)
         }
         spec = {
           taints = [
@@ -136,7 +175,7 @@ resource "kubernetes_manifest" "nodepool_gpu_ondemand" {
             }
           ]
           nodeClassRef = {
-            name  = "default"
+            name  = kubernetes_manifest.aks_nodeclass_custom_tags.manifest.metadata.name
             kind  = "AKSNodeClass"
             group = "karpenter.azure.com"
           }
@@ -175,9 +214,9 @@ resource "kubernetes_manifest" "nodepool_gpu_spot" {
     spec = {
       template = {
         metadata = {
-          labels = {
+          labels = merge({
             "nvidia.com/gpu.present" = "true"
-          }
+          }, local.sanitized_custom_labels)
         }
         spec = {
           taints = [
@@ -187,7 +226,7 @@ resource "kubernetes_manifest" "nodepool_gpu_spot" {
             }
           ]
           nodeClassRef = {
-            name  = "default"
+            name  = kubernetes_manifest.aks_nodeclass_custom_tags.manifest.metadata.name
             kind  = "AKSNodeClass"
             group = "karpenter.azure.com"
           }

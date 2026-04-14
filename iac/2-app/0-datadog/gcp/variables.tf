@@ -51,6 +51,24 @@ variable "datadog_env" {
   }
 }
 
+variable "datadog_exclude_namespaces" {
+  description = "Shared namespaces excluded from both Datadog logs and metrics."
+  type        = list(string)
+  default     = []
+}
+
+variable "datadog_exclude_namespaces_logs" {
+  description = "Additional namespaces to exclude from Datadog log collection (appended to shared namespaces)."
+  type        = list(string)
+  default     = []
+}
+
+variable "datadog_exclude_namespaces_metrics" {
+  description = "Additional namespaces to exclude from Datadog metrics collection (appended to shared namespaces)."
+  type        = list(string)
+  default     = []
+}
+
 variable "datadog_api_key" {
   description = "Datadog API key from TF_VAR_datadog_api_key."
   type        = string

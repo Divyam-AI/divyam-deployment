@@ -8,15 +8,29 @@ data "azurerm_subnet" "appgw" {
 }
 
 data "azurerm_virtual_network" "vnet" {
-  count               = (var.create_dns_records && (var.router_dns_zone != "" || var.dashboard_dns_zone != "" || var.controlplane_dns_zone != "")) ? 1 : 0
+  count               = (var.create_dns_records && trimspace(coalesce(var.private_dns_zone_name, "")) != "") ? 1 : 0
   name                = var.vnet_name
   resource_group_name = var.vnet_resource_group_name
+}
+
+data "azurerm_virtual_network" "additional_calling_vnets" {
+  # Extra consumer/caller VNets configured in values/defaults.hcl -> divyam_load_balancer.dns_additional_calling_vnets.
+  for_each = var.create_dns_records && trimspace(coalesce(var.private_dns_zone_name, "")) != "" ? {
+    for vnet in var.dns_additional_calling_vnets : "${vnet.resource_group_name}/${vnet.name}" => vnet
+  } : {}
+  name                = each.value.name
+  resource_group_name = each.value.resource_group_name
 }
 
 locals {
   subnet_cidr = data.azurerm_subnet.appgw.address_prefixes[0]
   subnet_size = tonumber(regex(".*\\/(\\d+)$", local.subnet_cidr)[0])
   total_hosts  = pow(2, 32 - local.subnet_size)
+  # Build FQDNs used for TLS CN/SAN and output compatibility.
+  private_dns_zone_name = trimspace(coalesce(var.private_dns_zone_name, ""))
+  api_dns_fqdn = (local.private_dns_zone_name != "" && trimspace(var.api_dns_record_name) != "") ? "${trimspace(var.api_dns_record_name)}.${local.private_dns_zone_name}" : ""
+  dashboard_dns_fqdn = (local.private_dns_zone_name != "" && trimspace(var.dashboard_dns_record_name) != "") ? "${trimspace(var.dashboard_dns_record_name)}.${local.private_dns_zone_name}" : ""
+  controlplane_dns_fqdn = (local.private_dns_zone_name != "" && trimspace(var.controlplane_dns_record_name) != "") ? "${trimspace(var.controlplane_dns_record_name)}.${local.private_dns_zone_name}" : ""
 
   resource_names = {
     lb_ip          = coalesce(var.lb_ip_name, "${var.backend_service_name}-public-ip")
@@ -255,15 +269,15 @@ resource "azurerm_key_vault_certificate" "cert" {
     }
 
     x509_certificate_properties {
-      subject            = "CN=${var.router_dns_zone}"
+      subject            = "CN=${local.api_dns_fqdn}"
       validity_in_months = var.cert_validity_in_months
       extended_key_usage = ["1.3.6.1.5.5.7.3.1"]
 
       subject_alternative_names {
         dns_names = compact([
-          var.router_dns_zone,
-          var.dashboard_dns_zone,
-          var.controlplane_dns_zone
+          local.api_dns_fqdn,
+          local.dashboard_dns_fqdn,
+          local.controlplane_dns_fqdn
         ])
       }
 
@@ -296,81 +310,73 @@ locals {
   lb_ip_for_dns = var.create_public_lb ? local.public_ip_address : azurerm_application_gateway.appgw.frontend_ip_configuration[0].private_ip_address
 }
 
-# Private DNS zones and A records: map router_dns and dashboard_dns to the LB IP (public when public=true, private when false).
-resource "azurerm_private_dns_zone" "router" {
-  count               = var.create_dns_records && var.router_dns_zone != "" ? 1 : 0
-  name                = var.router_dns_zone
+# Private DNS zone and A records for api/dashboard/control hosts.
+resource "azurerm_private_dns_zone" "app" {
+  count               = var.create_dns_records && local.private_dns_zone_name != "" && var.create_private_dns_zone ? 1 : 0
+  name                = local.private_dns_zone_name
   resource_group_name = var.resource_group_name
   tags                = local.rendered_tags_for["appgw"]
 }
 
-resource "azurerm_private_dns_a_record" "router" {
-  count               = var.create_dns_records && var.router_dns_zone != "" ? 1 : 0
-  name                = "@"
-  zone_name           = azurerm_private_dns_zone.router[0].name
+data "azurerm_private_dns_zone" "app" {
+  count               = var.create_dns_records && local.private_dns_zone_name != "" && !var.create_private_dns_zone ? 1 : 0
+  name                = local.private_dns_zone_name
+  resource_group_name = var.resource_group_name
+}
+
+locals {
+  # Single source of truth for zone name regardless of create-vs-existing mode.
+  effective_private_dns_zone_name = local.private_dns_zone_name == "" ? null : (var.create_private_dns_zone ? azurerm_private_dns_zone.app[0].name : data.azurerm_private_dns_zone.app[0].name)
+}
+
+resource "azurerm_private_dns_a_record" "api" {
+  count               = var.create_dns_records && local.effective_private_dns_zone_name != null && trimspace(var.api_dns_record_name) != "" ? 1 : 0
+  name                = trimspace(var.api_dns_record_name)
+  zone_name           = local.effective_private_dns_zone_name
   resource_group_name = var.resource_group_name
   ttl                 = var.dns_record_ttl
   records             = [local.lb_ip_for_dns]
-  tags                = local.rendered_tags_for["appgw"]
-}
-
-resource "azurerm_private_dns_zone_virtual_network_link" "router" {
-  count                 = var.create_dns_records && var.router_dns_zone != "" ? 1 : 0
-  name                  = "${replace(var.router_dns_zone, ".", "-")}-link"
-  resource_group_name   = var.resource_group_name
-  private_dns_zone_name = azurerm_private_dns_zone.router[0].name
-  virtual_network_id    = data.azurerm_virtual_network.vnet[0].id
-  tags                  = local.rendered_tags_for["appgw"]
-}
-
-resource "azurerm_private_dns_zone" "dashboard" {
-  count               = var.create_dns_records && var.dashboard_dns_zone != "" ? 1 : 0
-  name                = var.dashboard_dns_zone
-  resource_group_name = var.resource_group_name
   tags                = local.rendered_tags_for["appgw"]
 }
 
 resource "azurerm_private_dns_a_record" "dashboard" {
-  count               = var.create_dns_records && var.dashboard_dns_zone != "" ? 1 : 0
-  name                = "@"
-  zone_name           = azurerm_private_dns_zone.dashboard[0].name
+  count               = var.create_dns_records && local.effective_private_dns_zone_name != null && trimspace(var.dashboard_dns_record_name) != "" ? 1 : 0
+  name                = trimspace(var.dashboard_dns_record_name)
+  zone_name           = local.effective_private_dns_zone_name
   resource_group_name = var.resource_group_name
   ttl                 = var.dns_record_ttl
   records             = [local.lb_ip_for_dns]
-  tags                = local.rendered_tags_for["appgw"]
-}
-
-resource "azurerm_private_dns_zone_virtual_network_link" "dashboard" {
-  count                 = var.create_dns_records && var.dashboard_dns_zone != "" ? 1 : 0
-  name                  = "${replace(var.dashboard_dns_zone, ".", "-")}-link"
-  resource_group_name   = var.resource_group_name
-  private_dns_zone_name = azurerm_private_dns_zone.dashboard[0].name
-  virtual_network_id    = data.azurerm_virtual_network.vnet[0].id
-  tags                  = local.rendered_tags_for["appgw"]
-}
-
-resource "azurerm_private_dns_zone" "controlplane" {
-  count               = var.create_dns_records && var.controlplane_dns_zone != "" ? 1 : 0
-  name                = var.controlplane_dns_zone
-  resource_group_name = var.resource_group_name
   tags                = local.rendered_tags_for["appgw"]
 }
 
 resource "azurerm_private_dns_a_record" "controlplane" {
-  count               = var.create_dns_records && var.controlplane_dns_zone != "" ? 1 : 0
-  name                = "@"
-  zone_name           = azurerm_private_dns_zone.controlplane[0].name
+  count               = var.create_dns_records && local.effective_private_dns_zone_name != null && trimspace(var.controlplane_dns_record_name) != "" ? 1 : 0
+  name                = trimspace(var.controlplane_dns_record_name)
+  zone_name           = local.effective_private_dns_zone_name
   resource_group_name = var.resource_group_name
   ttl                 = var.dns_record_ttl
   records             = [local.lb_ip_for_dns]
   tags                = local.rendered_tags_for["appgw"]
 }
 
-resource "azurerm_private_dns_zone_virtual_network_link" "controlplane" {
-  count                 = var.create_dns_records && var.controlplane_dns_zone != "" ? 1 : 0
-  name                  = "${replace(var.controlplane_dns_zone, ".", "-")}-link"
+resource "azurerm_private_dns_zone_virtual_network_link" "primary_vnet" {
+  count                 = var.create_dns_records && local.effective_private_dns_zone_name != null ? 1 : 0
+  name                  = "${replace(local.effective_private_dns_zone_name, ".", "-")}-${replace(var.vnet_name, ".", "-")}-link"
   resource_group_name   = var.resource_group_name
-  private_dns_zone_name = azurerm_private_dns_zone.controlplane[0].name
+  private_dns_zone_name = local.effective_private_dns_zone_name
   virtual_network_id    = data.azurerm_virtual_network.vnet[0].id
+  # Resolution-only link. Prevent automatic VM hostname registration into this shared app zone.
+  registration_enabled  = false
+  tags                  = local.rendered_tags_for["appgw"]
+}
+
+resource "azurerm_private_dns_zone_virtual_network_link" "additional_calling_vnets" {
+  for_each = var.create_dns_records && local.effective_private_dns_zone_name != null ? data.azurerm_virtual_network.additional_calling_vnets : {}
+  name                  = "${replace(local.effective_private_dns_zone_name, ".", "-")}-${replace(each.value.name, ".", "-")}-link"
+  resource_group_name   = var.resource_group_name
+  private_dns_zone_name = local.effective_private_dns_zone_name
+  virtual_network_id    = each.value.id
+  # Keep additional caller VNets resolution-only for predictable record ownership.
+  registration_enabled  = false
   tags                  = local.rendered_tags_for["appgw"]
 }

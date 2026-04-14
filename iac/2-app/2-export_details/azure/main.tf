@@ -1,5 +1,7 @@
 locals {
   key_vault_uri = "https://${var.key_vault_name}.vault.azure.net/"
+  # Expose rendered common tags in provider.yaml under platform.custom_tags for downstream helm values.
+  custom_tags_block = length(local.rendered_tags) > 0 ? format("  custom_tags:\n%s", indent(4, chomp(yamlencode(local.rendered_tags)))) : "  custom_tags: {}"
 
   wif_client_id_lines = join("\n", [
     for name, client_id in var.wif_client_id_map : "        ${name}: \"${client_id}\""
@@ -12,6 +14,7 @@ locals {
 environment: ${var.environment}
 platform:
   provider: AZURE
+${local.custom_tags_block}
   azure:
     keyVaultUri: "${local.key_vault_uri}"
     storage_configs:

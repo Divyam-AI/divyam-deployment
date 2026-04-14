@@ -10,6 +10,8 @@ locals {
   region            = get_env("REGION","centralindia")
   zone              = get_env("ZONE","centralindia-1")
 
+  deployment_mode = "managed"  # Set value to "managed" | "onprem"
+
   deployment_prefix = (
     length(local.org_name) > 0 ?
       "divyam-${local.org_name}-${local.env_name}" :
@@ -147,18 +149,23 @@ locals {
     create_ssl_cert = false  # Used only if tls_enabled is true. When false, use external cert (certificate_secret_id).
     ssl_cert_name   = "${local.deployment_prefix}-lb-ssl-cert"
 
-    # DNS names for TLS SANs and for DNS A records (IP mapping: these names resolve to LB IP — public when public=true, private when false).
-    create_dns_records = true  # When true, create Private DNS A records mapping router_dns/dashboard_dns to LB IP.
-    router_dns = (local.org_name != "" ?
-      "api.${local.env_name}.${local.org_name}.divyam.local" :
-      "api.${local.env_name}.divyam.local")
-    dashboard_dns = (local.org_name != "" ?
-      "dashboard.${local.env_name}.${local.org_name}.divyam.local" :
-      "dashboard.${local.env_name}.divyam.local")
-    # Optional toggle: set empty string ("") to disable controlplane DNS creation/export and use deployment_mode = "onprem".
-    controlplane_dns = (local.org_name != "" ?
-      "controlplane.${local.env_name}.${local.org_name}.divyam.local" :
-      "controlplane.${local.env_name}.divyam.local")
+    # DNS records in a single private zone (all names resolve to LB IP — public when public=true, private when false).
+    create_dns_records = true
+    private_dns_zone = {
+      # Set create=false to use an already-existing private DNS zone with this name.
+      create = true
+      name   = "${local.env_name}.divyam.local"
+    }
+    dns_records = {
+      # Relative labels inside private_dns_zone.name (final FQDN = "<label>.<zone>").
+      api          = "api"
+      dashboard    = "dashboard"
+      # controlplane must be non-empty when deployment_mode = "managed".
+      controlplane = "control"
+    }
+    # Additional VNets that should resolve this private DNS zone.
+    # Example: [{ name = "shared-vnet", resource_group_name = "network-rg" }]
+    dns_additional_calling_vnets = []
 
     # Options: "Standard_v2" (no WAF, lower cost) or "WAF_v2" (WAF enabled, current default).
     gateway_sku = "Standard_v2"
@@ -192,10 +199,6 @@ locals {
     # Use spot/preemptible nodes per pool (GKE: spot; AKS: priority Spot). Set spot_instance = true on each pool that should use spot.
     # "Auto" = platform-managed nodes (Azure NAP, GKE Autopilot). "Manual" = explicit node pools / VM size.
     node_provisioning_mode = "Auto" #"Manual"
-    # AKS networking settings (used by 1-platform/1-k8s/azure terragrunt input mapping).
-    network_plugin = "azure"
-    network_plugin_mode = null # Set "overlay" for Azure CNI Overlay.
-    network_policy = "azure"
     # Optional AKS network ranges. Keep them non-overlapping with VNet/subnets.
     service_cidr   = null
     dns_service_ip = null
@@ -231,10 +234,19 @@ locals {
   # - set registry to your Datadog site (for example: datadoghq.com, datadoghq.eu, ap1.datadoghq.com)
   # - set env to the deployment environment tag to be sent to Datadog
   # - export TF_VAR_datadog_api_key before running terragrunt
+  # - exclude_namespaces is always applied to both logs and metrics.
+  # - exclude_namespaces_logs and exclude_namespaces_metrics are additive granular lists
+  #   appended to the shared exclude_namespaces list.
   datadog = {
     enabled  = false
     registry = ""
     env      = ""
+    exclude_namespaces = [
+      "default",
+      "kube-system",
+    ]
+    exclude_namespaces_logs    = []
+    exclude_namespaces_metrics = []
   }
 
   iam_bindings = {
