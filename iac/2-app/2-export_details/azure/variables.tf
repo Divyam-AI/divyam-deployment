@@ -74,6 +74,25 @@ variable "deployment_mode" {
   default     = "onprem"
 }
 
+variable "lb_enabled" {
+  description = "Whether load balancer is enabled."
+  type        = bool
+  default     = true
+}
+
+locals {
+  _validate_controlplane_domain = !(var.lb_enabled && var.deployment_mode == "managed" && trimspace(var.controlplane_ingress_domain) == "")
+}
+
+resource "terraform_data" "validate_controlplane_domain" {
+  lifecycle {
+    precondition {
+      condition     = local._validate_controlplane_domain
+      error_message = "controlplane_dns must be provided when deployment_mode is \"managed\" and load balancer is enabled."
+    }
+  }
+}
+
 variable "ingress_tls_enabled" {
   description = "Whether TLS is enabled for ingress at Application Gateway."
   type        = bool

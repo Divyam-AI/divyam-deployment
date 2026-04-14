@@ -59,6 +59,8 @@ locals {
 
   export_cfg = try(local.root.export_details, {})
   lb_cfg     = try(local.root.divyam_load_balancer, {})
+  deployment_mode = try(local.root.deployment_mode, "onprem")
+  lb_enabled      = try(local.lb_cfg.enabled, true)
 
   cloudsql_cfg     = try(local.root.cloudsql, {})
   cloudsql_created = try(local.cloudsql_cfg.create, false)
@@ -95,8 +97,9 @@ inputs = {
   ingress_external           = try(local.lb_cfg.public, false)
   router_ingress_domain      = try(local.lb_cfg.router_dns, "")
   dashboard_ingress_domain   = try(local.lb_cfg.dashboard_dns, "")
-  controlplane_ingress_domain = try(local.lb_cfg.controlplane_dns, "")
-  deployment_mode            = trimspace(try(local.lb_cfg.controlplane_dns, "")) != "" ? "managed" : "onprem"
+  controlplane_ingress_domain = local.deployment_mode == "managed" ? try(local.lb_cfg.controlplane_dns, "") : ""
+  deployment_mode            = local.deployment_mode
+  lb_enabled                 = local.lb_enabled
   ingress_tls_enabled        = try(dependency.app_gw.outputs.app_gateway_tls_enabled, try(local.lb_cfg.tls_enabled, false))
   ingress_certificate_name   = try(dependency.app_gw.outputs.app_gateway_certificate_name, "")
 

@@ -16,6 +16,7 @@ locals {
   lb_cfg = try(local.root.divyam_load_balancer, {})
   vnet   = try(local.root.vnet, {})
   secrets_cfg = try(local.root.divyam_secrets, {})
+  deployment_mode = try(local.root.deployment_mode, "onprem")
 
   create_public_lb     = try(local.lb_cfg.public, false)
   tls_enabled          = try(local.lb_cfg.tls_enabled, false)
@@ -38,7 +39,7 @@ locals {
   key_vault_name           = try(local.secrets_cfg.store_name, "")
   router_dns_zone          = try(local.lb_cfg.router_dns, "")
   dashboard_dns_zone       = try(local.lb_cfg.dashboard_dns, "")
-  controlplane_dns_zone    = try(local.lb_cfg.controlplane_dns, "")
+  controlplane_dns_zone    = local.deployment_mode == "managed" ? try(local.lb_cfg.controlplane_dns, "") : ""
   create_dns_records       = try(local.lb_cfg.create_dns_records, true)
   lb_enabled               = try(local.lb_cfg.enabled, true)
   gateway_sku              = try(local.lb_cfg.gateway_sku, "WAF_v2")
@@ -80,6 +81,8 @@ inputs = {
   router_dns_zone     = local.router_dns_zone
   dashboard_dns_zone  = local.dashboard_dns_zone
   controlplane_dns_zone = local.controlplane_dns_zone
+  deployment_mode    = local.deployment_mode
+  lb_enabled         = local.lb_enabled
   create_dns_records  = local.create_dns_records
 }
 

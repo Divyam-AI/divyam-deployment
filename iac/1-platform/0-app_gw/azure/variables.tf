@@ -179,6 +179,31 @@ variable "create_dns_records" {
   default     = true
 }
 
+variable "deployment_mode" {
+  description = "Deployment mode from top-level values (managed|onprem)."
+  type        = string
+  default     = "onprem"
+}
+
+variable "lb_enabled" {
+  description = "Whether load balancer/app gateway module is enabled."
+  type        = bool
+  default     = true
+}
+
+locals {
+  _validate_controlplane_dns = !(var.lb_enabled && var.deployment_mode == "managed" && trimspace(coalesce(var.controlplane_dns_zone, "")) == "")
+}
+
+resource "terraform_data" "validate_controlplane_dns" {
+  lifecycle {
+    precondition {
+      condition     = local._validate_controlplane_dns
+      error_message = "controlplane_dns must be provided when deployment_mode is \"managed\" and load balancer is enabled."
+    }
+  }
+}
+
 variable "dns_record_ttl" {
   description = "TTL in seconds for DNS A records."
   type        = number

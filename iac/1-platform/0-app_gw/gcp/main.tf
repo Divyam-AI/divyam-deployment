@@ -33,6 +33,15 @@ locals {
   }
 }
 
+resource "terraform_data" "validate_controlplane_dns" {
+  lifecycle {
+    precondition {
+      condition     = !(var.lb_enabled && var.deployment_mode == "managed" && trimspace(var.controlplane_dns) == "")
+      error_message = "controlplane_dns must be provided when deployment_mode is \"managed\" and load balancer is enabled."
+    }
+  }
+}
+
 resource "google_compute_managed_ssl_certificate" "lb_cert" {
   count   = local.create_managed_cert ? 1 : 0
   name    = var.ssl_cert_name

@@ -34,9 +34,6 @@ locals {
     private_cluster_enabled         = true
     vnet_subnet_name                = local.vnet_subnet_name
 
-    network_plugin = try(local.k8s.network_plugin, "azure")
-    network_plugin_mode = try(local.k8s.network_plugin_mode, null)
-    network_policy = try(local.k8s.network_policy, "azure")
     # Optional overrides; when null, service_cidr/dns_service_ip are computed in Terraform from the VNet.
     dns_service_ip = try(local.k8s.dns_service_ip, null)
     service_cidr   = try(local.k8s.service_cidr, null)
