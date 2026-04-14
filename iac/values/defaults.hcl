@@ -72,6 +72,7 @@ locals {
     create = false # If this is set to false, edit the below values that is to be used for setting up Divyam.
     resource_name_prefix = "${local.deployment_prefix}"
     # Names for data-source lookup (1-platform resolves NAT IP from these; no dependency on 0-foundation).
+    nat_resource_group_name = ${local.resource_scope.name}" # Resource group containing the existing NAT gateway
     nat_gateway_name   = "${local.deployment_prefix}-nat-gateway"   # Azure: NAT gateway resource name
     nat_public_ip_name = "${local.deployment_prefix}-nat-ip"       # Azure: public IP resource name (used to fetch IP)    
     # GCP: Cloud Router and NAT config names (for lookup if needed)
@@ -88,6 +89,7 @@ locals {
     # configure_kubectl: use only when cluster is pre-created and only the bastion needs to be set up (installs kubectl + setup-kubectl script on bastion at create time).
     # Once the cluster is created (1-platform), either run on the bastion: setup-kubectl, or set k8s.setup_kubectl_on_bastion = true to run it via Terraform.
     # Azure: vnet_subnet_name, vm_size, admin_username, ssh_public_key_path. GCP: machine_type, tags.
+    bastion_resource_group_name = ${local.resource_scope.name}" # Resource group containing the existing bastion VM and public IP
     vm_size = "Standard_B2s"
   }
 
@@ -157,6 +159,9 @@ locals {
     controlplane_dns = (local.org_name != "" ?
       "controlplane.${local.env_name}.${local.org_name}.divyam.local" :
       "controlplane.${local.env_name}.divyam.local")
+
+    # Options: "Standard_v2" (no WAF, lower cost) or "WAF_v2" (WAF enabled, current default).
+    gateway_sku = "WAF_v2"
 
     waf_enabled = true
     create_waf  = true   # When true, create WAF/Cloud Armor policy in-module; when false and waf_enabled, fetch existing by waf_policy_name and attach

@@ -41,6 +41,7 @@ locals {
   controlplane_dns_zone    = try(local.lb_cfg.controlplane_dns, "")
   create_dns_records       = try(local.lb_cfg.create_dns_records, true)
   lb_enabled               = try(local.lb_cfg.enabled, true)
+  gateway_sku              = try(local.lb_cfg.gateway_sku, "WAF_v2")
 }
 
 inputs = {
@@ -61,6 +62,7 @@ inputs = {
   waf_policy_name            = local.waf_policy_name
   waf_deny_ip_ranges         = local.waf_deny_ip_ranges
   waf_allow_ip_ranges        = local.waf_allow_ip_ranges
+  gateway_sku                = local.gateway_sku
   create_ssl_cert            = local.create_ssl_cert
   location                   = local.root.region
   resource_group_name        = local.root.resource_scope.name

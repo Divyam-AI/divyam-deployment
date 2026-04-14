@@ -99,6 +99,12 @@ variable "nat_public_ip_name" {
   default     = null
 }
 
+variable "nat_resource_group_name" {
+  description = "Resource group where the NAT gateway public IP exists (from defaults.hcl nat.nat_resource_group_name). Defaults to resource_group_name when null."
+  type        = string
+  default     = null
+}
+
 variable "enable_log_collection" {
   description = "Enable container log collection to Azure Log Analytics"
   type        = bool

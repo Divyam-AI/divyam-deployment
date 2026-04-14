@@ -121,6 +121,16 @@ variable "waf_allow_ip_ranges" {
   default     = []
 }
 
+variable "gateway_sku" {
+  description = "Azure Application Gateway SKU. Standard_v2 (no WAF) or WAF_v2 (WAF supported). Basic is excluded: AGIC does not support it."
+  type        = string
+  default     = "WAF_v2"
+  validation {
+    condition     = contains(["Standard_v2", "WAF_v2"], var.gateway_sku)
+    error_message = "gateway_sku must be Standard_v2 or WAF_v2. Basic is not supported by AGIC."
+  }
+}
+
 variable "create_ssl_cert" {
   description = "Whether to create/use SSL cert (from defaults.hcl divyam_static_ip_load_balancer.create_ssl_cert). Used for wiring cert resources."
   type        = bool

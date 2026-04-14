@@ -65,7 +65,7 @@ data "azurerm_subnet" "vnet_subnets" {
 data "azurerm_public_ip" "nat_ip" {
   count               = (var.nat_gateway_ip == null || var.nat_gateway_ip == "") && var.nat_public_ip_name != null && var.nat_public_ip_name != "" ? 1 : 0
   name                = var.nat_public_ip_name
-  resource_group_name = var.resource_group_name
+  resource_group_name = coalesce(var.nat_resource_group_name, var.resource_group_name)
 }
 
 # When create = false (and not forcing for import), fetch existing AKS cluster by name for outputs.

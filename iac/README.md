@@ -60,6 +60,22 @@ az role assignment create \
   --role "User Access Administrator" \
   --scope "/subscriptions/<subscription-id>/resourceGroups/<target resource group>"
 ```
+* **If the VNet is in a different resource group**, assign two additional roles to Service Principal scoped to that VNet:
+  * **Network Contributor** — the SP needs this to create Private DNS Zone VNet links and associate the Application Gateway with its subnet during deployment
+  * **User Access Administrator** — the SP needs this to grant `Network Contributor` to the AKS cluster's managed identity on the VNet (required for AKS to attach its node pool subnet)
+```bash
+# Network Contributor on the shared VNet
+az role assignment create \
+  --assignee "<client-id>" \
+  --role "Network Contributor" \
+  --scope "/subscriptions/<vnet-subscription-id>/resourceGroups/<vnet-resource-group>/providers/Microsoft.Network/virtualNetworks/<vnet-name>"
+
+# User Access Administrator on the shared VNet
+az role assignment create \
+  --assignee "<client-id>" \
+  --role "User Access Administrator" \
+  --scope "/subscriptions/<vnet-subscription-id>/resourceGroups/<vnet-resource-group>/providers/Microsoft.Network/virtualNetworks/<vnet-name>"
+```
 * Export ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_SUBSCRIPTION_ID, ARM_TENANT_ID environment variables to the values as seen from the output of the above command.
 ```bash
 export ARM_CLIENT_ID=<CLIENT_ID>
