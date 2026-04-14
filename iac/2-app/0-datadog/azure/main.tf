@@ -1,0 +1,112 @@
+terraform {
+  required_providers {
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = ">= 2.0.0"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = ">= 2.0.0"
+    }
+  }
+}
+
+provider "kubernetes" {
+  host                   = var.kube_config.host
+  client_certificate     = base64decode(var.kube_config.client_certificate)
+  client_key             = base64decode(var.kube_config.client_key)
+  cluster_ca_certificate = base64decode(var.kube_config.cluster_ca_certificate)
+}
+
+provider "helm" {
+  kubernetes = {
+    host                   = var.kube_config.host
+    client_certificate     = base64decode(var.kube_config.client_certificate)
+    client_key             = base64decode(var.kube_config.client_key)
+    cluster_ca_certificate = base64decode(var.kube_config.cluster_ca_certificate)
+  }
+}
+
+locals {
+  datadog_namespace = "datadog"
+  datadog_release   = "datadog-operator"
+}
+
+resource "helm_release" "datadog_operator" {
+  for_each = var.datadog_enabled ? { "enabled" = true } : {}
+
+  name             = local.datadog_release
+  repository       = "https://helm.datadoghq.com"
+  chart            = "datadog-operator"
+  namespace        = local.datadog_namespace
+  create_namespace = true
+  timeout          = 600
+}
+
+resource "kubernetes_secret" "datadog_secret" {
+  for_each = var.datadog_enabled ? { "enabled" = true } : {}
+
+  metadata {
+    name      = "datadog-secret"
+    namespace = local.datadog_namespace
+  }
+
+  data = {
+    "api-key" = var.datadog_api_key
+  }
+
+  type = "Opaque"
+}
+
+resource "kubernetes_manifest" "datadog_agent" {
+  for_each = var.datadog_enabled ? { "enabled" = true } : {}
+
+  manifest = {
+    apiVersion = "datadoghq.com/v2alpha1"
+    kind       = "DatadogAgent"
+    metadata = {
+      name      = "datadog"
+      namespace = local.datadog_namespace
+    }
+    spec = {
+      override = {
+        nodeAgent = {
+          image = {
+            jmxEnabled = true
+          }
+        }
+      }
+      global = {
+        clusterName = var.cluster_name
+        site        = var.datadog_site
+        credentials = {
+          apiSecret = {
+            secretName = kubernetes_secret.datadog_secret["enabled"].metadata[0].name
+            keyName    = "api-key"
+          }
+        }
+        tags = [
+          "env:${var.datadog_env}",
+        ]
+        containerExcludeLogs = "kube_namespace:default kube_namespace:kube-system"
+      }
+      features = {
+        clusterChecks = {
+          enabled = true
+        }
+        orchestratorExplorer = {
+          enabled = true
+        }
+        logCollection = {
+          enabled             = true
+          containerCollectAll = true
+        }
+      }
+    }
+  }
+
+  depends_on = [
+    helm_release.datadog_operator,
+    kubernetes_secret.datadog_secret,
+  ]
+}

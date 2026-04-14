@@ -158,6 +158,7 @@ Export the below environment variables for the secrets to be created one time fo
 | `TF_VAR_divyam_deployment_id` | Unique identifier for this installation; Divyam uses it to recognize your environment. |
 | `TF_VAR_divyam_deployment_api_key` | Secret key the deployment uses to authenticate to with Divyam. |
 | `TF_VAR_divyam_artifactory_docker_auth` | Set this to the **path** of the credential file the Divyam team gives you, So Kubernetes authenticate to Divyam’s private container registry and pull application images |
+| `TF_VAR_datadog_api_key` | Datadog API key used only when `datadog.enabled = true` in the values file. |
 
 Make sure `CLOUD_PROVIDER`, `VALUES_FILE`, and the environment variables in the table are exported before `plan`/`apply`.    
 Review the plan output before applying.

@@ -20,6 +20,7 @@ dependency "k8s" {
 locals {
   root       = include.root.locals.merged
   alerts_cfg = try(local.root.alerts, {})
+  datadog_enabled = try(local.root.datadog.enabled, false)
   nc         = try(local.alerts_cfg.notification_channels, {})
   # Pass null when empty so dynamic blocks skip the receiver
   pager_url  = try(local.nc.pager_webhook_url, "") != "" ? local.nc.pager_webhook_url : null
@@ -50,6 +51,6 @@ inputs = {
 }
 
 exclude {
-  if      = !try(local.alerts_cfg.enabled, false)
+  if      = !try(local.alerts_cfg.enabled, false) || local.datadog_enabled
   actions = ["apply", "plan", "destroy", "refresh", "import", "init"]
 }
