@@ -96,7 +96,8 @@ resource "helm_release" "datadog_operator" {
   create_namespace = false
   timeout          = 600
 
-  depends_on = [kubectl_manifest.datadog_namespace[each.key]]
+  # depends_on must reference whole resources only (no each.key / indexing).
+  depends_on = [kubectl_manifest.datadog_namespace]
 }
 
 resource "kubernetes_secret_v1" "datadog_secret" {
@@ -113,7 +114,7 @@ resource "kubernetes_secret_v1" "datadog_secret" {
 
   type = "Opaque"
 
-  depends_on = [kubectl_manifest.datadog_namespace[each.key]]
+  depends_on = [kubectl_manifest.datadog_namespace]
 }
 
 # kubectl_manifest + validate_schema=false: DatadogAgent CRD appears only after the operator Helm
@@ -134,7 +135,7 @@ resource "kubectl_manifest" "datadog_agent" {
   validate_schema = false
 
   depends_on = [
-    kubectl_manifest.datadog_namespace[each.key],
+    kubectl_manifest.datadog_namespace,
     helm_release.datadog_operator,
     kubernetes_secret_v1.datadog_secret,
   ]
