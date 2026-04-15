@@ -59,8 +59,15 @@ locals {
 
   export_cfg = try(local.root.export_details, {})
   lb_cfg     = try(local.root.divyam_load_balancer, {})
+  datadog_cfg = try(local.root.datadog, {})
+  k8s_cfg     = try(local.root.k8s, {})
+  observability_cfg = try(local.k8s_cfg.observability, {})
   deployment_mode = try(local.root.deployment_mode, "onprem")
   lb_enabled      = try(local.lb_cfg.enabled, true)
+  datadog_enabled = try(local.datadog_cfg.enabled, false)
+  observability_enabled = try(local.observability_cfg.enable_metrics, true)
+  monitoring_enabled = local.datadog_enabled || local.observability_enabled
+  monitoring_provider = local.datadog_enabled ? "datadog" : ""
 
   cloudsql_cfg     = try(local.root.cloudsql, {})
   cloudsql_created = try(local.cloudsql_cfg.create, false)
@@ -110,6 +117,8 @@ inputs = {
   }
   cluster_domain            = try(local.export_cfg.cluster_domain, "")
   image_pull_secret_enabled = try(local.export_cfg.image_pull_secret_enabled, true)
+  monitoring_enabled        = local.monitoring_enabled
+  monitoring_provider       = local.monitoring_provider
   output_path               = "${local.repo_root}/${try(local.export_cfg.output_dir, "k8s/values")}/provider.yaml"
 
   ingress_deploy             = true

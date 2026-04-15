@@ -111,6 +111,18 @@ variable "image_pull_secret_enabled" {
   default     = true
 }
 
+variable "monitoring_enabled" {
+  description = "Top-level monitoring.enabled value written to provider.yaml."
+  type        = bool
+  default     = false
+}
+
+variable "monitoring_provider" {
+  description = "Optional monitoring provider written to provider.yaml (for example: datadog)."
+  type        = string
+  default     = ""
+}
+
 variable "output_path" {
   description = "Absolute path for the generated provider.yaml file."
   type        = string

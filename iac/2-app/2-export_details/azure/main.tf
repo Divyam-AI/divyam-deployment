@@ -12,11 +12,34 @@ locals {
     for name, client_id in var.wif_client_id_map : "        ${name}: \"${client_id}\""
   ])
 
+  # Export top-level monitoring config used by helmfile global values merge.
+  # provider is emitted only when explicitly set (currently datadog when enabled).
+  monitoring_block = var.monitoring_enabled ? (
+    trimspace(var.monitoring_provider) != "" ?
+    <<-EOT
+monitoring:
+  enabled: true
+  provider: "${var.monitoring_provider}"
+
+EOT
+    :
+    <<-EOT
+monitoring:
+  enabled: true
+
+EOT
+  ) : <<-EOT
+monitoring:
+  enabled: false
+
+EOT
+
   platform_block = <<-EOT
 # Global config and platform provider (Azure)
 # Combined with resources.yaml and artifacts.yaml via helmfile
 
 environment: ${var.environment}
+${local.monitoring_block}
 platform:
   provider: AZURE
 ${local.custom_tags_block}

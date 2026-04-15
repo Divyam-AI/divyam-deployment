@@ -8,11 +8,34 @@ locals {
     [for k in sort(keys(local.rendered_tags)) : format("    %s: %s", k, jsonencode(local.rendered_tags[k]))]
   )) : "  custom_tags: {}"
 
+  # Export top-level monitoring config used by helmfile global values merge.
+  # provider is emitted only when explicitly set (currently datadog when enabled).
+  monitoring_block = var.monitoring_enabled ? (
+    trimspace(var.monitoring_provider) != "" ?
+    <<-EOT
+monitoring:
+  enabled: true
+  provider: "${var.monitoring_provider}"
+
+EOT
+    :
+    <<-EOT
+monitoring:
+  enabled: true
+
+EOT
+  ) : <<-EOT
+monitoring:
+  enabled: false
+
+EOT
+
   platform_block = <<-EOT
 # Global config and platform provider (GCP)
 # Combined with resources.yaml and artifacts.yaml via helmfile
 
 environment: ${var.environment}
+${local.monitoring_block}
 platform:
   provider: GCP
 ${local.custom_tags_block}
