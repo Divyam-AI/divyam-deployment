@@ -67,28 +67,36 @@ locals {
   )
 }
 
-# Namespace must exist before Secrets or Helm can target it; do not rely on Helm create_namespace alone
-# (kubernetes_secret_v1 can run in parallel with helm_release and fail with "namespace not found").
-resource "kubernetes_namespace_v1" "datadog" {
+# Ensure the namespace exists before Helm / Secrets. Server-side apply is idempotent: if `datadog`
+# already exists (Helm, manual, etc.), apply succeeds without error. If you previously had
+# kubernetes_namespace_v1 for this ns in state, `tofu state rm` that resource before switching here
+# so Terraform does not plan to destroy the namespace.
+resource "kubectl_manifest" "datadog_namespace" {
   for_each = var.datadog_enabled ? { "enabled" = true } : {}
 
-  metadata {
-    name = local.datadog_namespace
-  }
+  yaml_body = yamlencode({
+    apiVersion = "v1"
+    kind       = "Namespace"
+    metadata = {
+      name = local.datadog_namespace
+    }
+  })
+
+  validate_schema   = false
+  server_side_apply = true
 }
 
 resource "helm_release" "datadog_operator" {
   for_each = var.datadog_enabled ? { "enabled" = true } : {}
 
-  name       = local.datadog_release
-  repository = "https://helm.datadoghq.com"
-  chart      = "datadog-operator"
-  namespace  = local.datadog_namespace
-  # Namespace is managed by kubernetes_namespace_v1 above.
+  name             = local.datadog_release
+  repository       = "https://helm.datadoghq.com"
+  chart            = "datadog-operator"
+  namespace        = local.datadog_namespace
   create_namespace = false
   timeout          = 600
 
-  depends_on = [kubernetes_namespace_v1.datadog]
+  depends_on = [kubectl_manifest.datadog_namespace[each.key]]
 }
 
 resource "kubernetes_secret_v1" "datadog_secret" {
@@ -105,7 +113,7 @@ resource "kubernetes_secret_v1" "datadog_secret" {
 
   type = "Opaque"
 
-  depends_on = [kubernetes_namespace_v1.datadog]
+  depends_on = [kubectl_manifest.datadog_namespace[each.key]]
 }
 
 # kubectl_manifest + validate_schema=false: DatadogAgent CRD appears only after the operator Helm
@@ -126,7 +134,7 @@ resource "kubectl_manifest" "datadog_agent" {
   validate_schema = false
 
   depends_on = [
-    kubernetes_namespace_v1.datadog,
+    kubectl_manifest.datadog_namespace[each.key],
     helm_release.datadog_operator,
     kubernetes_secret_v1.datadog_secret,
   ]
