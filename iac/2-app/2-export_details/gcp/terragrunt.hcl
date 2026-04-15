@@ -39,6 +39,24 @@ locals {
   cloudsql_created = try(local.cloudsql_cfg.create, false)
 
   storage_bucket = try(one([for s in local.root.divyam_object_storages : s.container_name if s.type == "router-requests-logs"]), "")
+
+  # Same contract as Azure: divyam_load_balancer.private_dns_zone + dns_records (see 1-platform/0-app_gw). Legacy FQDN keys remain a fallback.
+  _private_dns_zone_name = trimspace(try(local.lb_cfg.private_dns_zone.name, ""))
+  _api_label             = trimspace(try(local.lb_cfg.dns_records.api, "api"))
+  _dashboard_label       = trimspace(try(local.lb_cfg.dns_records.dashboard, "dashboard"))
+  _controlplane_label = local.deployment_mode == "managed" ? trimspace(try(local.lb_cfg.dns_records.controlplane, "")) : ""
+
+  router_ingress_fqdn = (
+    local._private_dns_zone_name != "" && local._api_label != ""
+    ) ? "${local._api_label}.${local._private_dns_zone_name}" : trimspace(try(local.lb_cfg.router_dns, ""))
+  dashboard_ingress_fqdn = (
+    local._private_dns_zone_name != "" && local._dashboard_label != ""
+    ) ? "${local._dashboard_label}.${local._private_dns_zone_name}" : trimspace(try(local.lb_cfg.dashboard_dns, ""))
+  controlplane_ingress_fqdn = local.deployment_mode != "managed" ? "" : (
+    local._private_dns_zone_name != "" && local._controlplane_label != ""
+    ? "${local._controlplane_label}.${local._private_dns_zone_name}"
+    : trimspace(try(local.lb_cfg.controlplane_dns, ""))
+  )
 }
 
 inputs = {
@@ -48,9 +66,9 @@ inputs = {
   cluster_domain            = try(local.export_cfg.cluster_domain, "")
   ingress_deploy            = true
   ingress_external          = try(local.lb_cfg.public, false)
-  router_ingress_domain     = try(local.lb_cfg.router_dns, "")
-  dashboard_ingress_domain  = try(local.lb_cfg.dashboard_dns, "")
-  controlplane_ingress_domain = local.deployment_mode == "managed" ? try(local.lb_cfg.controlplane_dns, "") : ""
+  router_ingress_domain       = local.router_ingress_fqdn
+  dashboard_ingress_domain  = local.dashboard_ingress_fqdn
+  controlplane_ingress_domain = local.controlplane_ingress_fqdn
   deployment_mode          = local.deployment_mode
   lb_enabled               = local.lb_enabled
   image_pull_secret_enabled = try(local.export_cfg.image_pull_secret_enabled, false)

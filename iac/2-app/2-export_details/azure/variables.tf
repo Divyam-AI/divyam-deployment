@@ -88,7 +88,7 @@ resource "terraform_data" "validate_controlplane_domain" {
   lifecycle {
     precondition {
       condition     = local._validate_controlplane_domain
-      error_message = "controlplane_dns must be provided when deployment_mode is \"managed\" and load balancer is enabled."
+      error_message = "controlplane ingress domain must be set when deployment_mode is \"managed\" and load balancer is enabled (divyam_load_balancer.dns_records.controlplane + private_dns_zone.name, or legacy controlplane_dns)."
     }
   }
 }
