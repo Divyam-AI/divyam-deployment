@@ -32,9 +32,10 @@ locals {
   # Kubernetes label key/value rules (subset): alphanumeric + ._- , <=63 chars, must start/end with alphanumeric.
   # OpenTofu builds in this repo may not expose regexreplace(); use regexall + regex instead.
   _k8s_label_allowed_chars = "[a-z0-9_.-]"
-  _k8s_label_body          = "[a-z0-9]([a-z0-9_.-]{0,61}[a-z0-9])?|[a-z0-9]"
+  # Use (?:...) so regex() returns a single string (capturing groups would return a tuple).
+  _k8s_label_body = "[a-z0-9](?:[a-z0-9_.-]{0,61}[a-z0-9])?|[a-z0-9]"
 
-  # Strip to allowed runes, then take the first valid DNS-like label segment (max 63 chars).
+  # Strip to allowed runes, then take the first valid DNS-like label segment (max 63 chars; non-capturing group so regex() is a string).
   _k8s_label_key = {
     for k, _ in local.nap_rendered_tags :
     k => try(
