@@ -29,7 +29,7 @@ locals {
     var.datadog_enabled ? {
       credentials = {
         apiSecret = {
-          secretName = kubernetes_secret.datadog_secret["enabled"].metadata[0].name
+          secretName = kubernetes_secret_v1.datadog_secret["enabled"].metadata[0].name
           keyName    = "api-key"
         }
       }
@@ -78,7 +78,7 @@ resource "helm_release" "datadog_operator" {
   timeout          = 600
 }
 
-resource "kubernetes_secret" "datadog_secret" {
+resource "kubernetes_secret_v1" "datadog_secret" {
   for_each = var.datadog_enabled ? { "enabled" = true } : {}
 
   metadata {
@@ -112,6 +112,6 @@ resource "kubectl_manifest" "datadog_agent" {
 
   depends_on = [
     helm_release.datadog_operator,
-    kubernetes_secret.datadog_secret,
+    kubernetes_secret_v1.datadog_secret,
   ]
 }
