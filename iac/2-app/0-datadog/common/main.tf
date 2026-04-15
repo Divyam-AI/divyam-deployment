@@ -93,10 +93,12 @@ resource "kubernetes_secret" "datadog_secret" {
   type = "Opaque"
 }
 
-resource "kubernetes_manifest" "datadog_agent" {
+# kubectl_manifest + validate_schema=false: DatadogAgent CRD appears only after the operator Helm
+# chart is applied; kubernetes_manifest fails at plan with "CRD may not be installed".
+resource "kubectl_manifest" "datadog_agent" {
   for_each = var.datadog_enabled ? { "enabled" = true } : {}
 
-  manifest = {
+  yaml_body = yamlencode({
     apiVersion = "datadoghq.com/v2alpha1"
     kind       = "DatadogAgent"
     metadata = {
@@ -104,7 +106,9 @@ resource "kubernetes_manifest" "datadog_agent" {
       namespace = local.datadog_namespace
     }
     spec = local.datadog_agent_spec
-  }
+  })
+
+  validate_schema = false
 
   depends_on = [
     helm_release.datadog_operator,
