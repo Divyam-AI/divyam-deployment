@@ -97,9 +97,10 @@ resource "kubernetes_manifest" "nodepool_cpu_ondemand" {
     spec = {
       template = {
         metadata = {
-          labels = merge({
-            workload-type = "cpu"
-          }, local.sanitized_custom_labels)
+          labels = {
+            workload-type                = "cpu"
+            "kubernetes.azure.com/mode" = "user"
+          }
         }
         spec = {
           nodeClassRef = {
@@ -142,9 +143,10 @@ resource "kubernetes_manifest" "nodepool_cpu_spot" {
     spec = {
       template = {
         metadata = {
-          labels = merge({
-            workload-type = "cpu"
-          }, local.sanitized_custom_labels)
+          labels = {
+            workload-type                = "cpu"
+            "kubernetes.azure.com/mode" = "user"
+          }
         }
         spec = {
           nodeClassRef = {
@@ -187,9 +189,10 @@ resource "kubernetes_manifest" "nodepool_gpu_ondemand" {
     spec = {
       template = {
         metadata = {
-          labels = merge({
-            "nvidia.com/gpu.present" = "true"
-          }, local.sanitized_custom_labels)
+          labels = {
+            "nvidia.com/gpu.present"    = "true"
+            "kubernetes.azure.com/mode" = "user"
+          }
         }
         spec = {
           taints = [
@@ -238,9 +241,10 @@ resource "kubernetes_manifest" "nodepool_gpu_spot" {
     spec = {
       template = {
         metadata = {
-          labels = merge({
-            "nvidia.com/gpu.present" = "true"
-          }, local.sanitized_custom_labels)
+          labels = {
+            "nvidia.com/gpu.present"    = "true"
+            "kubernetes.azure.com/mode" = "user"
+          }
         }
         spec = {
           taints = [
