@@ -14,7 +14,7 @@ locals {
   datadog_metrics_namespace_excludes = join(" ", formatlist("kube_namespace:%s", local.datadog_metrics_exclude_namespaces))
 
   # Credentials reference the Secret resource; only merge when enabled so Terraform does not
-  # evaluate kubernetes_secret["enabled"] when for_each on that resource is empty.
+  # evaluate kubernetes_secret_v1.datadog_secret["enabled"] when for_each on that resource is empty.
   datadog_agent_global = merge(
     {
       clusterName = var.cluster_name
@@ -67,15 +67,28 @@ locals {
   )
 }
 
+# Namespace must exist before Secrets or Helm can target it; do not rely on Helm create_namespace alone
+# (kubernetes_secret_v1 can run in parallel with helm_release and fail with "namespace not found").
+resource "kubernetes_namespace_v1" "datadog" {
+  for_each = var.datadog_enabled ? { "enabled" = true } : {}
+
+  metadata {
+    name = local.datadog_namespace
+  }
+}
+
 resource "helm_release" "datadog_operator" {
   for_each = var.datadog_enabled ? { "enabled" = true } : {}
 
-  name             = local.datadog_release
-  repository       = "https://helm.datadoghq.com"
-  chart            = "datadog-operator"
-  namespace        = local.datadog_namespace
-  create_namespace = true
+  name       = local.datadog_release
+  repository = "https://helm.datadoghq.com"
+  chart      = "datadog-operator"
+  namespace  = local.datadog_namespace
+  # Namespace is managed by kubernetes_namespace_v1 above.
+  create_namespace = false
   timeout          = 600
+
+  depends_on = [kubernetes_namespace_v1.datadog]
 }
 
 resource "kubernetes_secret_v1" "datadog_secret" {
@@ -91,6 +104,8 @@ resource "kubernetes_secret_v1" "datadog_secret" {
   }
 
   type = "Opaque"
+
+  depends_on = [kubernetes_namespace_v1.datadog]
 }
 
 # kubectl_manifest + validate_schema=false: DatadogAgent CRD appears only after the operator Helm
@@ -111,6 +126,7 @@ resource "kubectl_manifest" "datadog_agent" {
   validate_schema = false
 
   depends_on = [
+    kubernetes_namespace_v1.datadog,
     helm_release.datadog_operator,
     kubernetes_secret_v1.datadog_secret,
   ]

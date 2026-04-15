@@ -1,7 +1,12 @@
 
 locals {
   # Expose rendered common tags in provider.yaml under platform.custom_tags for downstream helm values.
-  custom_tags_block = length(local.rendered_tags) > 0 ? format("  custom_tags:\n%s", indent(4, chomp(yamlencode(local.rendered_tags)))) : "  custom_tags: {}"
+  # Do not yamlencode() the whole map here: when interpolated into the heredoc, multi-line yamlencode output
+  # can mis-indent (first map entry flush-left). Emit one indented line per key; jsonencode() values are valid YAML scalars.
+  custom_tags_block = length(local.rendered_tags) > 0 ? join("\n", concat(
+    ["  custom_tags:"],
+    [for k in sort(keys(local.rendered_tags)) : format("    %s: %s", k, jsonencode(local.rendered_tags[k]))]
+  )) : "  custom_tags: {}"
 
   platform_block = <<-EOT
 # Global config and platform provider (GCP)
