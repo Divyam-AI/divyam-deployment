@@ -29,16 +29,39 @@ locals {
     )
   }
 
+  # Kubernetes label key/value rules (subset): alphanumeric + ._- , <=63 chars, must start/end with alphanumeric.
+  # OpenTofu builds in this repo may not expose regexreplace(); use regexall + regex instead.
+  _k8s_label_allowed_chars = "[a-z0-9_.-]"
+  _k8s_label_body          = "[a-z0-9]([a-z0-9_.-]{0,61}[a-z0-9])?|[a-z0-9]"
+
+  # Strip to allowed runes, then take the first valid DNS-like label segment (max 63 chars).
+  _k8s_label_key = {
+    for k, _ in local.nap_rendered_tags :
+    k => try(
+      regex(
+        local._k8s_label_body,
+        join("", regexall(local._k8s_label_allowed_chars, lower(k)))
+      ),
+      ""
+    )
+  }
+  _k8s_label_value = {
+    for k, v in local.nap_rendered_tags :
+    k => try(
+      regex(
+        local._k8s_label_body,
+        join("", regexall(local._k8s_label_allowed_chars, lower(v)))
+      ),
+      ""
+    )
+  }
+
   # Convert rendered common tags into Kubernetes label-safe key/value pairs for NodePool template labels.
   # Keep this separate from Azure tags because Azure resource tags can preserve the original rendered values.
   sanitized_custom_labels = {
     for k, v in local.nap_rendered_tags :
-    regexreplace(regexreplace(substr(regexreplace(lower(k), "[^a-z0-9_.-]", "-"), 0, 63), "^[^a-z0-9]+", ""), "[^a-z0-9]+$", "") =>
-    coalesce(
-      try(regexreplace(regexreplace(substr(regexreplace(lower(v), "[^a-z0-9_.-]", "-"), 0, 63), "^[^a-z0-9]+", ""), "[^a-z0-9]+$", ""), null),
-      "na"
-    )
-    if length(regexreplace(regexreplace(substr(regexreplace(lower(k), "[^a-z0-9_.-]", "-"), 0, 63), "^[^a-z0-9]+", ""), "[^a-z0-9]+$", "")) > 0
+    local._k8s_label_key[k] => coalesce(local._k8s_label_value[k] != "" ? local._k8s_label_value[k] : null, "na")
+    if local._k8s_label_key[k] != ""
   }
 }
 

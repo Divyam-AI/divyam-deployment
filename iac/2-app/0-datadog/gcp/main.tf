@@ -1,21 +1,6 @@
 # GCP root: google provider for cluster API token; kubernetes/helm target GKE. Datadog install is in ../common (generated common_module.tf).
-
-terraform {
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = ">= 5.0.0"
-    }
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = ">= 2.0.0"
-    }
-    helm = {
-      source  = "hashicorp/helm"
-      version = ">= 2.0.0"
-    }
-  }
-}
+# required_providers for kubernetes/helm are merged via Terragrunt-generated *_override.tf (root already emits
+# provider.tf with google only — do not add a second terraform {} here).
 
 provider "google" {
   project = var.project_id

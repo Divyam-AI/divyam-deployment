@@ -1,17 +1,6 @@
 # Azure root: configures kubernetes/helm for AKS; Datadog install lives in ../common (see common_module.tf).
-
-terraform {
-  required_providers {
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = ">= 2.0.0"
-    }
-    helm = {
-      source  = "hashicorp/helm"
-      version = ">= 2.0.0"
-    }
-  }
-}
+# required_providers for kubernetes/helm are merged via Terragrunt-generated *_override.tf (root already emits
+# provider.tf with azurerm only — a second terraform {} here duplicates that block and breaks tofu init).
 
 provider "kubernetes" {
   host                   = var.kube_config.host

@@ -31,6 +31,27 @@ module "datadog_k8s" {
 EOF
 }
 
+# Root generate "provider" already defines terraform { required_providers { azurerm } }. OpenTofu allows only
+# one such block per module; *_override.tf merges additional provider constraints into that block.
+generate "k8s_providers_override" {
+  path      = "zz_datadog_k8s_override.tf"
+  if_exists = "overwrite_terragrunt"
+  contents  = <<EOF
+terraform {
+  required_providers {
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = ">= 2.0.0"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = ">= 2.0.0"
+    }
+  }
+}
+EOF
+}
+
 dependency "k8s" {
   config_path = "../../../1-platform/1-k8s/azure"
   mock_outputs = {
