@@ -80,3 +80,9 @@ variable "datadog_api_key" {
     error_message = "When datadog.enabled is true, TF_VAR_datadog_api_key must be exported."
   }
 }
+
+variable "datadog_docker_registry" {
+  description = "Datadog docker registry from defaults.hcl datadog.docker_registry."
+  type        = string
+  default     = "asia.gcr.io/datadoghq"
+}

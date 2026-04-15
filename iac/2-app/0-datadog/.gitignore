@@ -1,0 +1,3 @@
+# Terragrunt generate "common_module" (absolute path to ../common for cache-safe local modules).
+azure/common_module.tf
+gcp/common_module.tf
