@@ -1,6 +1,6 @@
 # Application Gateway (Azure). Config from values/defaults.hcl divyam_load_balancer.
 # VNet and Key Vault are resolved by name from values/defaults.hcl (vnet.*, divyam_secrets.store_name).
-# When create_ssl_cert is true, TLS certificate is created in Key Vault (router_dns/dashboard_dns from divyam_load_balancer).
+# When create_ssl_cert is true, TLS certificate SANs are derived from private_dns_zone + dns_records in divyam_load_balancer.
 
 include "root" {
   path   = find_in_parent_folders("root.hcl")
@@ -16,6 +16,7 @@ locals {
   lb_cfg = try(local.root.divyam_load_balancer, {})
   vnet   = try(local.root.vnet, {})
   secrets_cfg = try(local.root.divyam_secrets, {})
+  deployment_mode = try(local.root.deployment_mode, "onprem")
 
   create_public_lb     = try(local.lb_cfg.public, false)
   tls_enabled          = try(local.lb_cfg.tls_enabled, false)
@@ -36,9 +37,13 @@ locals {
   vnet_resource_group_name = try(local.vnet.scope_name, local.root.resource_scope.name)
   vnet_subnet_name         = try(local.vnet.app_gw_subnet.name, "")
   key_vault_name           = try(local.secrets_cfg.store_name, "")
-  router_dns_zone          = try(local.lb_cfg.router_dns, "")
-  dashboard_dns_zone       = try(local.lb_cfg.dashboard_dns, "")
-  controlplane_dns_zone    = try(local.lb_cfg.controlplane_dns, "")
+  # Single-zone DNS model: explicit zone + explicit relative record names.
+  private_dns_zone_name = try(local.lb_cfg.private_dns_zone.name, "")
+  create_private_dns_zone = try(local.lb_cfg.private_dns_zone.create, true)
+  api_dns_record_name = try(local.lb_cfg.dns_records.api, "api")
+  dashboard_dns_record_name = try(local.lb_cfg.dns_records.dashboard, "dashboard")
+  controlplane_dns_record_name = local.deployment_mode == "managed" ? try(local.lb_cfg.dns_records.controlplane, "") : ""
+  dns_additional_calling_vnets = try(local.lb_cfg.dns_additional_calling_vnets, [])
   create_dns_records       = try(local.lb_cfg.create_dns_records, true)
   lb_enabled               = try(local.lb_cfg.enabled, true)
   gateway_sku              = try(local.lb_cfg.gateway_sku, "WAF_v2")
@@ -76,10 +81,15 @@ inputs = {
   azure_key_vault_id    = null  # Resolved by module from azure_key_vault_name (divyam_secrets.store_name) via data source
   azure_key_vault_name  = local.key_vault_name
 
-  cert_name           = local.ssl_cert_name
-  router_dns_zone     = local.router_dns_zone
-  dashboard_dns_zone  = local.dashboard_dns_zone
-  controlplane_dns_zone = local.controlplane_dns_zone
+  cert_name = local.ssl_cert_name
+  private_dns_zone_name = local.private_dns_zone_name
+  create_private_dns_zone = local.create_private_dns_zone
+  api_dns_record_name = local.api_dns_record_name
+  dashboard_dns_record_name = local.dashboard_dns_record_name
+  controlplane_dns_record_name = local.controlplane_dns_record_name
+  dns_additional_calling_vnets = local.dns_additional_calling_vnets
+  deployment_mode    = local.deployment_mode
+  lb_enabled         = local.lb_enabled
   create_dns_records  = local.create_dns_records
 }
 

@@ -51,4 +51,9 @@ locals {
 
 inputs = {
   kube_config = dependency.k8s.outputs.aks_kube_config
+  nap_common_tags = try(include.root.inputs.common_tags, {})
+  nap_tag_globals = try(include.root.inputs.tag_globals, {})
+  nap_tag_context = {
+    resource_name = local.root.deployment_prefix
+  }
 }

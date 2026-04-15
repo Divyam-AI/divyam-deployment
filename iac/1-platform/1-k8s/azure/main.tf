@@ -92,6 +92,7 @@ locals {
   k8s_dns_service_ip_computed = local.service_cidr != null ? cidrhost(local.service_cidr, 10) : null
   dns_service_ip = coalesce(try(var.cluster.dns_service_ip, null), local.k8s_dns_service_ip_computed, "10.1.0.10")
   pod_cidr       = try(var.cluster.pod_cidr, null)
+  network_plugin_mode = local.pod_cidr != null && trimspace(local.pod_cidr) != "" ? "overlay" : null
 
   # Resolve NAT gateway IP: from variable or by looking up public IP by name (Azure API).
   resolved_nat_gateway_ip = coalesce(
@@ -160,9 +161,9 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
   }
 
   network_profile {
-    network_plugin      = var.cluster.network_plugin
-    network_plugin_mode = try(var.cluster.network_plugin_mode, null)
-    network_policy      = var.cluster.network_policy
+    network_plugin      = "azure"
+    network_plugin_mode = local.network_plugin_mode
+    network_policy      = "azure"
     service_cidr        = local.service_cidr
     dns_service_ip      = local.dns_service_ip
     pod_cidr            = local.pod_cidr

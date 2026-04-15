@@ -63,6 +63,18 @@ variable "controlplane_dns" {
   description = "Control-plane DNS name for managed SSL cert and DNS (from defaults.hcl divyam_load_balancer.controlplane_dns)"
 }
 
+variable "deployment_mode" {
+  type        = string
+  default     = "onprem"
+  description = "Deployment mode from top-level values (managed|onprem)."
+}
+
+variable "lb_enabled" {
+  type        = bool
+  default     = true
+  description = "Whether load balancer module is enabled."
+}
+
 variable "static_ip_name" {
   type        = string
   default     = null

@@ -74,6 +74,25 @@ variable "deployment_mode" {
   default     = "onprem"
 }
 
+variable "lb_enabled" {
+  description = "Whether load balancer is enabled."
+  type        = bool
+  default     = true
+}
+
+locals {
+  _validate_controlplane_domain = !(var.lb_enabled && var.deployment_mode == "managed" && trimspace(var.controlplane_ingress_domain) == "")
+}
+
+resource "terraform_data" "validate_controlplane_domain" {
+  lifecycle {
+    precondition {
+      condition     = local._validate_controlplane_domain
+      error_message = "controlplane ingress domain must be set when deployment_mode is \"managed\" and load balancer is enabled (divyam_load_balancer.dns_records.controlplane + private_dns_zone.name, or legacy controlplane_dns)."
+    }
+  }
+}
+
 variable "ingress_tls_enabled" {
   description = "Whether TLS is enabled for ingress at Application Gateway."
   type        = bool
@@ -90,6 +109,18 @@ variable "image_pull_secret_enabled" {
   description = "Whether the cluster needs image pull secrets for a private registry."
   type        = bool
   default     = true
+}
+
+variable "monitoring_enabled" {
+  description = "Top-level monitoring.enabled value written to provider.yaml."
+  type        = bool
+  default     = false
+}
+
+variable "monitoring_provider" {
+  description = "Optional monitoring provider written to provider.yaml (for example: datadog)."
+  type        = string
+  default     = ""
 }
 
 variable "output_path" {

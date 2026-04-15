@@ -143,22 +143,43 @@ variable "cert_name" {
   default     = null
 }
 
-variable "router_dns_zone" {
-  description = "Router DNS name for certificate subject and SAN (from defaults.hcl divyam_load_balancer.router_dns)."
+variable "private_dns_zone_name" {
+  description = "Canonical private DNS zone (for example: env.divyam.local)."
   type        = string
   default     = null
 }
 
-variable "dashboard_dns_zone" {
-  description = "Dashboard DNS name for certificate SAN (from defaults.hcl divyam_load_balancer.dashboard_dns)."
-  type        = string
-  default     = null
+variable "create_private_dns_zone" {
+  description = "When true, create private DNS zone; when false, use existing zone by private_dns_zone_name."
+  type        = bool
+  default     = true
 }
 
-variable "controlplane_dns_zone" {
-  description = "Control-plane DNS name for certificate SAN and DNS A record (from defaults.hcl divyam_load_balancer.controlplane_dns)."
+variable "api_dns_record_name" {
+  description = "Relative A-record name for API host inside private_dns_zone_name."
   type        = string
-  default     = null
+  default     = "api"
+}
+
+variable "dashboard_dns_record_name" {
+  description = "Relative A-record name for dashboard host inside private_dns_zone_name."
+  type        = string
+  default     = "dashboard"
+}
+
+variable "controlplane_dns_record_name" {
+  description = "Relative A-record name for control-plane host inside private_dns_zone_name."
+  type        = string
+  default     = ""
+}
+
+variable "dns_additional_calling_vnets" {
+  description = "Additional VNets to link to the private DNS zone for name resolution."
+  type = list(object({
+    name                = string
+    resource_group_name = string
+  }))
+  default = []
 }
 
 variable "cert_issuer" {
@@ -174,9 +195,49 @@ variable "cert_validity_in_months" {
 }
 
 variable "create_dns_records" {
-  description = "When true and router_dns_zone/dashboard_dns_zone are set, create Private DNS zones and A records mapping those names to the LB IP (public when public=true, private otherwise)."
+  description = "When true, manage private DNS zone/records that map API, dashboard, and control-plane hostnames to the LB IP."
   type        = bool
   default     = true
+}
+
+variable "deployment_mode" {
+  description = "Deployment mode from top-level values (managed|onprem)."
+  type        = string
+  default     = "onprem"
+}
+
+variable "lb_enabled" {
+  description = "Whether load balancer/app gateway module is enabled."
+  type        = bool
+  default     = true
+}
+
+locals {
+  _validate_private_dns_zone = !(var.lb_enabled && var.create_dns_records && trimspace(coalesce(var.private_dns_zone_name, "")) == "")
+  _validate_api_dns_record = !(var.lb_enabled && var.create_dns_records && trimspace(var.api_dns_record_name) == "")
+  _validate_dashboard_dns_record = !(var.lb_enabled && var.create_dns_records && trimspace(var.dashboard_dns_record_name) == "")
+  _validate_controlplane_dns = !(var.lb_enabled && var.deployment_mode == "managed" && trimspace(var.controlplane_dns_record_name) == "")
+}
+
+resource "terraform_data" "validate_controlplane_dns" {
+  lifecycle {
+    precondition {
+      condition     = local._validate_private_dns_zone
+      error_message = "private_dns_zone.name must be provided when create_dns_records is true and load balancer is enabled."
+    }
+    precondition {
+      condition     = local._validate_api_dns_record
+      error_message = "dns_records.api must be provided when create_dns_records is true and load balancer is enabled."
+    }
+    precondition {
+      condition     = local._validate_dashboard_dns_record
+      error_message = "dns_records.dashboard must be provided when create_dns_records is true and load balancer is enabled."
+    }
+    precondition {
+      condition     = local._validate_controlplane_dns
+      error_message = "controlplane DNS record name must be provided when deployment_mode is \"managed\" and load balancer is enabled."
+    }
+  }
 }
 
 variable "dns_record_ttl" {

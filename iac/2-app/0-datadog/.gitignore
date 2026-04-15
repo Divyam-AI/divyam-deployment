@@ -1,0 +1,7 @@
+# Terragrunt generate "common_module" (absolute path to ../common for cache-safe local modules).
+azure/common_module.tf
+gcp/common_module.tf
+
+# Terragrunt generate "k8s_providers_override" (merges kubernetes + helm into root provider.tf constraints).
+azure/zz_datadog_k8s_override.tf
+gcp/zz_datadog_k8s_override.tf

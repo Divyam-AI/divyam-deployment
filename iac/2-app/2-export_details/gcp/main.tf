@@ -1,12 +1,44 @@
 
 locals {
+  # Expose rendered common tags in provider.yaml under platform.custom_tags for downstream helm values.
+  # Do not yamlencode() the whole map here: when interpolated into the heredoc, multi-line yamlencode output
+  # can mis-indent (first map entry flush-left). Emit one indented line per key; jsonencode() values are valid YAML scalars.
+  custom_tags_block = length(local.rendered_tags) > 0 ? join("\n", concat(
+    ["  custom_tags:"],
+    [for k in sort(keys(local.rendered_tags)) : format("    %s: %s", k, jsonencode(local.rendered_tags[k]))]
+  )) : "  custom_tags: {}"
+
+  # Export top-level monitoring config used by helmfile global values merge.
+  # provider is emitted only when explicitly set (currently datadog when enabled).
+  monitoring_block = var.monitoring_enabled ? (
+    trimspace(var.monitoring_provider) != "" ?
+    <<-EOT
+monitoring:
+  enabled: true
+  provider: "${var.monitoring_provider}"
+
+EOT
+    :
+    <<-EOT
+monitoring:
+  enabled: true
+
+EOT
+  ) : <<-EOT
+monitoring:
+  enabled: false
+
+EOT
+
   platform_block = <<-EOT
 # Global config and platform provider (GCP)
 # Combined with resources.yaml and artifacts.yaml via helmfile
 
 environment: ${var.environment}
+${local.monitoring_block}
 platform:
   provider: GCP
+${local.custom_tags_block}
   gcp:
     secretsProjectId: "${var.project_id}"
     storage_configs:

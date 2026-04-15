@@ -59,6 +59,15 @@ locals {
 
   export_cfg = try(local.root.export_details, {})
   lb_cfg     = try(local.root.divyam_load_balancer, {})
+  datadog_cfg = try(local.root.datadog, {})
+  k8s_cfg     = try(local.root.k8s, {})
+  observability_cfg = try(local.k8s_cfg.observability, {})
+  deployment_mode = try(local.root.deployment_mode, "onprem")
+  lb_enabled      = try(local.lb_cfg.enabled, true)
+  datadog_enabled = try(local.datadog_cfg.enabled, false)
+  observability_enabled = try(local.observability_cfg.enable_metrics, true)
+  monitoring_enabled = local.datadog_enabled || local.observability_enabled
+  monitoring_provider = local.datadog_enabled ? "datadog" : ""
 
   cloudsql_cfg     = try(local.root.cloudsql, {})
   cloudsql_created = try(local.cloudsql_cfg.create, false)
@@ -66,6 +75,25 @@ locals {
   key_vault_name    = try(local.root.divyam_secrets.store_name, "")
   storage_account   = try(one([for s in local.root.divyam_object_storages : s.storage_account_name if s.type == "router-requests-logs"]), "")
   storage_container = try(one([for s in local.root.divyam_object_storages : s.container_name if s.type == "router-requests-logs"]), "")
+
+  # Ingress FQDNs must match 1-platform/0-app_gw: single private zone + relative labels (divyam_load_balancer.private_dns_zone + dns_records).
+  # If the new keys are absent (older env files), fall back to legacy full FQDN fields so provider.yaml is not empty.
+  _private_dns_zone_name = trimspace(try(local.lb_cfg.private_dns_zone.name, ""))
+  _api_label             = trimspace(try(local.lb_cfg.dns_records.api, "api"))
+  _dashboard_label       = trimspace(try(local.lb_cfg.dns_records.dashboard, "dashboard"))
+  _controlplane_label = local.deployment_mode == "managed" ? trimspace(try(local.lb_cfg.dns_records.controlplane, "")) : ""
+
+  router_ingress_fqdn = (
+    local._private_dns_zone_name != "" && local._api_label != ""
+    ) ? "${local._api_label}.${local._private_dns_zone_name}" : trimspace(try(local.lb_cfg.router_dns, ""))
+  dashboard_ingress_fqdn = (
+    local._private_dns_zone_name != "" && local._dashboard_label != ""
+    ) ? "${local._dashboard_label}.${local._private_dns_zone_name}" : trimspace(try(local.lb_cfg.dashboard_dns, ""))
+  controlplane_ingress_fqdn = local.deployment_mode != "managed" ? "" : (
+    local._private_dns_zone_name != "" && local._controlplane_label != ""
+    ? "${local._controlplane_label}.${local._private_dns_zone_name}"
+    : trimspace(try(local.lb_cfg.controlplane_dns, ""))
+  )
 }
 
 inputs = {
@@ -89,14 +117,17 @@ inputs = {
   }
   cluster_domain            = try(local.export_cfg.cluster_domain, "")
   image_pull_secret_enabled = try(local.export_cfg.image_pull_secret_enabled, true)
+  monitoring_enabled        = local.monitoring_enabled
+  monitoring_provider       = local.monitoring_provider
   output_path               = "${local.repo_root}/${try(local.export_cfg.output_dir, "k8s/values")}/provider.yaml"
 
   ingress_deploy             = true
   ingress_external           = try(local.lb_cfg.public, false)
-  router_ingress_domain      = try(local.lb_cfg.router_dns, "")
-  dashboard_ingress_domain   = try(local.lb_cfg.dashboard_dns, "")
-  controlplane_ingress_domain = try(local.lb_cfg.controlplane_dns, "")
-  deployment_mode            = trimspace(try(local.lb_cfg.controlplane_dns, "")) != "" ? "managed" : "onprem"
+  router_ingress_domain       = local.router_ingress_fqdn
+  dashboard_ingress_domain    = local.dashboard_ingress_fqdn
+  controlplane_ingress_domain = local.controlplane_ingress_fqdn
+  deployment_mode            = local.deployment_mode
+  lb_enabled                 = local.lb_enabled
   ingress_tls_enabled        = try(dependency.app_gw.outputs.app_gateway_tls_enabled, try(local.lb_cfg.tls_enabled, false))
   ingress_certificate_name   = try(dependency.app_gw.outputs.app_gateway_certificate_name, "")
 
