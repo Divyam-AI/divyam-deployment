@@ -123,6 +123,11 @@ resource "kubernetes_manifest" "nodepool_cpu_ondemand" {
               key      = "kubernetes.io/arch"
               operator = "In"
               values   = ["amd64"]
+            },
+            {
+              key      = "node.kubernetes.io/instance-type"
+              operator = "In"
+              values   = var.cpu_instance_types
             }
           ]
         }
@@ -169,6 +174,11 @@ resource "kubernetes_manifest" "nodepool_cpu_spot" {
               key      = "kubernetes.io/arch"
               operator = "In"
               values   = ["amd64"]
+            },
+            {
+              key      = "node.kubernetes.io/instance-type"
+              operator = "In"
+              values   = var.cpu_instance_types
             }
           ]
         }
@@ -221,6 +231,11 @@ resource "kubernetes_manifest" "nodepool_gpu_ondemand" {
               key      = "kubernetes.io/arch"
               operator = "In"
               values   = ["amd64"]
+            },
+            {
+              key      = "node.kubernetes.io/instance-type"
+              operator = "In"
+              values   = var.gpu_instance_types
             }
           ]
         }
@@ -273,6 +288,11 @@ resource "kubernetes_manifest" "nodepool_gpu_spot" {
               key      = "kubernetes.io/arch"
               operator = "In"
               values   = ["amd64"]
+            },
+            {
+              key      = "node.kubernetes.io/instance-type"
+              operator = "In"
+              values   = var.gpu_instance_types
             }
           ]
         }

@@ -53,6 +53,8 @@ inputs = {
   kube_config = dependency.k8s.outputs.aks_kube_config
   nap_common_tags = try(include.root.inputs.common_tags, {})
   nap_tag_globals = try(include.root.inputs.tag_globals, {})
+  cpu_instance_types = try(local.root.k8s.cpu_instance_types, ["Standard_DS4_v2"])
+  gpu_instance_types = try(local.root.k8s.gpu_instance_types, ["Standard_NV6ads_A10_v5"])
   nap_tag_context = {
     resource_name = local.root.deployment_prefix
   }
