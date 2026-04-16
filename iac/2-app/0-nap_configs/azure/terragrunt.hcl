@@ -53,8 +53,24 @@ inputs = {
   kube_config = dependency.k8s.outputs.aks_kube_config
   nap_common_tags = try(include.root.inputs.common_tags, {})
   nap_tag_globals = try(include.root.inputs.tag_globals, {})
-  cpu_instance_types = try(local.root.k8s.cpu_instance_types, ["Standard_DS4_v2"])
-  gpu_instance_types = try(local.root.k8s.gpu_instance_types, ["Standard_NV6ads_A10_v5"])
+  cpu_instance_types = try(local.root.k8s.cpu_instance_types, [
+              # Standard D Series  
+              "Standard_D8s_v6","Standard_D8s_v5", "Standard_D8s_v4","Standard_D8s_v3", "Standard_D8s_v2",
+              "Standard_D16s_v6", "Standard_D16s_v5", "Standard_D16s_v4","Standard_D16s_v3", "Standard_D16s_v2", 
+              
+              # Standard D AS Series  
+              "Standard_D8as_v6","Standard_D8as_v5", "Standard_D8as_v4","Standard_D8as_v3", "Standard_D8as_v2",              
+              "Standard_D16as_v6","Standard_D16as_v5", "Standard_D16as_v4","Standard_D16as_v3", "Standard_D16as_v2",
+
+              # Standard E Series  
+              "Standard_E8s_v6", "Standard_E8s_v5", "Standard_E8s_v4","Standard_E8s_v3", "Standard_E8s_v2",
+              "Standard_E16s_v6", "Standard_E16s_v5", "Standard_E16s_v4","Standard_E16s_v3", "Standard_E16s_v2",
+
+              # Standard E AS Series  
+              "Standard_E8as_v6","Standard_E8as_v5", "Standard_E8as_v4","Standard_E8as_v3", "Standard_E8as_v2",
+              "Standard_E16as_v6","Standard_E16as_v5", "Standard_E16as_v4","Standard_E16as_v3", "Standard_E16as_v2"
+              ])
+
   nap_tag_context = {
     resource_name = local.root.deployment_prefix
   }

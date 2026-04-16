@@ -31,8 +31,3 @@ variable "cpu_instance_types" {
   description = "Allowed Azure instance types for CPU node pools."
   type        = list(string)
 }
-
-variable "gpu_instance_types" {
-  description = "Allowed Azure instance types for GPU node pools."
-  type        = list(string)
-}
