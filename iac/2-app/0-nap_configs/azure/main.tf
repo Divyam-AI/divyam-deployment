@@ -127,6 +127,11 @@ resource "kubernetes_manifest" "nodepool_cpu_ondemand" {
               key      = "divyam.ai/nodepool-name"
               operator = "In"
               values   = ["cpu-ondemand"]
+            },
+            { 
+              key      = "node.kubernetes.io/instance-type"
+              operator = "In"
+              values   = var.cpu_instance_types
             }
           ]
         }
@@ -177,6 +182,11 @@ resource "kubernetes_manifest" "nodepool_cpu_spot" {
               key      = "divyam.ai/nodepool-name"
               operator = "In"
               values   = ["cpu-spot"]
+            },
+            {
+              key      = "node.kubernetes.io/instance-type"
+              operator = "In"
+              values   = var.cpu_instance_types
             }
           ]
         }
@@ -229,6 +239,21 @@ resource "kubernetes_manifest" "nodepool_gpu_ondemand" {
               key      = "kubernetes.io/arch"
               operator = "In"
               values   = ["amd64"]
+            },
+            {
+              key      = "divyam.ai/nodepool-name"
+              operator = "In"
+              values   = ["gpu-ondemand"]
+            },
+            {
+              key      = "nvidia.com/gpu.present"
+              operator = "In"
+              values   = ["true"]
+            },
+            {
+              key      = "node.kubernetes.io/instance-type"
+              operator = "In"
+              values   = var.gpu_instance_types
             }
           ]
         }
@@ -281,6 +306,21 @@ resource "kubernetes_manifest" "nodepool_gpu_spot" {
               key      = "kubernetes.io/arch"
               operator = "In"
               values   = ["amd64"]
+            },
+            {
+              key      = "divyam.ai/nodepool-name"
+              operator = "In"
+              values   = ["gpu-spot"]
+            },
+            {
+              key      = "nvidia.com/gpu.present"
+              operator = "In"
+              values   = ["true"]
+            },
+            {
+              key      = "node.kubernetes.io/instance-type"
+              operator = "In"
+              values   = var.gpu_instance_types
             }
           ]
         }

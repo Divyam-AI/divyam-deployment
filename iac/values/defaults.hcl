@@ -215,6 +215,10 @@ locals {
       additional = {}
     }
 
+    # NAP NodePool instance families/sizes (list). Override per environment as needed.
+    cpu_instance_types = []
+    gpu_instance_types = []
+
     observability = {
       enable_logs         = true
       # Maximum retention: GCP _Default bucket = 3650 days; Azure Log Analytics = 730 days (capped in 1-k8s).
