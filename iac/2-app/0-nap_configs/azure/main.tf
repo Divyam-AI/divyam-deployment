@@ -98,8 +98,7 @@ resource "kubernetes_manifest" "nodepool_cpu_ondemand" {
       template = {
         metadata = {
           labels = {
-            workload-type                = "cpu"
-            "kubernetes.azure.com/mode" = "user"
+            "divyam.ai/nodepool-name" = "cpu-ondemand"
           }
         }
         spec = {
@@ -123,6 +122,11 @@ resource "kubernetes_manifest" "nodepool_cpu_ondemand" {
               key      = "kubernetes.io/arch"
               operator = "In"
               values   = ["amd64"]
+            },
+            {
+              key      = "divyam.ai/nodepool-name"
+              operator = "In"
+              values   = ["cpu-ondemand"]
             }
           ]
         }
@@ -144,8 +148,7 @@ resource "kubernetes_manifest" "nodepool_cpu_spot" {
       template = {
         metadata = {
           labels = {
-            workload-type                = "cpu"
-            "kubernetes.azure.com/mode" = "user"
+            "divyam.ai/nodepool-name" = "cpu-spot"
           }
         }
         spec = {
@@ -169,6 +172,11 @@ resource "kubernetes_manifest" "nodepool_cpu_spot" {
               key      = "kubernetes.io/arch"
               operator = "In"
               values   = ["amd64"]
+            },
+            {
+              key      = "divyam.ai/nodepool-name"
+              operator = "In"
+              values   = ["cpu-spot"]
             }
           ]
         }
@@ -191,7 +199,7 @@ resource "kubernetes_manifest" "nodepool_gpu_ondemand" {
         metadata = {
           labels = {
             "nvidia.com/gpu.present"    = "true"
-            "kubernetes.azure.com/mode" = "user"
+            "divyam.ai/nodepool-name" = "gpu-ondemand"
           }
         }
         spec = {
@@ -243,7 +251,7 @@ resource "kubernetes_manifest" "nodepool_gpu_spot" {
         metadata = {
           labels = {
             "nvidia.com/gpu.present"    = "true"
-            "kubernetes.azure.com/mode" = "user"
+            "divyam.ai/nodepool-name" = "gpu-spot"
           }
         }
         spec = {

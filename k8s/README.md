@@ -49,9 +49,10 @@ helm version
 👉 https://github.com/helmfile/helmfile?tab=readme-ov-file#installation
 
 ```bash
-HELMFILE_VERSION="v0.159.0"
+HELMFILE_VERSION="v1.4.4"
 
-curl -L -o helmfile.tar.gz   https://github.com/helmfile/helmfile/releases/download/${HELMFILE_VERSION}/helmfile_${HELMFILE_VERSION}_linux_amd64.tar.gz
+curl -L -o helmfile.tar.gz \
+  https://github.com/helmfile/helmfile/releases/download/${HELMFILE_VERSION}/helmfile_${HELMFILE_VERSION#v}_linux_amd64.tar.gz
 
 tar -xzf helmfile.tar.gz
 sudo mv helmfile /usr/local/bin/helmfile
@@ -104,10 +105,29 @@ k9s version
 ## 2. Authentication to the Kubernetes Cluster
 
 ### For Azure
-Follow the steps below to authenticate to the Kubernetes Cluster.
+
+#### Install Azure CLI
+
+👉 [Install Azure CLI on Linux (apt)](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?view=azure-cli-latest&pivots=apt)
+
 ```bash
-az login
-az account set --subscription <subscription-id>
+curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+```
+
+Follow the steps below to authenticate to the Kubernetes Cluster.
+
+You can login interactively or using the service principal credentials used to create the cluster:
+
+```bash
+# Login using service principal credentials
+az login --service-principal \
+         --username $ARM_CLIENT_ID \
+         --password $ARM_CLIENT_SECRET \
+         --tenant $ARM_TENANT_ID
+```
+
+```bash
+az account set --subscription $ARM_SUBSCRIPTION_ID
 az aks get-credentials --name <cluster-name> --resource-group <resource-group-name>
 ```
 
