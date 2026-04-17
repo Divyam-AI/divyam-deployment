@@ -216,8 +216,7 @@ locals {
     }
 
     # NAP NodePool instance families/sizes (list). Override per environment as needed.
-    cpu_instance_types = []
-    gpu_instance_types = []
+    # cpu_instance_types = []
 
     observability = {
       enable_logs         = true
