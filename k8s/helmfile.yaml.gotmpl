@@ -13,6 +13,7 @@ helmDefaults:
   diffArgs:
     - "--normalize-manifests"
     - "--three-way-merge"
+    - "--context 5"
 
 
 repositories:
@@ -158,6 +159,7 @@ repositories:
 {{- $chartsWithProviderMonitoring := dict
   "altinity-clickhouse-operator"  true
   "kafka-cluster"                 true
+  "kafka-connect"                 true
   "strimzi-kafka-operator"        true
   "otel-collector"                true
   "qdrant"                        true

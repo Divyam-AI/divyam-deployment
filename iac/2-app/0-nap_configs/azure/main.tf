@@ -98,8 +98,7 @@ resource "kubernetes_manifest" "nodepool_cpu_ondemand" {
       template = {
         metadata = {
           labels = {
-            workload-type                = "cpu"
-            "kubernetes.azure.com/mode" = "user"
+            "divyam.ai/nodepool-name" = "cpu-ondemand"
           }
         }
         spec = {
@@ -123,6 +122,11 @@ resource "kubernetes_manifest" "nodepool_cpu_ondemand" {
               key      = "kubernetes.io/arch"
               operator = "In"
               values   = ["amd64"]
+            },
+            {
+              key      = "node.kubernetes.io/instance-type"
+              operator = "In"
+              values   = var.cpu_instance_types
             }
           ]
         }
@@ -144,8 +148,7 @@ resource "kubernetes_manifest" "nodepool_cpu_spot" {
       template = {
         metadata = {
           labels = {
-            workload-type                = "cpu"
-            "kubernetes.azure.com/mode" = "user"
+            "divyam.ai/nodepool-name" = "cpu-spot"
           }
         }
         spec = {
@@ -169,6 +172,11 @@ resource "kubernetes_manifest" "nodepool_cpu_spot" {
               key      = "kubernetes.io/arch"
               operator = "In"
               values   = ["amd64"]
+            },
+            {
+              key      = "node.kubernetes.io/instance-type"
+              operator = "In"
+              values   = var.cpu_instance_types
             }
           ]
         }
@@ -190,8 +198,8 @@ resource "kubernetes_manifest" "nodepool_gpu_ondemand" {
       template = {
         metadata = {
           labels = {
-            "nvidia.com/gpu.present"    = "true"
-            "kubernetes.azure.com/mode" = "user"
+            "divyam.ai/nodepool-name" = "gpu-ondemand",
+            "nvidia.com/gpu.present" = "true"
           }
         }
         spec = {
@@ -221,6 +229,16 @@ resource "kubernetes_manifest" "nodepool_gpu_ondemand" {
               key      = "kubernetes.io/arch"
               operator = "In"
               values   = ["amd64"]
+            },
+            {
+              key      = "nvidia.com/gpu.present"
+              operator = "In"
+              values   = ["true"]
+            },
+            {
+              key      = "karpenter.azure.com/sku-family"
+              operator = "In"
+              values   = ["N"]
             }
           ]
         }
@@ -242,8 +260,8 @@ resource "kubernetes_manifest" "nodepool_gpu_spot" {
       template = {
         metadata = {
           labels = {
-            "nvidia.com/gpu.present"    = "true"
-            "kubernetes.azure.com/mode" = "user"
+            "divyam.ai/nodepool-name" = "gpu-spot",
+            "nvidia.com/gpu.present" = "true"
           }
         }
         spec = {
@@ -273,6 +291,16 @@ resource "kubernetes_manifest" "nodepool_gpu_spot" {
               key      = "kubernetes.io/arch"
               operator = "In"
               values   = ["amd64"]
+            },
+            {
+              key      = "nvidia.com/gpu.present"
+              operator = "In"
+              values   = ["true"]
+            },
+            {
+              key      = "karpenter.azure.com/sku-family"
+              operator = "In"
+              values   = ["N"]
             }
           ]
         }
