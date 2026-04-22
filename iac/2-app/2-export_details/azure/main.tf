@@ -18,19 +18,22 @@ locals {
     trimspace(var.monitoring_provider) != "" ?
     <<-EOT
 monitoring:
-  enabled: true
+  metrics:
+    enabled: true
   provider: "${var.monitoring_provider}"
 
 EOT
     :
     <<-EOT
 monitoring:
-  enabled: true
+  metrics:
+    enabled: true
 
 EOT
   ) : <<-EOT
 monitoring:
-  enabled: false
+  metrics:
+    enabled: false
 
 EOT
 
