@@ -34,6 +34,9 @@ This repository gives your team everything needed to setup up a complete Divyam 
 
 ## Getting Started
 
+### Prerequisite
+Get the deployment key and access to Divyam Docker images that are hosted in a private registry, Contact **hello@divyam.ai**
+
 ### Phase 1 — Provision Infrastructure
 
 Follow **[iac/README.md](iac/README.md)** to configure your cloud credentials, customize the values file, and provision resources across the three layers (foundation, platform, application).
@@ -44,10 +47,6 @@ After provisioning, the `export_details` module generates `provider.yaml` which 
 
 Follow **[k8s/README.md](k8s/README.md)** to configure Helm values, deploy the full Divyam stack with Helmfile, and set up a CD pipeline for ongoing updates.
 
-## Image Access
-
-Divyam Docker images are hosted in a private registry. Contact **support@divyam.io** to obtain access credentials before deploying the Kubernetes stack.
-
 ## Contact
 
-For registry access, onboarding, or questions: **support@divyam.io**
+For registry access, onboarding, or questions: **support@divyam.ai**
