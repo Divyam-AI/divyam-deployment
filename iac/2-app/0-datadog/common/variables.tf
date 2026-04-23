@@ -31,6 +31,13 @@ variable "datadog_api_key" {
   sensitive   = true
 }
 
+variable "divyam_clickhouse_password" {
+  description = "ClickHouse default user password from TF_VAR_divyam_clickhouse_password."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "datadog_docker_registry" {
   description = "Container registry for Datadog images (global.registry on DatadogAgent)."
   type        = string

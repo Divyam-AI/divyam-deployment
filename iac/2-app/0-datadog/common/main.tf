@@ -53,17 +53,35 @@ locals {
   }
 
   # Optional AKS-style node agent image override; omitted on GCP unless enabled explicitly.
-  datadog_agent_spec = merge(
-    local.datadog_agent_spec_base,
+  datadog_node_agent_override = merge(
     var.node_agent_jmx_enabled ? {
-      override = {
-        nodeAgent = {
-          image = {
-            jmxEnabled = true
+      image = {
+        jmxEnabled = true
+      }
+    } : {},
+    var.datadog_enabled ? {
+      env = [
+        {
+          name = "DIVYAM_CLICKHOUSE_PASSWORD"
+          valueFrom = {
+            secretKeyRef = {
+              name = kubernetes_secret_v1.datadog_clickhouse_secret["enabled"].metadata[0].name
+              key  = "password"
+            }
           }
         }
-      }
+      ]
     } : {}
+  )
+
+  # Optional AKS-style node agent image override; omitted on GCP unless enabled explicitly.
+  datadog_agent_spec = merge(
+    local.datadog_agent_spec_base,
+    {
+      override = {
+        nodeAgent = local.datadog_node_agent_override
+      }
+    }
   )
 }
 
@@ -117,6 +135,23 @@ resource "kubernetes_secret_v1" "datadog_secret" {
   depends_on = [kubectl_manifest.datadog_namespace]
 }
 
+resource "kubernetes_secret_v1" "datadog_clickhouse_secret" {
+  for_each = var.datadog_enabled ? { "enabled" = true } : {}
+
+  metadata {
+    name      = "datadog-clickhouse-secret"
+    namespace = local.datadog_namespace
+  }
+
+  data = {
+    "password" = var.divyam_clickhouse_password
+  }
+
+  type = "Opaque"
+
+  depends_on = [kubectl_manifest.datadog_namespace]
+}
+
 # kubectl_manifest + validate_schema=false: DatadogAgent CRD appears only after the operator Helm
 # chart is applied; kubernetes_manifest fails at plan with "CRD may not be installed".
 resource "kubectl_manifest" "datadog_agent" {
@@ -138,5 +173,6 @@ resource "kubectl_manifest" "datadog_agent" {
     kubectl_manifest.datadog_namespace,
     helm_release.datadog_operator,
     kubernetes_secret_v1.datadog_secret,
+    kubernetes_secret_v1.datadog_clickhouse_secret,
   ]
 }
