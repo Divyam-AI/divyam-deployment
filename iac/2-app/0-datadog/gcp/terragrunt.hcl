@@ -27,7 +27,6 @@ module "datadog_k8s" {
   datadog_exclude_namespaces_metrics = var.datadog_exclude_namespaces_metrics
   divyam_clickhouse_password         = var.divyam_clickhouse_password
 
-  node_agent_jmx_enabled = false
 }
 EOF
 }

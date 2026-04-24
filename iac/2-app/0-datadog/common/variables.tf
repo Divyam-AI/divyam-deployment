@@ -62,8 +62,3 @@ variable "datadog_exclude_namespaces_metrics" {
   default     = []
 }
 
-variable "node_agent_jmx_enabled" {
-  description = "When true, set spec.override.nodeAgent.image.jmxEnabled (AKS layout historically used this)."
-  type        = bool
-  default     = false
-}

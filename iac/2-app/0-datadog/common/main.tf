@@ -52,13 +52,21 @@ locals {
     }
   }
 
-  # Optional AKS-style node agent image override; omitted on GCP unless enabled explicitly.
+  # Always use JMX-enabled Datadog node agent image for Kafka JMX checks.
+  # Tolerate all taints so the DaemonSet schedules on every node, including GPU pools
+  # (see 0-nap_configs: nvidia.com/gpu:NoSchedule on gpu-ondemand / gpu-spot) and any
+  # classic pools with sku=gpu or similar.
   datadog_node_agent_override = merge(
-    var.node_agent_jmx_enabled ? {
+    {
       image = {
         jmxEnabled = true
       }
-    } : {},
+      tolerations = [
+        {
+          operator = "Exists"
+        }
+      ]
+    },
     var.datadog_enabled ? {
       env = [
         {
@@ -74,7 +82,7 @@ locals {
     } : {}
   )
 
-  # Optional AKS-style node agent image override; omitted on GCP unless enabled explicitly.
+  # Node agent override includes JMX-enabled image and runtime env injections.
   datadog_agent_spec = merge(
     local.datadog_agent_spec_base,
     {
