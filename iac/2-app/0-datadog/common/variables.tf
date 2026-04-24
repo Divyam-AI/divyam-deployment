@@ -38,6 +38,13 @@ variable "divyam_clickhouse_password" {
   sensitive   = true
 }
 
+variable "divyam_db_password" {
+  description = "Divyam application MySQL user password (same as used for the datadog@ MySQL user); from TF_VAR_divyam_db_password."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "datadog_docker_registry" {
   description = "Container registry for Datadog images (global.registry on DatadogAgent)."
   type        = string

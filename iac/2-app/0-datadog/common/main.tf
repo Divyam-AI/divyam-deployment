@@ -52,6 +52,29 @@ locals {
     }
   }
 
+  # Passwords for integrations that read credentials from the node Agent process environment
+  # (for example Autodiscovery %%env_*%% resolution). Values come from TF_VAR_* at apply time.
+  datadog_node_agent_password_env = var.datadog_enabled ? [
+    {
+      name = "DIVYAM_CLICKHOUSE_PASSWORD"
+      valueFrom = {
+        secretKeyRef = {
+          name = kubernetes_secret_v1.datadog_clickhouse_secret["enabled"].metadata[0].name
+          key  = "password"
+        }
+      }
+    },
+    {
+      name = "DD_MYSQL_PASSWORD"
+      valueFrom = {
+        secretKeyRef = {
+          name = kubernetes_secret_v1.datadog_mysql_secret["enabled"].metadata[0].name
+          key  = "password"
+        }
+      }
+    },
+  ] : []
+
   # Always use JMX-enabled Datadog node agent image for Kafka JMX checks.
   # Tolerate all taints so the DaemonSet schedules on every node, including GPU pools
   # (see 0-nap_configs: nvidia.com/gpu:NoSchedule on gpu-ondemand / gpu-spot) and any
@@ -67,18 +90,8 @@ locals {
         }
       ]
     },
-    var.datadog_enabled ? {
-      env = [
-        {
-          name = "DIVYAM_CLICKHOUSE_PASSWORD"
-          valueFrom = {
-            secretKeyRef = {
-              name = kubernetes_secret_v1.datadog_clickhouse_secret["enabled"].metadata[0].name
-              key  = "password"
-            }
-          }
-        }
-      ]
+    length(local.datadog_node_agent_password_env) > 0 ? {
+      env = local.datadog_node_agent_password_env
     } : {}
   )
 
@@ -160,6 +173,23 @@ resource "kubernetes_secret_v1" "datadog_clickhouse_secret" {
   depends_on = [kubectl_manifest.datadog_namespace]
 }
 
+resource "kubernetes_secret_v1" "datadog_mysql_secret" {
+  for_each = var.datadog_enabled ? { "enabled" = true } : {}
+
+  metadata {
+    name      = "datadog-mysql-secret"
+    namespace = local.datadog_namespace
+  }
+
+  data = {
+    "password" = var.divyam_db_password
+  }
+
+  type = "Opaque"
+
+  depends_on = [kubectl_manifest.datadog_namespace]
+}
+
 # kubectl_manifest + validate_schema=false: DatadogAgent CRD appears only after the operator Helm
 # chart is applied; kubernetes_manifest fails at plan with "CRD may not be installed".
 resource "kubectl_manifest" "datadog_agent" {
@@ -182,5 +212,6 @@ resource "kubectl_manifest" "datadog_agent" {
     helm_release.datadog_operator,
     kubernetes_secret_v1.datadog_secret,
     kubernetes_secret_v1.datadog_clickhouse_secret,
+    kubernetes_secret_v1.datadog_mysql_secret,
   ]
 }
