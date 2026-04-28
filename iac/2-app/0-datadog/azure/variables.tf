@@ -72,6 +72,20 @@ variable "datadog_api_key" {
   }
 }
 
+variable "divyam_clickhouse_password" {
+  description = "ClickHouse default user password from TF_VAR_divyam_clickhouse_password."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "divyam_db_password" {
+  description = "Divyam MySQL application user password from TF_VAR_divyam_db_password (mirrors datadog-mysql-secret in cluster)."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "datadog_docker_registry" {
   description = "Datadog docker registry from defaults.hcl datadog.docker_registry."
   type        = string

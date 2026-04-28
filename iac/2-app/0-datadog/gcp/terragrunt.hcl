@@ -25,8 +25,9 @@ module "datadog_k8s" {
   datadog_exclude_namespaces         = var.datadog_exclude_namespaces
   datadog_exclude_namespaces_logs    = var.datadog_exclude_namespaces_logs
   datadog_exclude_namespaces_metrics = var.datadog_exclude_namespaces_metrics
+  divyam_clickhouse_password         = var.divyam_clickhouse_password
+  divyam_db_password                 = var.divyam_db_password
 
-  node_agent_jmx_enabled = false
 }
 EOF
 }
@@ -102,6 +103,8 @@ inputs = {
   datadog_exclude_namespaces_logs    = try(local.datadog_cfg.exclude_namespaces_logs, [])
   datadog_exclude_namespaces_metrics = try(local.datadog_cfg.exclude_namespaces_metrics, [])
   datadog_api_key        = get_env("TF_VAR_datadog_api_key", "")
+  divyam_clickhouse_password = get_env("TF_VAR_divyam_clickhouse_password", "")
+  divyam_db_password         = get_env("TF_VAR_divyam_db_password", "")
 }
 
 exclude {

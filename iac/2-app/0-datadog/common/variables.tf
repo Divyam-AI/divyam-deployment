@@ -31,6 +31,20 @@ variable "datadog_api_key" {
   sensitive   = true
 }
 
+variable "divyam_clickhouse_password" {
+  description = "ClickHouse default user password from TF_VAR_divyam_clickhouse_password."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "divyam_db_password" {
+  description = "Divyam application MySQL user password (same as used for the datadog@ MySQL user); from TF_VAR_divyam_db_password."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "datadog_docker_registry" {
   description = "Container registry for Datadog images (global.registry on DatadogAgent)."
   type        = string
@@ -55,8 +69,3 @@ variable "datadog_exclude_namespaces_metrics" {
   default     = []
 }
 
-variable "node_agent_jmx_enabled" {
-  description = "When true, set spec.override.nodeAgent.image.jmxEnabled (AKS layout historically used this)."
-  type        = bool
-  default     = false
-}
