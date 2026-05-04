@@ -2,10 +2,16 @@
 
 Provision cloud infrastructure and deploy the Divyam platform stack on Kubernetes.
 
-This repository gives your team everything needed to setup up a complete Divyam environment and maintain it through a CD pipeline. The setup has two phases:
+> [!NOTE]
+> This repository gives your team everything needed to set up a complete Divyam environment and maintain it through automation.
+
+The setup has two phases:
 
 1. **Infrastructure** ([`iac/`](iac/README.md)) — Terragrunt/OpenTofu modules that create cloud resources (VPC, K8s cluster, secrets, storage, etc.)
 2. **Application** ([`k8s/`](k8s/README.md)) — A Helmfile that deploys the full Divyam service mesh onto the provisioned cluster
+
+> [!TIP]
+> Client SRE mirror + PR-gated `helmfile diff` and post-merge `helmfile apply` are described in **[k8s/docs/cicd-overview.md](k8s/docs/cicd-overview.md)**.
 
 ## Supported Clouds
 
@@ -26,6 +32,8 @@ This repository gives your team everything needed to setup up a complete Divyam 
 ├── k8s/                            # Kubernetes Deployment
 │   ├── helmfile.yaml.gotmpl        #   Helmfile — deploys entire Divyam stack
 │   ├── helm-values/                #   provider.yaml, resources.yaml
+│   ├── docs/                       #   CI/CD and SRE-facing guides
+│   ├── pipeline/                   #   Dockerfile + CI/CD script scaffolds
 │   └── releases/                   #   Versioned artifact files
 ├── scripts/
 │   ├── write-outputs-yaml.sh       #   OpenTofu outputs → YAML/JSON for Helm
@@ -46,6 +54,11 @@ After provisioning, the `export_details` module generates `provider.yaml` which 
 ### Phase 2 — Deploy on Kubernetes
 
 Follow **[k8s/README.md](k8s/README.md)** to configure Helm values, deploy the full Divyam stack with Helmfile, and set up a CD pipeline for ongoing updates.
+
+## Image Access
+
+> [!WARNING]
+> Divyam Docker images and related OCI artifacts are hosted in an **auth-restricted registry**. Contact **support@divyam.io** to obtain access credentials before deploying the Kubernetes stack. CI/CD runners and cluster nodes must be able to reach this registry per your network design.
 
 ## Contact
 

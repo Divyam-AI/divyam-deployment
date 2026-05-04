@@ -2,6 +2,9 @@
 
 Alerts and notification channels for Azure and GCP, driven by `values/defaults.hcl` (`alerts` and `alerts.notification_channels`).
 
+> [!NOTE]
+> Notification endpoints are supplied via environment variables referenced from `defaults.hcl` — see **Config** below. Do not commit webhook URLs or tokens to git; use your secret manager or CI-injected variables.
+
 ## Layout
 
 - **common/** – Shared alert rule definitions only (no cloud-specific code).
