@@ -2,64 +2,47 @@
 
 ```mermaid
 flowchart TB
-  subgraph Divyam["Divyam (vendor) — context only, not a numbered step"]
+  subgraph Divyam["Divyam (vendor)"]
     direction TB
-    UP["Upstream git: divyam-deployment"]
+    UP["Open upstream repo: divyam-deployment"]
     HC["Open Helm charts repo"]
     AR["Auth-restricted artifact registry"]
-    UP ~~~ HC
-    HC ~~~ AR
   end
 
-  subgraph Client["Client environment — read steps 1 → 6 in order"]
+  subgraph Client["Client environment"]
     direction TB
+    SM["Secret manager\n(ARM* / GCP credentials)"]
+    MIR["Client GitHub repo\n(mirror of upstream open repo)"]
+    S1["1) Manual handoff: send artifact versions + app config to SRE"]
+    S2["2) SRE updates mirror repo and syncs latest upstream main"]
+    S3["3) Open PR to main"]
+    S4["4) Merge PR after CI passes"]
+    VNET["CI/CD runner + Kubernetes cluster in same client VPC/VNet"]
 
-    SM["Secret manager\n(inject ARM* / GCP into pipeline jobs)"]
-
-    S1["1 · START HERE — Manual handoff\nSend Divyam artifact versions + application config to client SRE"]
-    S2["2 · SRE updates mirror + sync upstream\nCommit value changes; git fetch / merge from divyam-deployment main"]
-    S3["3 · Open pull request to main\nTopic branch → main; opens review + triggers CI"]
-    SM ~~~ S1
-    S1 --> S2 --> S3
-
-    subgraph CIStage["4 · CI stage — runs on every pull request (before merge)"]
+    subgraph CIStage["CI stage (on pull_request)"]
       direction TB
-      C1["Checkout the PR ref; load secrets from secret manager"]
-      C2["Authenticate to cloud + get-cluster-credentials\nRunner must sit in or reach client VPC/VNet for private API"]
-      C3["kubectl sanity — confirm cluster API is reachable"]
-      C4["helmfile diff only — compare desired state to live cluster; no installs/upgrades"]
-      C5["Pass → merge allowed under policy · Fail → fix commits and re-run CI"]
-      C1 --> C2 --> C3 --> C4 --> C5
+      CI["Checkout PR ref -> load secrets -> cloud auth + get-credentials -> kubectl sanity -> helmfile diff"]
     end
 
-    S4["5 · Merge pull request to main\nHuman / policy gate after green CI + reviews"]
-
-    subgraph CDStage["6 · CD stage — runs after main receives the merge commit"]
+    subgraph CDStage["CD stage (on merge to main)"]
       direction TB
-      D1["Checkout main at the new merge commit; load secrets"]
-      D2["Authenticate to cloud + get-cluster-credentials"]
-      D3["kubectl sanity — cluster still reachable"]
-      D4["helmfile apply — install/upgrade Helm releases to match repo\nOptional job input: release name → helmfile -l name=… apply only that release"]
-      D5["Rollouts proceed; workloads pull images / OCI per chart from Divyam registry"]
-      D1 --> D2 --> D3 --> D4 --> D5
+      CD["Checkout main -> load secrets -> cloud auth + get-credentials -> kubectl sanity -> helmfile apply (optional selector input)"]
     end
-
-    RN["— Where jobs run: CI/CD runner in your VPC/VNet\n(private kube-apiserver + registry egress per your network design)"]
   end
 
-  UP -->|"templates & releases"| S2
-  S3 -->|"PR opened / updated"| C1
-  C5 -->|"CI green + approval"| S4
-  S4 -->|"merge to main"| D1
-  SM -.-> C1
-  SM -.-> D1
-  HC -.->|"chart paths in values"| C4
-  AR -.->|"pulls during rollout"| D5
-  D5 --> RN
+  UP -->|mirror source| MIR
+  S1 --> S2 --> S3 --> CI --> S4 --> CD
+  MIR --> S2
+  SM -.-> CI
+  SM -.-> CD
+  VNET -.-> CI
+  VNET -.-> CD
+  HC -.-> CI
+  AR -.-> CD
 ```
 
 > [!NOTE]
-> **How to read this:** start at **1** and follow the arrows through **6**. **4** is **CI only** (`helmfile diff`, no mutations). **5** is the **merge gate**. **6** is **CD only** (`helmfile apply`, mutates cluster). The Divyam row is **context** (upstream git, open charts, restricted registry). The **secret manager** is client-owned; the **runner** must use **your VPC/VNet** (or equivalent) so **kube-apiserver** and **registry** paths work.
+> Start from **1)** and move left-to-right/downstream. CI and CD are intentionally single blocks with one-line step summaries. The client GitHub repo is explicitly shown as a **mirror of the external open upstream repo**.
 
 This document defines a tool-agnostic CI/CD model for client SRE teams maintaining a mirrored copy of the `divyam-deployment` repository.
 
