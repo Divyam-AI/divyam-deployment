@@ -21,12 +21,21 @@ flowchart TB
 
     subgraph CIStage["CI stage (on pull_request)"]
       direction TB
-      CI["Checkout PR ref -> load secrets -> cloud auth + get-credentials -> kubectl sanity -> helmfile diff"]
+      CI["- Checkout PR ref
+- Load secrets
+- Cloud auth + get-credentials
+- kubectl sanity check
+- helmfile diff"]
     end
 
     subgraph CDStage["CD stage (on merge to main)"]
       direction TB
-      CD["Checkout main -> load secrets -> cloud auth + get-credentials -> kubectl sanity -> helmfile apply (optional selector input)"]
+      CD["- Checkout main
+- Load secrets
+- Cloud auth + get-credentials
+- kubectl sanity check
+- helmfile apply
+- Optional selector input for targeted release"]
     end
   end
 
