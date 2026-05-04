@@ -284,7 +284,7 @@ ARTIFACTS_VERSION=26.04.01-rc1 helmfile -f helmfile.yaml.gotmpl sync
 
 Pipeline design and implementation details for client SRE teams are documented in:
 
-- `docs/cicd-overview.md`
+- **[Divyam Kubernetes CI/CD overview](docs/cicd-overview.md)**
 
 This includes:
 
@@ -292,10 +292,10 @@ This includes:
 - PR-gated CI (`helmfile diff`)
 - post-merge CD (`helmfile apply`)
 - pipeline secret manager mapping (including **`ARM_*`** for Azure)
-- common Docker image and script scaffolds under `pipeline/` (`Dockerfile`, `scripts/lib.sh`, `scripts/ci_validate.sh`, `scripts/cd_deploy.sh`)
+- common Docker image and script scaffolds under [`pipeline/`](pipeline/) (`Dockerfile`, `scripts/lib.sh`, `scripts/ci_validate.sh`, `scripts/cd_deploy.sh`)
 
 > [!WARNING]
-> Pipeline jobs must run with network access to **your cluster** and to Divyam’s **auth-restricted artifact registry** wherever charts pull images or OCI artifacts. See the VPC/VNet section in `docs/cicd-overview.md`.
+> Pipeline jobs must run with network access to **your cluster** and to Divyam’s **auth-restricted artifact registry** wherever charts pull images or OCI artifacts. See the VPC/VNet section in **[Divyam Kubernetes CI/CD overview](docs/cicd-overview.md)**.
 
 ---
 
