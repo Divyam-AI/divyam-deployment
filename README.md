@@ -11,7 +11,7 @@ The setup has two phases:
 2. **Application** ([`k8s/`](k8s/README.md)) — A Helmfile that deploys the full Divyam service mesh onto the provisioned cluster
 
 > [!TIP]
-> Client SRE mirror + PR-gated `helmfile diff` and post-merge `helmfile apply` are described in **[k8s/docs/cicd-overview.md](k8s/docs/cicd-overview.md)**.
+> Client SRE fork + PR-gated `helmfile diff` and post-merge `helmfile apply` are described in **[k8s/docs/cicd-overview.md](k8s/docs/cicd-overview.md)**.
 
 ## Supported Clouds
 
