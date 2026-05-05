@@ -1,207 +1,153 @@
-# Divyam Kubernetes CI/CD Overview (Client SRE Mirror Model)
+# Divyam Kubernetes CI/CD Overview (Client SRE Fork Model)
+
+This document is organized by workflows:
+
+- **Process 1** is a **one-time** pipeline setup activity (or occasional platform reconfiguration).
+- **Process 2** is a **repeated** activity for ongoing live deployment updates.
+
+> [!NOTE]
+> The client GitHub repository is a fork of Divyam's open upstream repo (`divyam-deployment`).
+
+## Process 1: Set Up The Pipelines (One-Time)
 
 ```mermaid
 flowchart TB
-  subgraph Divyam["Divyam (vendor)"]
-    direction TB
-    UP["Open upstream repo: divyam-deployment"]
-    HC["Open Helm charts repo"]
-    AR["Auth-restricted artifact registry"]
-  end
+  U["Divyam open upstream repo: divyam-deployment"]
+  M["Client GitHub repo (fork of upstream open repo)"]
+  S["Client secret manager (ARM* / GCP credentials)"]
+  N["Client VPC/VNet: CI/CD runner can reach Kubernetes API"]
+  C["CI workflow configured: trigger on pull_request; run helmfile diff"]
+  D["CD workflow configured: trigger on merge to main; run helmfile apply"]
+  R["Divyam auth-restricted artifact registry access validated"]
 
-  subgraph Client["Client environment"]
-    direction TB
-    SM["Secret manager\n(ARM* / GCP credentials)"]
-    MIR["Client GitHub repo\n(mirror of upstream open repo)"]
-    S1["1) Manual handoff: send artifact versions + app config to SRE"]
-    S2["2) SRE updates mirror repo and syncs latest upstream main"]
-    S3["3) Open PR to main"]
-    S4["4) Merge PR after CI passes"]
-    VNET["CI/CD runner + Kubernetes cluster in same client VPC/VNet"]
-
-    subgraph CIStage["CI stage (on pull_request)"]
-      direction TB
-      CI["- Checkout PR ref
-- Load secrets
-- Cloud auth + get-credentials
-- kubectl sanity check
-- helmfile diff"]
-    end
-
-    subgraph CDStage["CD stage (on merge to main)"]
-      direction TB
-      CD["- Checkout main
-- Load secrets
-- Cloud auth + get-credentials
-- kubectl sanity check
-- helmfile apply
-- Optional selector input for targeted release"]
-    end
-  end
-
-  UP -->|mirror source| MIR
-  S1 --> S2 --> S3 --> CI --> S4 --> CD
-  MIR --> S2
-  SM -.-> CI
-  SM -.-> CD
-  VNET -.-> CI
-  VNET -.-> CD
-  HC -.-> CI
-  AR -.-> CD
+  U --> M --> C --> D
+  S --> C
+  S --> D
+  N --> C
+  N --> D
+  R --> D
 ```
 
-> [!NOTE]
-> Start from **1)** and move left-to-right/downstream. CI and CD are intentionally single blocks with one-line step summaries. The client GitHub repo is explicitly shown as a **mirror of the external open upstream repo**.
+### Manual Steps In Process 1
 
-This document defines a tool-agnostic CI/CD model for client SRE teams maintaining a mirrored copy of the `divyam-deployment` repository.
+1. Create and maintain a client-owned GitHub fork of Divyam's open upstream repository.
+2. Ensure the CI/CD runner runs in the same VPC/VNet (or has equivalent private connectivity) as the Kubernetes cluster.
+3. Validate runner connectivity to cluster API and to Divyam's auth-restricted artifact registry.
+4. Configure secret manager entries for cloud auth.
+5. Configure CI trigger on pull requests and block merge on CI failure.
+6. Configure CD trigger on merge to `main`.
+7. Test both workflows with a non-production change before production use.
 
-## 1. Operating Model
+Fork command example:
 
-- The client SRE team maintains an internal mirror of the `divyam-deployment` repo.
-- Application and config updates are provided manually to the SRE team (for example artifact versions and config changes).
-- SRE updates mirrored repository files, pulls latest upstream `divyam-deployment` changes, and raises a PR to `main`.
-- CI runs on PR and validates the proposed deployment using `helmfile diff` against the target cluster.
-- PR can be merged only after CI succeeds.
-- CD runs only after merge to `main` and executes deployment using `helmfile apply`.
+```bash
+git clone https://github.com/<your-org>/divyam-deployment.git
+cd divyam-deployment
+git remote add upstream https://github.com/Divyam-AI/divyam-deployment.git
+git fetch upstream
+```
 
-## 2. Network and Runtime Requirement
+### Pipeline and Secret Inputs For Process 1
 
-The CI and CD pipeline runners must be deployed in the same VPC/VNet (or have equivalent private network connectivity) as the Kubernetes cluster so API server access is available during validation and deployment.
+#### Secret manager values
 
-Without cluster connectivity:
-
-- CI cannot run a meaningful `helmfile diff` against live state.
-- CD cannot run `helmfile apply`.
-
-> [!WARNING]
-> If the runner cannot reach the cluster control plane or Divyam’s **auth-restricted artifact registry** over the paths your charts require, `helmfile diff` / `helmfile apply` will fail or be misleading. Align network paths (peering, Private Google Access, Azure Private Link, allowlisted egress, etc.) with your platform team before go-live.
-
-## 3. Branching and Trigger Policy
-
-- Target branch for deployment changes: `main`
-- CI trigger: pull request events only
-- CD trigger: merge/push to `main` only
-
-Recommended policy:
-
-- Protect `main` with mandatory CI status check.
-- Disallow direct pushes to `main`.
-
-## 4. Pipeline secret manager (required)
-
-Material that can **authenticate** or **decrypt access** to your cloud or cluster must **never** be committed to git. Use the **pipeline platform’s secret manager** (Jenkins credentials, GitLab masked variables, GitHub Actions secrets, Azure DevOps secret variables, HashiCorp Vault from the runner, etc.) for those values, or equivalent controls your InfoSec team approves.
-
-### 4.1 Which values must be “secret” vs identifiers?
-
-| Variable | Treat as | Guidance |
+| Variable | Classification | Guidance |
 | --- | --- | --- |
-| `ARM_CLIENT_SECRET` | **Secret (required)** | Password-equivalent for the service principal. **Must** live only in a secret manager (or vault) with least-privilege access from the CD job identity. |
-| `GCP_SA_KEY_JSON` | **Secret (required)** | Full private key JSON for the GCP service account. Same as above. |
-| `KUBECONFIG_CONTENT` | **Secret (if used)** | Contains credentials or tokens. Only store if you use a pre-baked kubeconfig flow. |
-| `ARM_CLIENT_ID` | Identifier (low sensitivity) | Public-ish application ID; still restrict who can read it. Often stored as a **plain pipeline variable** with RBAC, or alongside other `ARM_*` in one credential bundle for simplicity. |
-| `ARM_TENANT_ID` | Identifier (low sensitivity) | Tenant UUID is not a password; same storage options as `ARM_CLIENT_ID`. |
-| `ARM_SUBSCRIPTION_ID` | Identifier (low sensitivity) | Subscription GUID is commonly visible in Azure Portal and ARM URLs; still avoid broadcasting it. Plain variables are typical. |
+| `ARM_CLIENT_ID` | Identifier (low sensitivity) | Can be plain variable with RBAC, or bundled with secrets. |
+| `ARM_CLIENT_SECRET` | Secret (required) | Must be stored as a secret; never commit to git or print in logs. |
+| `ARM_TENANT_ID` | Identifier (low sensitivity) | Same handling as `ARM_CLIENT_ID`. |
+| `ARM_SUBSCRIPTION_ID` | Identifier (low sensitivity) | Same handling as `ARM_CLIENT_ID`. |
+| `GCP_SA_KEY_JSON` | Secret (required for GCP) | Service account key JSON, injected at runtime. |
 
 > [!NOTE]
-> **You are not required to put all four `ARM_*` values only inside a “secrets” product.** Minimum bar: **`ARM_CLIENT_SECRET` must never appear in logs, job config in clear text, or git.** Many teams still store `ARM_CLIENT_ID`, `ARM_TENANT_ID`, and `ARM_SUBSCRIPTION_ID` in the same secret object as the password for operational simplicity — that is fine if access is locked down.
+> Azure names are standardized in this repo as `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`, `ARM_SUBSCRIPTION_ID`, `ARM_TENANT_ID`.
 
-Azure variable **names** use **`ARM_*`** consistently with OpenTofu/Terraform and the rest of this repository. Map them from `az ad sp create-for-rbac` (or your enterprise credential process).
-
-### 4.2 Reference list (names your jobs should read)
-
-| Name | Used when |
-| --- | --- |
-| `GCP_SA_KEY_JSON` | GCP / GKE |
-| `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`, `ARM_SUBSCRIPTION_ID`, `ARM_TENANT_ID` | Azure / AKS |
-| `KUBECONFIG_CONTENT` | Optional alternative to cloud CLI `get-credentials` |
-
-### 4.3 Non-secret runtime parameters
-
-Suggested as plain pipeline variables or environment variables:
+#### Non-secret runtime variables
 
 - `CLUSTER_PROVIDER` (`gcp` or `azure`)
 - `HELMFILE_ENV` (example: `prod`, `preprod`)
 - `HELMFILE_VALUES_DIR` (path to values directory)
 - `HELMFILE_FILE` (default: `helmfile.yaml.gotmpl`)
 
-## 5. Tooling and Image
+#### Pipeline container and scripts
 
-A common image is used for both CI and CD:
+- Common image: `pipeline/Dockerfile` (Ubuntu `24.04`, pinned)
+- Shared script library: `pipeline/scripts/lib.sh`
+- CI entrypoint: `pipeline/scripts/ci_validate.sh`
+- CD entrypoint: `pipeline/scripts/cd_deploy.sh`
 
-- `pipeline/Dockerfile`
+## Process 2: Update A Live Divyam Installation (Repeated)
 
-It installs required tooling on a **pinned** Ubuntu base (`ubuntu:24.04`, not the `:latest` tag):
+```mermaid
+flowchart TB
+  H["Divyam shares new artifact versions + app config changes"]
+  E["Client SRE updates fork repo and syncs latest upstream main"]
+  P["Client SRE opens PR to main"]
+  V["2.1 Validate deployment changes (CI)"]
+  G["Merge PR only after CI is green"]
+  A["2.2 Deploy new release (CD)"]
 
-- `helm`
-- `helmfile`
-- `kubectl`
-- `helm diff` plugin
-- cloud CLIs (`gcloud`, `az`)
-- `jq`, `yq`, and core shell tooling
-
-> [!TIP]
-> Keep `helmfile` and `helm-diff` versions aligned with [k8s/README.md](../README.md) where explicit versions are documented; bump the Dockerfile `ARG`s when you change those baselines.
-
-Shared shell logic for CI and CD lives in:
-
-- `pipeline/scripts/lib.sh`
-
-Entrypoints:
-
-- `pipeline/scripts/ci_validate.sh`
-- `pipeline/scripts/cd_deploy.sh`
-
-## 6. CI Flow (PR Validation)
-
-Goal: validate pending changes against live cluster before merge.
-
-High-level flow:
-
-1. Validate required inputs and secrets.
-2. Authenticate to cloud and fetch cluster credentials.
-3. Confirm cluster access (`kubectl get ns`).
-4. Run **`helmfile diff` only**.
-5. Exit non-zero on diff command failure (pipeline failure blocks merge).
-
-## 7. CD Flow (Post-Merge Deployment)
-
-Goal: deploy merged `main` changes to target cluster.
-
-**Optional release selector (pipeline input):** Configure the CD job so operators can pass an **optional** Helmfile release name for a **targeted** deploy (same semantics as `helmfile -l name=<release> apply`). Typical patterns:
-
-- A **job parameter** / **workflow input** (e.g. “Release selector”, empty = full apply).
-- An environment variable such as `RELEASE_SELECTOR` that your wrapper passes through to `pipeline/scripts/cd_deploy.sh --selector <name>`.
-
-If the selector is **empty**, run a **full** `helmfile apply` for all releases. If it is **set**, run apply only for that release label.
-
-High-level flow:
-
-1. Validate required inputs and secrets.
-2. Authenticate to cloud and fetch cluster credentials.
-3. Confirm cluster access (`kubectl get ns`).
-4. Deploy with:
-   - **full rollout** (default): `helmfile apply`
-   - **targeted rollout** (when selector input is set): `helmfile -l name=<release> apply`
-
-## 8. Mirror Repo Update Sequence (Typical)
-
-1. Sync mirror repo with latest upstream `divyam-deployment/main`.
-2. Update artifact/version files and environment configuration files.
-3. Raise PR to `main`.
-4. CI runs `helmfile diff`.
-5. Merge PR after successful CI.
-6. CD triggers and runs `helmfile apply`.
-
-## 9. Reference Commands (Auth)
-
-GCP (service account key file on disk — path from secret materialization):
-
-```bash
-gcloud auth activate-service-account --key-file "$GOOGLE_APPLICATION_CREDENTIALS"
-gcloud container clusters get-credentials divyam-gke-prod-1-asia-south1 --region=asia-south1 --project divyam-production
+  H --> E --> P --> V --> G --> A
 ```
 
-Azure (service principal via **`ARM_*`** variables — inject from secret manager):
+### Manual Steps In Process 2
+
+1. Receive artifact version and configuration change instructions.
+2. Update corresponding files in the fork repo.
+3. Sync latest upstream `main` from Divyam's open repo into the fork.
+4. Raise a PR to `main` in client GitHub.
+5. Review CI results and fix issues if validation fails.
+6. Approve and merge PR only when CI is successful.
+7. Monitor CD deployment and verify expected release rollout.
+
+## Process 2.1: Validate Deployment Changes (CI)
+
+```mermaid
+flowchart TB
+  C1["CI trigger: pull_request"]
+  C2["Checkout PR ref"]
+  C3["Load secrets"]
+  C4["Cloud auth + get-credentials"]
+  C5["kubectl sanity check"]
+  C6["helmfile diff only"]
+  C7["Pass => merge allowed"]
+  C1 --> C2 --> C3 --> C4 --> C5 --> C6 --> C7
+```
+
+### Manual Steps In Process 2.1
+
+1. Ensure the PR contains only intended release/configuration changes.
+2. Confirm CI started for the PR and used the correct target environment inputs.
+3. Review `helmfile diff` output for expected changes.
+4. Reject/iterate on PR if diff includes unintended impact.
+5. Proceed to merge approval only after CI success.
+
+## Process 2.2: Deploy New Release (CD)
+
+```mermaid
+flowchart TB
+  D1["CD trigger: merge to main"]
+  D2["Checkout main"]
+  D3["Load secrets"]
+  D4["Cloud auth + get-credentials"]
+  D5["kubectl sanity check"]
+  D6["helmfile apply"]
+  D7["Optional selector input for targeted release"]
+  D1 --> D2 --> D3 --> D4 --> D5 --> D6 --> D7
+```
+
+### Manual Steps In Process 2.2
+
+1. Confirm merged PR is the intended release candidate.
+2. Trigger CD (if manual) or confirm auto-trigger after merge.
+3. Choose optional release selector only when a targeted rollout is required.
+4. Watch deployment logs and release status for failures.
+5. Validate post-deployment cluster/application health checks.
+6. Record deployment result in change management/release tracker.
+
+## Reference Auth Commands
+
+Azure:
 
 ```bash
 az login --service-principal \
@@ -213,4 +159,12 @@ az account set --subscription "$ARM_SUBSCRIPTION_ID"
 az aks get-credentials --resource-group <YourResourceGroup> --name <YourClusterName> --overwrite-existing
 ```
 
-Replace resource group, cluster name, region, and project with your environment’s values.
+GCP:
+
+```bash
+gcloud auth activate-service-account --key-file "$GOOGLE_APPLICATION_CREDENTIALS"
+gcloud container clusters get-credentials divyam-gke-prod-1-asia-south1 --region=asia-south1 --project divyam-production
+```
+
+> [!WARNING]
+> If the runner cannot reach the cluster control plane or Divyam’s auth-restricted artifact registry, `helmfile diff` and `helmfile apply` results will be invalid or fail.

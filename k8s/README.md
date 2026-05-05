@@ -3,7 +3,7 @@
 A single helmfile that deploys the entire Divyam platform stack with correct namespaces, dependency ordering, and cross-service DNS wiring.
 
 > [!NOTE]
-> For client SRE teams using a **mirrored repo** and **PR-gated CI / post-merge CD**, start with **[docs/cicd-overview.md](docs/cicd-overview.md)** (includes network, secret manager, and `pipeline/` scripts).
+> For client SRE teams using a **forked repo** and **PR-gated CI / post-merge CD**, start with **[docs/cicd-overview.md](docs/cicd-overview.md)** (includes network, secret manager, and `pipeline/` scripts).
 
 # Pre-requisites
 ## 0. IAC Deployment
@@ -288,7 +288,7 @@ Pipeline design and implementation details for client SRE teams are documented i
 
 This includes:
 
-- mirrored repo operating model
+- forked repo operating model
 - PR-gated CI (`helmfile diff`)
 - post-merge CD (`helmfile apply`)
 - pipeline secret manager mapping (including **`ARM_*`** for Azure)
