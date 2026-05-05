@@ -104,13 +104,13 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-  C1["CI trigger: pull_request"]
-  C2["Checkout PR ref"]
-  C3["Load secrets"]
-  C4["Cloud auth + get-credentials"]
-  C5["kubectl sanity check"]
-  C6["helmfile diff only"]
-  C7["Pass => merge allowed"]
+  C1["CI trigger\npull_request"]
+  C2["Checkout\nPR ref"]
+  C3["Load\nsecrets"]
+  C4["Cloud auth\nget-credentials"]
+  C5["kubectl\nsanity check"]
+  C6["helmfile\ndiff only"]
+  C7["CI pass\nmerge allowed"]
   C1 --> C2 --> C3 --> C4 --> C5 --> C6 --> C7
 ```
 
@@ -126,13 +126,13 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-  D1["CD trigger: merge to main"]
-  D2["Checkout main"]
-  D3["Load secrets"]
-  D4["Cloud auth + get-credentials"]
-  D5["kubectl sanity check"]
-  D6["helmfile apply"]
-  D7["Optional selector input for targeted release"]
+  D1["CD trigger\nmerge to main"]
+  D2["Checkout\nmain"]
+  D3["Load\nsecrets"]
+  D4["Cloud auth\nget-credentials"]
+  D5["kubectl\nsanity check"]
+  D6["helmfile\napply"]
+  D7["Optional\nrelease selector"]
   D1 --> D2 --> D3 --> D4 --> D5 --> D6 --> D7
 ```
 
