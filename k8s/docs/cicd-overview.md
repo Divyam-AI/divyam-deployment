@@ -8,7 +8,7 @@ This document is organized by workflows:
 > [!NOTE]
 > The client GitHub repository is a fork of Divyam's open upstream repo (`divyam-deployment`).
 
-## Process 1: Set Up The Pipelines (One-Time)
+## 1: Set Up The Pipelines (One-Time)
 
 ```mermaid
 flowchart TB
@@ -28,7 +28,7 @@ flowchart TB
   R --> D
 ```
 
-### Manual Steps In Process 1
+### Manual Steps
 
 1. Create and maintain a client-owned GitHub fork of Divyam's open upstream repository.
 2. Ensure the CI/CD runner runs in the same VPC/VNet (or has equivalent private connectivity) as the Kubernetes cluster.
@@ -47,7 +47,7 @@ git remote add upstream https://github.com/Divyam-AI/divyam-deployment.git
 git fetch upstream
 ```
 
-### Pipeline and Secret Inputs For Process 1
+### Pipeline and Secret Inputs
 
 #### Secret manager values
 
@@ -76,7 +76,7 @@ git fetch upstream
 - CI entrypoint: `pipeline/scripts/ci_validate.sh`
 - CD entrypoint: `pipeline/scripts/cd_deploy.sh`
 
-## Process 2: Update A Live Divyam Installation (Repeated)
+## 2: Update A Live Divyam Installation (Repeated)
 
 ```mermaid
 flowchart TB
@@ -90,7 +90,7 @@ flowchart TB
   H --> E --> P --> V --> G --> A
 ```
 
-### Manual Steps In Process 2
+### Manual Steps
 
 1. Receive artifact version and configuration change instructions.
 2. Update corresponding files in the fork repo.
@@ -100,7 +100,7 @@ flowchart TB
 6. Approve and merge PR only when CI is successful.
 7. Monitor CD deployment and verify expected release rollout.
 
-## Process 2.1: Validate Deployment Changes (CI)
+## 2.1: Validate Deployment Changes (CI)
 
 ```mermaid
 flowchart TB
@@ -114,7 +114,7 @@ flowchart TB
   C1 --> C2 --> C3 --> C4 --> C5 --> C6 --> C7
 ```
 
-### Manual Steps In Process 2.1
+### Manual Steps In
 
 1. Ensure the PR contains only intended release/configuration changes.
 2. Confirm CI started for the PR and used the correct target environment inputs.
@@ -122,7 +122,7 @@ flowchart TB
 4. Reject/iterate on PR if diff includes unintended impact.
 5. Proceed to merge approval only after CI success.
 
-## Process 2.2: Deploy New Release (CD)
+## 2.2: Deploy New Release (CD)
 
 ```mermaid
 flowchart TB
@@ -136,7 +136,7 @@ flowchart TB
   D1 --> D2 --> D3 --> D4 --> D5 --> D6 --> D7
 ```
 
-### Manual Steps In Process 2.2
+### Manual Steps
 
 1. Confirm merged PR is the intended release candidate.
 2. Trigger CD (if manual) or confirm auto-trigger after merge.
