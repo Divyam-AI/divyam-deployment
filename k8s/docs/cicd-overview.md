@@ -11,7 +11,7 @@ This document is organized by workflows:
 ## 1: Set Up The Pipelines (One-Time)
 
 ```mermaid
-flowchart TB
+flowchart LR
   U["Divyam open upstream repo: divyam-deployment"]
   M["Client GitHub repo (fork of upstream open repo)"]
   S["Client secret manager (ARM* / GCP credentials)"]
