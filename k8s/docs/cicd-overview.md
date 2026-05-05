@@ -13,12 +13,12 @@ This document is organized by workflows:
 ```mermaid
 flowchart LR
   U["Divyam open upstream repo \n divyam-deployment"]
-  M["Client GitHub repo \n (fork of upstream open repo)"]
+  M["Client GitHub repo \n (fork of open repo)"]
   S["Client secret manager \n (ARM* / GCP credentials)"]
-  N["Client VPC/VNet \n CI/CD runner can reach Kubernetes API"]
-  C["CI workflow configured \n trigger on pull_request; run helmfile diff"]
-  D["CD workflow configured \n trigger on merge to main; run helmfile apply"]
-  R["Divyam auth-restricted \n artifact registry access validated"]
+  N["Client VPC/VNet \n CI/CD runner can reach K8s API"]
+  C["CI workflow configured \n trigger on pull_request; \n run helmfile diff"]
+  D["CD workflow configured \n trigger on merge to main; \n run helmfile apply"]
+  R["Divyam auth-restricted \n artifact registry \n access validated"]
 
   U --> M --> C --> D
   S --> C
