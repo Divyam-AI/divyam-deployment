@@ -78,19 +78,7 @@ git fetch upstream
 
 ## 2: Update A Live Divyam Installation (Repeated)
 
-```mermaid
-flowchart TB
-  H["Divyam shares new artifact versions + app config changes"]
-  E["Client SRE updates fork repo and syncs latest upstream main"]
-  P["Client SRE opens PR to main"]
-  V["2.1 Validate deployment changes (CI)"]
-  G["Merge PR only after CI is green"]
-  A["2.2 Deploy new release (CD)"]
-
-  H --> E --> P --> V --> G --> A
-```
-
-### Manual Steps
+### Steps
 
 1. Receive artifact version and configuration change instructions.
 2. Update corresponding files in the fork repo.
