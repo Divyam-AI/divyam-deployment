@@ -32,6 +32,15 @@ This repository gives your team everything needed to setup up a complete Divyam 
 └── └── check_cloud_credentials.sh  #   Cloud login validator
 ```
 
+## OpenSpec Onboarding
+
+OpenSpec docs for deployment behavior contracts and onboarding live under `openspec/`.
+
+- Project overview and agent context: [`openspec/config.yaml`](openspec/config.yaml) (`context:`)
+- Capability/module specs: [`openspec/specs/`](openspec/specs/)
+- Cursor commands: [`.cursor/commands/opsx-*.md`](.cursor/commands/)
+- Claude commands: [`.claude/commands/opsx/*.md`](.claude/commands/opsx/)
+
 ## Getting Started
 
 ### Prerequisite
