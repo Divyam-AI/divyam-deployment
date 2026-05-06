@@ -1,0 +1,41 @@
+# iac-2-app-1-iam-bindings-gcp-gcp-iam-role-mapping-tf Module Specification
+
+## Purpose
+
+Define per-validation-case behavior contract for `iac/2-app/1-iam_bindings/gcp/gcp_iam_role_mapping.tf`.
+
+## Requirements
+
+### Requirement: IaC static validation command cases
+`iac/2-app/1-iam_bindings/gcp/gcp_iam_role_mapping.tf` SHALL keep Terraform/Terragrunt syntax and reference contracts valid for module directory `iac/2-app/1-iam_bindings/gcp`.
+
+### Requirement: Coverage-gap closure command cases
+No direct automated case currently asserts `iac/2-app/1-iam_bindings/gcp/gcp_iam_role_mapping.tf` behavior; these concrete cases SHALL be added.
+
+#### Scenario: proposed_tf_fmt_check_iac_2_app_1_iam_bindings_gcp_gcp_iam_role_mapping_tf
+- **WHEN** CI executes proposed case `proposed_tf_fmt_check_iac_2_app_1_iam_bindings_gcp_gcp_iam_role_mapping_tf`
+- **THEN** command `terraform fmt -check iac/2-app/1-iam_bindings/gcp` validates `iac/2-app/1-iam_bindings/gcp/gcp_iam_role_mapping.tf` directly.
+
+#### Scenario: proposed_tf_validate_iac_2_app_1_iam_bindings_gcp_gcp_iam_role_mapping_tf
+- **WHEN** CI executes proposed case `proposed_tf_validate_iac_2_app_1_iam_bindings_gcp_gcp_iam_role_mapping_tf`
+- **THEN** command `terraform -chdir=iac/2-app/1-iam_bindings/gcp init -backend=false && terraform -chdir=iac/2-app/1-iam_bindings/gcp validate` validates `iac/2-app/1-iam_bindings/gcp/gcp_iam_role_mapping.tf` directly.
+
+## Verification Mapping
+
+
+
+
+- verification_status: coverage_gap
+  evidence_type: test_file
+  evidence_ref: File path: `iac/2-app/1-iam_bindings/gcp/gcp_iam_role_mapping.tf`
+  gap_action: Add a concrete validation command that verifies this file contract in CI.
+
+- verification_status: coverage_gap
+  evidence_type: command_case
+  evidence_ref: Scenario `proposed_tf_fmt_check_iac_2_app_1_iam_bindings_gcp_gcp_iam_role_mapping_tf` command: `terraform fmt -check iac/2-app/1-iam_bindings/gcp`
+  gap_action: Implement this command case in an executable workflow and capture pass/fail evidence.
+
+- verification_status: coverage_gap
+  evidence_type: command_case
+  evidence_ref: Scenario `proposed_tf_validate_iac_2_app_1_iam_bindings_gcp_gcp_iam_role_mapping_tf` command: `terraform -chdir=iac/2-app/1-iam_bindings/gcp init -backend=false && terraform -chdir=iac/2-app/1-iam_bindings/gcp validate`
+  gap_action: Implement this command case in an executable workflow and capture pass/fail evidence.

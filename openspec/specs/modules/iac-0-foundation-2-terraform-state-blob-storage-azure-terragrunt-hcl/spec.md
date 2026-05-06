@@ -1,0 +1,41 @@
+# iac-0-foundation-2-terraform-state-blob-storage-azure-terragrunt-hcl Module Specification
+
+## Purpose
+
+Define per-validation-case behavior contract for `iac/0-foundation/2-terraform_state_blob_storage/azure/terragrunt.hcl`.
+
+## Requirements
+
+### Requirement: IaC static validation command cases
+`iac/0-foundation/2-terraform_state_blob_storage/azure/terragrunt.hcl` SHALL keep Terraform/Terragrunt syntax and reference contracts valid for module directory `iac/0-foundation/2-terraform_state_blob_storage/azure`.
+
+### Requirement: Coverage-gap closure command cases
+No direct automated case currently asserts `iac/0-foundation/2-terraform_state_blob_storage/azure/terragrunt.hcl` behavior; these concrete cases SHALL be added.
+
+#### Scenario: proposed_tg_hclfmt_iac_0_foundation_2_terraform_state_blob_storage_azure_terragrunt_hcl
+- **WHEN** CI executes proposed case `proposed_tg_hclfmt_iac_0_foundation_2_terraform_state_blob_storage_azure_terragrunt_hcl`
+- **THEN** command `terragrunt hclfmt --terragrunt-working-dir iac/0-foundation/2-terraform_state_blob_storage/azure` validates `iac/0-foundation/2-terraform_state_blob_storage/azure/terragrunt.hcl` directly.
+
+#### Scenario: proposed_tg_validate_iac_0_foundation_2_terraform_state_blob_storage_azure_terragrunt_hcl
+- **WHEN** CI executes proposed case `proposed_tg_validate_iac_0_foundation_2_terraform_state_blob_storage_azure_terragrunt_hcl`
+- **THEN** command `terragrunt validate --terragrunt-working-dir iac/0-foundation/2-terraform_state_blob_storage/azure` validates `iac/0-foundation/2-terraform_state_blob_storage/azure/terragrunt.hcl` directly.
+
+## Verification Mapping
+
+
+
+
+- verification_status: coverage_gap
+  evidence_type: test_file
+  evidence_ref: File path: `iac/0-foundation/2-terraform_state_blob_storage/azure/terragrunt.hcl`
+  gap_action: Add a concrete validation command that verifies this file contract in CI.
+
+- verification_status: coverage_gap
+  evidence_type: command_case
+  evidence_ref: Scenario `proposed_tg_hclfmt_iac_0_foundation_2_terraform_state_blob_storage_azure_terragrunt_hcl` command: `terragrunt hclfmt --terragrunt-working-dir iac/0-foundation/2-terraform_state_blob_storage/azure`
+  gap_action: Implement this command case in an executable workflow and capture pass/fail evidence.
+
+- verification_status: coverage_gap
+  evidence_type: command_case
+  evidence_ref: Scenario `proposed_tg_validate_iac_0_foundation_2_terraform_state_blob_storage_azure_terragrunt_hcl` command: `terragrunt validate --terragrunt-working-dir iac/0-foundation/2-terraform_state_blob_storage/azure`
+  gap_action: Implement this command case in an executable workflow and capture pass/fail evidence.
