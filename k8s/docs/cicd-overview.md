@@ -12,15 +12,38 @@ This document is organized by workflows:
 
 ```mermaid
 flowchart LR
-  U["Divyam open upstream repo \n divyam-deployment"]
-  M["Client GitHub repo \n (fork of open repo)"]
-  S["Client secret manager \n (ARM* / GCP credentials)"]
-  N["Client VPC/VNet \n CI/CD runner can reach K8s API"]
-  C["CI workflow configured \n trigger on pull_request; \n run helmfile diff"]
-  D["CD workflow configured \n trigger on merge to main; \n run helmfile apply"]
-  R["Divyam auth-restricted \n artifact registry \n access validated"]
+  subgraph DIVYAM["Divyam side"]
+    direction TB
+    U["Open upstream repo\nDivyam-AI/divyam-deployment"]
+    R["Auth-restricted\nartifact registry"]
+  end
 
-  U --> M --> C --> D
+  subgraph CLIENT["Client side"]
+    direction TB
+    subgraph GIT["Source control"]
+      direction TB
+      M["Client GitHub fork"]
+    end
+
+    subgraph SEC["Security and access"]
+      direction TB
+      S["Secret manager\nARM* / GCP credentials"]
+    end
+
+    subgraph RUNTIME["Runtime network"]
+      direction TB
+      N["Client VPC/VNet\nrunner reaches cluster API"]
+    end
+
+    subgraph PIPE["Pipeline configuration"]
+      direction TB
+      C["CI pipeline\npull_request -> helmfile diff"]
+      D["CD pipeline\nmerge to main -> helmfile apply"]
+    end
+  end
+
+  U --> M
+  M --> C --> D
   S --> C
   S --> D
   N --> C
