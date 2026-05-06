@@ -37,8 +37,9 @@ This repository gives your team everything needed to setup up a complete Divyam 
 OpenSpec docs for deployment behavior contracts and onboarding live under `openspec/`.
 
 - Project overview: [`openspec/project.md`](openspec/project.md)
-- Contributor guide: [`openspec/AGENTS.md`](openspec/AGENTS.md)
-- Capability specs: [`openspec/specs/deployment-capabilities.md`](openspec/specs/deployment-capabilities.md)
+- Capability/module specs: [`openspec/specs/`](openspec/specs/)
+- Cursor commands: [`.cursor/commands/opsx-*.md`](.cursor/commands/)
+- Claude commands: [`.claude/commands/opsx/*.md`](.claude/commands/opsx/)
 
 ## Getting Started
 
