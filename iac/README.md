@@ -1,5 +1,9 @@
 # IAC deployment
+
 Tools and scripts to deploy and manage Divyam installation.
+
+> [!NOTE]
+> Azure automation and OpenTofu typically expect **`ARM_CLIENT_ID`**, **`ARM_CLIENT_SECRET`**, **`ARM_SUBSCRIPTION_ID`**, and **`ARM_TENANT_ID`** in the environment. Use the same names in CI/CD secret managers — see **[../k8s/docs/cicd-overview.md](../k8s/docs/cicd-overview.md)**.
 
 # Tools for running the infrastructure provisioning
 - OpenTofu (v1.11.5)
@@ -43,6 +47,10 @@ tenv --version
 # Setup Cloud credentials
 After installing the cloud CLI, follow the steps below to setup the credentials for the cloud provider.
 ## For Azure
+
+> [!TIP]
+> After you create a service principal, export **`ARM_CLIENT_ID`**, **`ARM_CLIENT_SECRET`**, **`ARM_SUBSCRIPTION_ID`**, and **`ARM_TENANT_ID`** — do not use alternate names for these four variables in docs or automation in this repo.
+
 * Install Azure CLI and run: az login and select the subscription you want to use
 ```bash
 az login
@@ -107,7 +115,8 @@ export ZONE=centralindia-1
 export VALUES_FILE=values/custom-defaults.hcl
 ```
 
-Note: Make sure all required environment variables are substituted in values file or are exported.
+> [!NOTE]
+> Make sure all required environment variables are substituted in the values file or are exported.
 
 ## 2. Creating Foundation: 
 Proceed with this step, if we need to create any one of the following:
@@ -132,7 +141,8 @@ terragrunt run apply --all --filter "./**/${CLOUD_PROVIDER}"
 cd ..
 ```
 
-Note that the terraform state is saved locally for the foundation and hence if it is created once, don't run it.
+> [!WARNING]
+> Terraform state is saved **locally** for the foundation layer; if it is created once, do not re-run apply blindly — coordinate with your team on state location.
 
 ## 3. Creating Platform Components: 
 Proceed with this step, if we need to create any one of the following:
@@ -160,8 +170,8 @@ Export the below environment variables for the secrets to be created one time fo
 | `TF_VAR_divyam_artifactory_docker_auth` | Set this to the **path** of the credential file the Divyam team gives you, So Kubernetes authenticate to Divyam’s private container registry and pull application images |
 | `TF_VAR_datadog_api_key` | Datadog API key used only when `datadog.enabled = true` in the values file. |
 
-Make sure `CLOUD_PROVIDER`, `VALUES_FILE`, and the environment variables in the table are exported before `plan`/`apply`.    
-Review the plan output before applying.
+> [!NOTE]
+> Export `CLOUD_PROVIDER`, `VALUES_FILE`, and the environment variables in the table below before `plan`/`apply`. Review the plan output before applying.
 
 ```
 cd 2-app

@@ -2,11 +2,16 @@
 
 A single helmfile that deploys the entire Divyam platform stack with correct namespaces, dependency ordering, and cross-service DNS wiring.
 
+> [!NOTE]
+> For client SRE teams using a **forked repo** and **PR-gated CI / post-merge CD**, start with **[docs/cicd-overview.md](docs/cicd-overview.md)** (includes network, secret manager, and `pipeline/` scripts).
+
 # Pre-requisites
 ## 0. IAC Deployment
-- The K8s cluster needs to be setup using the IAC modules and the bastion host to be present
+
+> [!NOTE]
+> The K8s cluster needs to be setup using the IAC modules and the bastion host to be present.
 - The following guide to be run from the bastion/jumphost VM
-- Verify the IAC deployment. The final stage creates a providers.yaml file in the k8s/helm-values directory. Review the file for the correct values of thee environment, cloud provider and storage configuration.
+- Verify the IAC deployment. The final stage creates a providers.yaml file in the k8s/helm-values directory. Review the file for the correct values of the environment, cloud provider and storage configuration.
 
 ## 1. Tools for running the K8s deployment
 - Helm
@@ -104,6 +109,9 @@ k9s version
 ---
 ## 2. Authentication to the Kubernetes Cluster
 
+> [!TIP]
+> For **Azure** non-interactive login (CI/CD, service principals), use **`ARM_CLIENT_ID`**, **`ARM_CLIENT_SECRET`**, **`ARM_SUBSCRIPTION_ID`**, and **`ARM_TENANT_ID`** — the same names as in [iac/README.md](../iac/README.md) and [docs/cicd-overview.md](docs/cicd-overview.md).
+
 ### For Azure
 
 #### Install Azure CLI
@@ -179,6 +187,9 @@ your_values/
 All commands below assume you're in the directory containing your values files (or have `HELMFILE_VALUES_DIR` set). Replace `<env>` with your environment name (e.g. `dev`, `preprod`) and `<helmfile>` with the path to `helmfile.yaml.gotmpl`.
 
 ### First-Time Install
+
+> [!WARNING]
+> Use `sync` only for the **initial** deployment. It installs **all** releases regardless of whether anything has changed, which can cause unnecessary restarts if used routinely in production.
 
 Use `sync` for the initial deployment. This installs **all** releases regardless of whether anything has changed:
 
@@ -269,36 +280,22 @@ ARTIFACTS_VERSION=26.04.01-rc1 helmfile -f helmfile.yaml.gotmpl sync
 
 ---
 
-## 5. CD Pipeline Setup
-Set up a CD pipeline (GitHub Actions, GitLab CI, ArgoCD, etc.) to deploy or upgrade the Divyam platform stack on demand.
+## 5. CI/CD Docs Index
 
-Use the following Docker image in your pipeline step.
+Pipeline design and implementation details for client SRE teams are documented in:
 
-```
-ghcr.io/divyam/divyam-deployer:latest
-```
+- **[Divyam Kubernetes CI/CD overview](docs/cicd-overview.md)**
 
-This image ships with `helmfile`, `helm`, and all required plugins pre-installed.
+This includes:
 
-### Pipeline Step
+- forked repo operating model
+- PR-gated CI (`helmfile diff`)
+- post-merge CD (`helmfile apply`)
+- pipeline secret manager mapping (including **`ARM_*`** for Azure)
+- common Docker image and script scaffolds under [`pipeline/`](pipeline/) (`Dockerfile`, `scripts/lib.sh`, `scripts/ci_validate.sh`, `scripts/cd_deploy.sh`)
 
-```bash
-# 1. Clone your internal repo (contains provider.yaml and resources.yaml)
-git clone <your-internal-repo-url>
-cd divyam-deployment
-
-# 2. Pull latest release artifacts from the public repo
-git remote add upstream https://github.com/divyam/divyam-deployment.git 2>/dev/null || true
-git fetch upstream
-git merge upstream/main --no-edit
-
-# 3. Deploy
-cd k8s
-helmfile -f helmfile.yaml.gotmpl apply
-```
-
-> It is recommended to use `helmfile apply` in CD pipelines, as it only upgrades releases where a diff is detected, resulting in incremental and efficient updates.
-> In contrast, `helmfile sync` performs a hard upgrade of all releases, regardless of whether there are any changes, which can lead to unnecessary restarts or rollouts.
+> [!WARNING]
+> Pipeline jobs must run with network access to **your cluster** and to Divyam’s **auth-restricted artifact registry** wherever charts pull images or OCI artifacts. See the VPC/VNet section in **[Divyam Kubernetes CI/CD overview](docs/cicd-overview.md)**.
 
 ---
 
