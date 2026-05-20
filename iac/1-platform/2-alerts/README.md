@@ -7,6 +7,9 @@ Cloud-agnostic alerts, driven by `values/defaults.hcl` (`alerts`, `datadog`).
 > URLs. Do not commit webhook URLs to git — set `NOTIFICATION_WEBHOOK_URLS` from
 > your secret manager or CI.
 
+> [!NOTE]
+> Notification endpoints are supplied via environment variables referenced from `defaults.hcl` — see **Config** below. Do not commit webhook URLs or tokens to git; use your secret manager or CI-injected variables.
+
 ## Layout
 
 ```
