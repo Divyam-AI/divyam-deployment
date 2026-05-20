@@ -1,4 +1,5 @@
-# GCP notification channels. Config from values/defaults.hcl alerts.notification_channels. Run before 2-alerts/gcp/alerts.
+# GCP notification channels. Config from values/defaults.hcl alerts.webhook_urls.
+# Run before 2-alerts/gcp/alerts.
 
 include "root" {
   path   = find_in_parent_folders("root.hcl")
@@ -6,8 +7,8 @@ include "root" {
 }
 
 dependency "k8s" {
-  config_path = "../../../1-k8s/gcp"
-  skip_outputs = true
+  config_path                             = "../../../1-k8s/gcp"
+  skip_outputs                            = true
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
 }
 
@@ -16,26 +17,19 @@ terraform {
 }
 
 locals {
-  root = include.root.locals.merged
-  nc   = try(local.root.alerts.notification_channels, {})
+  root            = include.root.locals.merged
+  alerts_cfg      = try(local.root.alerts, {})
   datadog_enabled = try(local.root.datadog.enabled, false)
 }
 
 inputs = {
-  project_id        = local.root.resource_scope.name
-  region            = local.root.region
-  environment       = local.root.env_name
-  pager_enabled     = try(local.nc.pager_enabled, false)
-  pager_webhook_url = try(local.nc.pager_webhook_url, "")
-  gchat_enabled     = try(local.nc.gchat_enabled, false)
-  gchat_space_id    = try(local.nc.gchat_space_id, "")
-  email_enabled     = try(local.nc.email_enabled, false)
-  email_alert_email = try(local.nc.email_alert_email, "")
-  slack_enabled     = try(local.nc.slack_enabled, false)
-  slack_webhook_url = try(local.nc.slack_webhook_url, "")
+  project_id   = local.root.resource_scope.name
+  region       = local.root.region
+  environment  = local.root.env_name
+  webhook_urls = try(local.alerts_cfg.webhook_urls, [])
 }
 
 exclude {
-  if      = !try(local.root.alerts.enabled, false) || local.datadog_enabled
+  if      = !try(local.alerts_cfg.enabled, false) || local.datadog_enabled
   actions = ["apply", "plan", "destroy", "refresh", "import"]
 }

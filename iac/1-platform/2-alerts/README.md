@@ -1,30 +1,100 @@
 # 2-alerts
 
-Alerts and notification channels for Azure and GCP, driven by `values/defaults.hcl` (`alerts` and `alerts.notification_channels`).
+Cloud-agnostic alerts, driven by `values/defaults.hcl` (`alerts`, `datadog`).
 
 > [!NOTE]
-> Notification endpoints are supplied via environment variables referenced from `defaults.hcl` — see **Config** below. Do not commit webhook URLs or tokens to git; use your secret manager or CI-injected variables.
+> Notification endpoints are supplied via a list of pager / Zenduty-style webhook
+> URLs. Do not commit webhook URLs to git — set `NOTIFICATION_WEBHOOK_URLS` from
+> your secret manager or CI.
 
 ## Layout
 
-- **common/** – Shared alert rule definitions only (no cloud-specific code).
-  - **alerts/** – Azure Prometheus format (JSON). Used by Azure.
-  - **rules/** – GCP format (JSON with `{{project_id}}` / `{{cluster_id}}`). Used by GCP.
+```
+2-alerts/
+├── common/
+│   └── rules/                  Neutral alert schema (single source of truth)
+│       ├── README.md           Schema doc
+│       └── k8s.json            Default Kubernetes alerts
+├── azure/                      Azure Monitor action group + Prometheus rule groups
+├── gcp/
+│   ├── alerts/                 google_monitoring_alert_policy (Prometheus query language)
+│   └── notification_channels/  One webhook_tokenauth channel per URL (apply first)
+└── datadog/                    datadog_monitor per rule + datadog_webhook per URL
+                                (when datadog.enabled = true)
+```
 
-- **azure/** – Azure Monitor action group + Prometheus rule groups. Reads rules from `common/alerts/`. Tags follow the same pattern as 1-k8s (common_tags, tag_globals, tag_context).
+The same `common/rules/*.json` files are read by all three destination modules.
+Each module translates the neutral schema into its native form. See
+`common/rules/README.md` for the schema, duration handling, severity mapping, and
+the optional `datadog` block (Datadog needs its own query DSL — PromQL is not portable).
 
-- **gcp/** – All GCP-specific alert code lives here.
-  - **notification_channels/** – Terraform for GCP notification channels (email, webhook, Google Chat). Apply first.
-  - **alerts/** – Terragrunt that runs the GCP alerts module (repo `gcp/alerts`), depends on notification_channels, loads rules from `common/rules/`.
+## Selection logic
+
+| `alerts.enabled` | `datadog.enabled` | Azure / GCP alerts | Datadog alerts |
+|------------------|-------------------|--------------------|----------------|
+| false            | *                 | skipped            | skipped        |
+| true             | false             | applied            | skipped        |
+| true             | true              | skipped            | applied        |
+
+The cloud-native (Azure / GCP) and Datadog paths are mutually exclusive.
+
+Only `CRITICAL` rules notify the configured webhook URLs. `WARNING` / `INFO`
+rules still fire but are recorded silently (no external notification).
 
 ## Config (values/defaults.hcl)
 
-- `alerts.create`, `alerts.enabled`, `alerts.exclude_list`
-- `alerts.notification_channels`: `pager_enabled`, `pager_webhook_url`, `gchat_enabled`, `gchat_space_id`, `email_enabled`, `email_alert_email`, `slack_enabled`, `slack_webhook_url`
-- Notification URLs/IDs are read from env in defaults.hcl: `NOTIFICATION_PAGER_WEBHOOK_URL`, `NOTIFICATION_GCHAT_SPACE_ID`, `NOTIFICATION_EMAIL_ALERT_EMAIL`, `NOTIFICATION_SLACK_WEBHOOK_URL`
+```hcl
+alerts = {
+  create       = false
+  enabled      = true
+  exclude_list = []  # alert names (rules[].alert) to skip across all destinations
+
+  # The only notification config: one list of pager / Zenduty-style webhook URLs.
+  # Set the env var as a comma-separated list:
+  #   export NOTIFICATION_WEBHOOK_URLS='https://www.zenduty.com/api/...,https://hooks.opsgenie.com/...'
+  webhook_urls = compact(split(",", get_env("NOTIFICATION_WEBHOOK_URLS", "")))
+}
+
+datadog = {
+  enabled = true
+  site    = "ap1.datadoghq.com"
+  env     = "prod"
+  # ... other datadog fields
+}
+```
+
+### Per-destination behavior
+
+- **Azure**: each URL becomes a `webhook_receiver` (with the common alert schema
+  payload) on the single action group `<deployment_prefix>-alerts-action-group`.
+- **GCP**: each URL becomes a `google_monitoring_notification_channel` of type
+  `webhook_tokenauth` named `<env> webhook-<idx>`. All channels are attached to
+  every CRITICAL alert policy.
+- **Datadog**: each URL is registered as a `datadog_webhook` integration named
+  `<deployment_prefix>-pager-<idx>`. Every CRITICAL `datadog_monitor` message has
+  the corresponding `@webhook-<deployment_prefix>-pager-<idx>` handles appended.
+
+Datadog additionally expects these env vars before running terragrunt:
+
+- `TF_VAR_datadog_api_key`
+- `TF_VAR_datadog_app_key`
 
 ## Run
 
-- **Azure:** From repo root, `CLOUD_PROVIDER=azure terragrunt run-all plan --terragrunt-working-dir 2-alerts/azure`
-- **GCP:** Apply notification_channels then alerts:  
-  `CLOUD_PROVIDER=gcp terragrunt run-all plan --terragrunt-working-dir 2-alerts/gcp`
+```bash
+# Azure (datadog.enabled = false):
+CLOUD_PROVIDER=azure terragrunt run-all plan --terragrunt-working-dir 2-alerts/azure
+
+# GCP (notification_channels first, then alerts; both gated by datadog.enabled = false):
+CLOUD_PROVIDER=gcp terragrunt run-all plan --terragrunt-working-dir 2-alerts/gcp
+
+# Datadog (datadog.enabled = true, alerts.enabled = true):
+terragrunt plan --terragrunt-working-dir 2-alerts/datadog
+```
+
+## Adding a new alert
+
+1. Edit (or add) a group file under `common/rules/<group>.json`.
+2. Append a new entry to `rules[]` following the schema in `common/rules/README.md`.
+3. Provide the `datadog.query` if Datadog should monitor it.
+4. Re-plan against the active destination.

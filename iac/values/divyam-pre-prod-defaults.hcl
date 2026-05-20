@@ -237,20 +237,12 @@ locals {
   }
 
   alerts = {
-    create         = true
-    enabled        = true
-    exclude_list   = []
+    create       = true
+    enabled      = true
+    exclude_list = []
 
-    notification_channels = {
-      pager_enabled      = true
-      pager_webhook_url  = get_env("NOTIFICATION_PAGER_WEBHOOK_URL", "")
-      gchat_enabled      = true
-      gchat_space_id     = get_env("NOTIFICATION_GCHAT_SPACE_ID", "")
-      email_enabled      = true
-      email_alert_email  = get_env("NOTIFICATION_EMAIL_ALERT_EMAIL", "")
-      slack_enabled      = true
-      slack_webhook_url  = get_env("NOTIFICATION_SLACK_WEBHOOK_URL", "")
-    }
+    # Pager / Zenduty-style webhook URLs. Every CRITICAL alert fires to every URL.
+    webhook_urls = compact(split(",", get_env("NOTIFICATION_WEBHOOK_URLS", "")))
   }
 
 #################### Application ##########################

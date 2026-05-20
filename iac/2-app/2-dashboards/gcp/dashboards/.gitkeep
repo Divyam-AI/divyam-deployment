@@ -1,0 +1,4 @@
+# Place GCP Cloud Monitoring dashboard JSON files in this folder.
+# Each file is uploaded as-is via google_monitoring_dashboard.dashboard_json.
+# Export from any GCM dashboard via "..." menu -> "Edit dashboard JSON" -> copy.
+# Reference: https://cloud.google.com/monitoring/dashboards/api-dashboard

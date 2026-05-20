@@ -1,0 +1,68 @@
+# Alert rules (neutral format)
+
+One JSON file per logical group. Each file is rendered into Azure / GCP / Datadog
+by the respective `2-alerts/<destination>/` module.
+
+## Schema
+
+```jsonc
+{
+  "name": "kubernetes",                    // group name (used as resource name)
+  "description": "...",                    // optional
+  "interval": "1m",                        // evaluation interval (Go-duration shorthand: s|m|h)
+  "rules": [
+    {
+      "alert": "deployment-replica-mismatch",  // unique within group; lowercase + hyphens
+      "expr": "PromQL expression",             // used by Azure + GCP managed Prometheus
+      "for": "2m",                             // pending duration before firing
+      "severity": "CRITICAL",                  // CRITICAL | WARNING | INFO
+      "auto_resolve": "30m",                   // optional; null = no auto-close
+      "enabled": true,                         // optional; default true
+      "labels": {
+        "rule_group": "Kubernetes",            // free-form, attached to the alert
+        "alert_rule": "AlwaysOn"
+      },
+      "annotations": {
+        "summary": "...",                      // short title
+        "description": "..."                   // long description
+      },
+
+      "datadog": {                             // optional. required only when datadog.enabled.
+        "query": "Datadog monitor query DSL",  // native Datadog query (PromQL is NOT portable)
+        "message": "...",                      // optional override; defaults to annotations.description
+        "type": "metric alert"                 // optional; default "metric alert"
+      }
+    }
+  ]
+}
+```
+
+## Duration format
+
+Plain Go-duration shorthand only: `30s`, `2m`, `1h`. Modules convert:
+
+- Azure → ISO-8601 (`PT30S`, `PT2M`, `PT1H`)
+- GCP → seconds string (`30s`, `120s`, `3600s`)
+- Datadog → window seconds for `last_<N>` aggregator
+
+## Severity mapping
+
+| Neutral    | Azure (label) | GCP enum  | Datadog priority | Webhooks notified? |
+|------------|---------------|-----------|------------------|---------------------|
+| `CRITICAL` | `CRITICAL`    | `CRITICAL`| 1                | yes                 |
+| `WARNING`  | `WARNING`     | `WARNING` | 3                | no                  |
+| `INFO`     | `INFO`        | `INFO`    | 5                | no                  |
+
+Only `CRITICAL` rules notify the configured `alerts.webhook_urls`. Lower-severity
+rules still fire (rule group / alert policy / monitor are created) but no
+external notification is dispatched.
+
+## Datadog block
+
+Datadog monitors don't speak PromQL natively, so each rule must provide a
+`datadog.query` if it should produce a Datadog monitor. Rules without a
+`datadog` block are silently skipped on Datadog (logged at plan time).
+
+The Datadog metric names typically come from the Datadog Kubernetes integration
+(prefix `kubernetes_state.*` or `kubernetes.io.*`), not from the upstream
+kube-state-metrics names used by Azure/GCP managed Prometheus.

@@ -13,50 +13,8 @@ variable "region" {
   type        = string
 }
 
-variable "pager_enabled" {
-  description = "Create notification channel for pager"
-  type        = bool
-  default     = false
-}
-
-variable "pager_webhook_url" {
-  description = "Webhook URL for receiving alerts"
-  type        = string
-  default     = null
-}
-
-variable "gchat_enabled" {
-  description = "Create notification channel for Google Chat"
-  type        = bool
-  default     = false
-}
-
-variable "gchat_space_id" {
-  description = "Google Chat space ID for receiving alerts"
-  type        = string
-  default     = null
-}
-
-variable "email_enabled" {
-  description = "Create notification channel for email"
-  type        = bool
-  default     = false
-}
-
-variable "email_alert_email" {
-  description = "Email address for receiving alerts"
-  type        = string
-  default     = null
-}
-
-variable "slack_enabled" {
-  description = "Create notification channel for Slack (Incoming Webhook)"
-  type        = bool
-  default     = false
-}
-
-variable "slack_webhook_url" {
-  description = "Slack Incoming Webhook URL for receiving alerts"
-  type        = string
-  default     = null
+variable "webhook_urls" {
+  description = "List of pager / Zenduty-style webhook URLs. One notification channel is created per URL."
+  type        = list(string)
+  default     = []
 }

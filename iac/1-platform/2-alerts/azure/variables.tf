@@ -23,33 +23,15 @@ variable "azure_monitor_workspace_id" {
   type        = string
 }
 
-variable "alerts_folder" {
-  description = "Path to folder containing alert JSON files (Azure Prometheus format)"
+variable "rules_folder" {
+  description = "Path to folder containing neutral alert rule group JSON files (see 2-alerts/common/rules/README.md)"
   type        = string
 }
 
-variable "notification_pager_webhook_url" {
-  description = "PagerDuty/Zenduty webhook endpoint"
-  type        = string
-  default     = null
-}
-
-variable "notification_gchat_space_id" {
-  description = "Google Chat Space ID for webhook"
-  type        = string
-  default     = null
-}
-
-variable "notification_email_alert_email" {
-  description = "Email address for alerts"
-  type        = string
-  default     = null
-}
-
-variable "notification_slack_webhook_url" {
-  description = "Slack Incoming Webhook URL for alerts"
-  type        = string
-  default     = null
+variable "webhook_urls" {
+  description = "List of pager / Zenduty-style webhook URLs to notify on CRITICAL alerts."
+  type        = list(string)
+  default     = []
 }
 
 variable "resource_name_prefix" {
