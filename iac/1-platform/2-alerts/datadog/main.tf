@@ -3,14 +3,8 @@
 #
 # Schema: see 2-alerts/common/rules/README.md.
 #
-# Datadog monitors do not speak PromQL natively; each rule must include a `datadog.query`
-# in the Datadog monitor query DSL. Rules without a `datadog` block are skipped here.
-#
-# Webhooks: every URL in var.webhook_urls is registered as a Datadog webhook
-# integration and referenced as @webhook-<name> on CRITICAL alert messages.
-#
-# Provider requirements are declared in zz_providers_override.tf (override file) to
-# coexist with the terraform {} block that root.hcl generates in provider.tf.
+# Query placeholders: {{cluster_name}} is replaced with var.cluster_name at apply time.
+# Thresholds live in rules[].datadog.thresholds (warning / critical / recovery) — not in the query string.
 
 provider "datadog" {
   api_key = var.datadog_api_key
@@ -25,7 +19,6 @@ locals {
     trimsuffix(basename(f), ".json") => jsondecode(file("${var.rules_folder}/${f}"))
   }
 
-  # Flatten + keep only rules that have a non-empty datadog.query.
   rules = flatten([
     for gname, g in local.groups : [
       for r in g.rules : merge(r, {
@@ -37,20 +30,17 @@ locals {
     ]
   ])
 
-  # Severity -> Datadog priority (1 = highest, 5 = lowest).
   severity_to_priority = {
     CRITICAL = 1
     WARNING  = 3
     INFO     = 5
   }
 
-  # Webhook integrations to register. Map keeps stable resource keys.
   webhook_integrations = {
     for idx, url in var.webhook_urls : "${var.webhook_name_prefix}-${idx}" => url
     if url != null && url != ""
   }
 
-  # Zenduty-style default webhook body (Datadog template variables — see integrations/webhooks docs).
   default_webhook_payload = {
     alert_id         = "$ALERT_ID"
     hostname         = "$HOSTNAME"
@@ -65,16 +55,24 @@ locals {
 
   webhook_payload = var.webhook_custom_payload != null ? var.webhook_custom_payload : local.default_webhook_payload
 
-  # All @-handles for CRITICAL monitors: one per registered webhook integration.
-  webhook_handles         = [for name, _ in local.webhook_integrations : "@webhook-${name}"]
-  critical_handles_suffix = length(local.webhook_handles) > 0 ? "\n\n${join(" ", local.webhook_handles)}" : ""
+  webhook_handles = [for name, _ in local.webhook_integrations : "@webhook-${name}"]
+  handles_suffix    = length(local.webhook_handles) > 0 ? "\n\n${join(" ", local.webhook_handles)}" : ""
 
   monitors = {
     for r in local.rules : r.alert => merge(r, {
       _priority = lookup(local.severity_to_priority, r.severity, 3)
-      _suffix   = r.severity == "CRITICAL" ? local.critical_handles_suffix : ""
-      _message  = "${try(r.datadog.message, r.annotations.description)}${r.severity == "CRITICAL" ? local.critical_handles_suffix : ""}"
       _type     = try(r.datadog.type, "metric alert")
+      _query = replace(
+        r.datadog.query,
+        "{{cluster_name}}",
+        var.cluster_name
+      )
+      _thresholds = lookup(r.datadog, "thresholds", {})
+      # Page on CRITICAL always; WARNING when datadog.notify = true (e.g. pvc-usage-high).
+      _notify = r.severity == "CRITICAL" || try(r.datadog.notify, false)
+      _message = "${try(r.datadog.message, r.annotations.description)}${(
+        (r.severity == "CRITICAL" || try(r.datadog.notify, false)) && length(local.webhook_handles) > 0
+      ) ? local.handles_suffix : ""}"
     })
   }
 }
@@ -93,7 +91,7 @@ resource "datadog_monitor" "alerts" {
 
   name     = each.value.alert
   type     = each.value._type
-  query    = each.value.datadog.query
+  query    = each.value._query
   message  = each.value._message
   priority = each.value._priority
 
@@ -108,10 +106,25 @@ resource "datadog_monitor" "alerts" {
     [for k, v in lookup(each.value, "labels", {}) : "${k}:${v}"]
   )
 
-  include_tags        = true
-  notify_no_data      = false
-  require_full_window = false
-  renotify_interval   = each.value.severity == "CRITICAL" ? 30 : 0
+  include_tags = true
+
+  notify_no_data    = var.notify_no_data
+  no_data_timeframe = var.notify_no_data ? var.no_data_timeframe : null
+
+  require_full_window = true
+
+  renotify_interval = each.value._notify ? var.renotify_interval : 0
+  renotify_statuses = each.value._notify ? var.renotify_statuses : null
+
+  dynamic "monitor_thresholds" {
+    for_each = length(each.value._thresholds) > 0 ? [each.value._thresholds] : []
+    content {
+      critical          = try(monitor_thresholds.value.critical, null)
+      warning           = try(monitor_thresholds.value.warning, null)
+      critical_recovery = try(monitor_thresholds.value.critical_recovery, null)
+      warning_recovery  = try(monitor_thresholds.value.warning_recovery, null)
+    }
+  }
 
   depends_on = [datadog_webhook.pager]
 }

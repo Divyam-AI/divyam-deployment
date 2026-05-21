@@ -28,9 +28,16 @@ by the respective `2-alerts/<destination>/` module.
       },
 
       "datadog": {                             // optional. required only when datadog.enabled.
-        "query": "Datadog monitor query DSL",  // native Datadog query (PromQL is NOT portable)
-        "message": "...",                      // optional override; defaults to annotations.description
-        "type": "metric alert"                 // optional; default "metric alert"
+        "query": "min(last_15m):metric{kube_cluster_name:{{cluster_name}}} ...",  // use {{cluster_name}}; no comparison in query
+        "thresholds": {                        // required for Datadog; warning/critical/recovery
+          "critical": "0.8",
+          "warning": "0.9",
+          "critical_recovery": "0.85",
+          "warning_recovery": "0.95"
+        },
+        "notify": true,                        // optional; true pages WARNING rules (e.g. pvc-usage-high)
+        "message": "...",
+        "type": "metric alert"
       }
     }
   ]

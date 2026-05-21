@@ -25,7 +25,7 @@ inputs = {
   rules_folder = "${get_repo_root()}/iac/1-platform/2-alerts/common/rules"
   exclude_list = try(local.alerts_cfg.exclude_list, [])
 
-  env          = try(local.datadog_cfg.env, local.root.env_name)
+  env = coalesce(try(local.datadog_cfg.monitor_env, null), local.root.env_name)
   cluster_name = try(local.root.k8s.name, "${local.root.deployment_prefix}-k8s-cluster")
 
   datadog_site    = try(local.datadog_cfg.site, "datadoghq.com")

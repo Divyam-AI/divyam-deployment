@@ -16,7 +16,7 @@ variable "exclude_list" {
 }
 
 variable "env" {
-  description = "Environment tag injected into Datadog monitor tags."
+  description = "Environment tag on Datadog monitors (e.g. prod). Should match deployment env_name, not the Datadog Agent env tag."
   type        = string
 }
 
@@ -68,4 +68,28 @@ variable "webhook_custom_payload" {
   EOT
   type        = any
   default     = null
+}
+
+variable "notify_no_data" {
+  description = "When true, notify when monitor stops receiving data."
+  type        = bool
+  default     = false
+}
+
+variable "no_data_timeframe" {
+  description = "Minutes without data before no-data notification (only when notify_no_data = true)."
+  type        = number
+  default     = 10
+}
+
+variable "renotify_interval" {
+  description = "Minutes between re-notifications while alert stays triggered (monitors that page webhooks)."
+  type        = number
+  default     = 60
+}
+
+variable "renotify_statuses" {
+  description = "Alert states that trigger re-notification."
+  type        = list(string)
+  default     = ["alert", "warn"]
 }

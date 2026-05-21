@@ -18,7 +18,13 @@
         "description": "Less than 80% of replicas are available"
       },
       "datadog": {
-        "query": "avg(last_5m):avg:kubernetes_state.deployment.replicas_available{*} by {kube_cluster_name,kube_namespace,kube_deployment} / avg:kubernetes_state.deployment.replicas_desired{*} by {kube_cluster_name,kube_namespace,kube_deployment} < 0.8",
+        "query": "min(last_15m):avg:kubernetes_state.deployment.replicas_available{kube_cluster_name:{{cluster_name}}} by {kube_namespace,kube_deployment} / avg:kubernetes_state.deployment.replicas_desired{kube_cluster_name:{{cluster_name}}} by {kube_namespace,kube_deployment}",
+        "thresholds": {
+          "critical": "0.8",
+          "warning": "0.9",
+          "critical_recovery": "0.85",
+          "warning_recovery": "0.95"
+        },
         "message": "Deployment {{kube_deployment.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} has less than 80% replicas available."
       }
     },
@@ -37,7 +43,11 @@
         "description": "One or more pods are in CrashLoopBackOff state"
       },
       "datadog": {
-        "query": "avg(last_5m):sum:kubernetes_state.container.status_report.count.waiting{reason:crashloopbackoff} by {kube_cluster_name,kube_namespace,pod_name} > 0",
+        "query": "max(last_15m):sum:kubernetes_state.container.status_report.count.waiting{reason:crashloopbackoff,kube_cluster_name:{{cluster_name}}} by {kube_namespace,pod_name}",
+        "thresholds": {
+          "critical": "0",
+          "critical_recovery": "0"
+        },
         "message": "Pod {{pod_name.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} is in CrashLoopBackOff."
       }
     },
@@ -56,7 +66,11 @@
         "description": "One or more pods are in Failed phase"
       },
       "datadog": {
-        "query": "avg(last_5m):sum:kubernetes_state.pod.status_phase{phase:failed} by {kube_cluster_name,kube_namespace,pod_name} > 0",
+        "query": "max(last_15m):sum:kubernetes_state.pod.status_phase{phase:failed,kube_cluster_name:{{cluster_name}}} by {kube_namespace,pod_name}",
+        "thresholds": {
+          "critical": "0",
+          "critical_recovery": "0"
+        },
         "message": "Pod {{pod_name.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} is in Failed phase."
       }
     },
@@ -75,7 +89,11 @@
         "description": "One or more PVCs are not in Bound state"
       },
       "datadog": {
-        "query": "avg(last_5m):sum:kubernetes_state.persistentvolumeclaim.status{phase:pending OR phase:lost} by {kube_cluster_name,kube_namespace,persistentvolumeclaim} > 0",
+        "query": "max(last_15m):sum:kubernetes_state.persistentvolumeclaim.status{phase:pending OR phase:lost,kube_cluster_name:{{cluster_name}}} by {kube_namespace,persistentvolumeclaim}",
+        "thresholds": {
+          "critical": "0",
+          "critical_recovery": "0"
+        },
         "message": "PVC {{persistentvolumeclaim.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} is not Bound."
       }
     },
@@ -91,11 +109,18 @@
       },
       "annotations": {
         "summary": "PVC Usage High",
-        "description": "PVC usage has exceeded 60%"
+        "description": "PVC usage has exceeded warning (60%) or critical (80%) thresholds"
       },
       "datadog": {
-        "query": "avg(last_5m):(avg:kubernetes.io.persistentvolumeclaim.used_bytes{*} by {kube_cluster_name,kube_namespace,persistentvolumeclaim} / avg:kubernetes.io.persistentvolumeclaim.capacity_bytes{*} by {kube_cluster_name,kube_namespace,persistentvolumeclaim}) * 100 > 60",
-        "message": "PVC {{persistentvolumeclaim.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} exceeded 60% usage."
+        "query": "min(last_15m):(avg:kubernetes.io.persistentvolumeclaim.used_bytes{kube_cluster_name:{{cluster_name}}} by {kube_namespace,persistentvolumeclaim} / avg:kubernetes.io.persistentvolumeclaim.capacity_bytes{kube_cluster_name:{{cluster_name}}} by {kube_namespace,persistentvolumeclaim}) * 100",
+        "thresholds": {
+          "warning": "60",
+          "critical": "80",
+          "warning_recovery": "55",
+          "critical_recovery": "75"
+        },
+        "notify": true,
+        "message": "PVC {{persistentvolumeclaim.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} exceeded usage thresholds (warn 60%, critical 80%)."
       }
     },
     {
@@ -113,7 +138,13 @@
         "description": "Less than 80% of StatefulSet replicas are ready"
       },
       "datadog": {
-        "query": "avg(last_5m):avg:kubernetes_state.statefulset.replicas_ready{*} by {kube_cluster_name,kube_namespace,kube_statefulset} / avg:kubernetes_state.statefulset.replicas_desired{*} by {kube_cluster_name,kube_namespace,kube_statefulset} < 0.8",
+        "query": "min(last_15m):avg:kubernetes_state.statefulset.replicas_ready{kube_cluster_name:{{cluster_name}}} by {kube_namespace,kube_statefulset} / avg:kubernetes_state.statefulset.replicas_desired{kube_cluster_name:{{cluster_name}}} by {kube_namespace,kube_statefulset}",
+        "thresholds": {
+          "critical": "0.8",
+          "warning": "0.9",
+          "critical_recovery": "0.85",
+          "warning_recovery": "0.95"
+        },
         "message": "StatefulSet {{kube_statefulset.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} has less than 80% replicas ready."
       }
     }

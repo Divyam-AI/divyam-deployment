@@ -259,7 +259,8 @@ locals {
     enabled  = true
     site = "ap1.datadoghq.com"
     registry = "asia.gcr.io/datadoghq"
-    env      = "dev"
+    env      = "dev"  # Datadog Agent env tag only (2-app/0-datadog). Monitors use env_name via monitor_env.
+    # monitor_env = null  # optional override for monitor env: tag; default = env_name (e.g. prod)
     exclude_namespaces = [
       "default",
       "kube-system",
