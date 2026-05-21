@@ -1,16 +1,9 @@
-# Standalone Datadog alerts entry (optional). Prefer the cloud-filtered units instead:
-#   - Azure: 2-alerts/azure/datadog/terragrunt.hcl
-#   - GCP:   2-alerts/gcp/alerts/datadog/terragrunt.hcl
-# Set TG_STANDALONE_DATADOG_ALERTS=1 to plan/apply this path directly (avoids duplicate
-# monitors if you also run 2-alerts/azure or gcp/alerts with datadog.enabled).
+# Datadog monitors (Azure pipeline). Matched by terragrunt --filter "**/azure".
+# Skipped when datadog.enabled = false.
 
 include "root" {
   path   = find_in_parent_folders("root.hcl")
   expose = true
-}
-
-terraform {
-  source = "${get_repo_root()}/iac/1-platform/2-alerts/datadog"
 }
 
 locals {
@@ -19,12 +12,16 @@ locals {
   datadog_cfg     = try(local.root.datadog, {})
   datadog_enabled = try(local.datadog_cfg.enabled, false)
   alerts_run      = try(local.alerts_cfg.create, true) && try(local.alerts_cfg.enabled, false)
-  # Default excluded so run-all uses 2-alerts/<cloud>/ instead of this duplicate path.
-  standalone_mode = get_env("TG_STANDALONE_DATADOG_ALERTS", "0") == "1"
+
+  webhook_urls = [for u in try(local.alerts_cfg.webhook_urls, []) : u if u != null && u != ""]
+}
+
+terraform {
+  source = "${get_repo_root()}/iac/1-platform/2-alerts/datadog"
 }
 
 inputs = {
-  enabled      = try(local.alerts_cfg.enabled, false) && local.datadog_enabled
+  enabled      = true
   rules_folder = "${get_repo_root()}/iac/1-platform/2-alerts/common/rules"
   exclude_list = try(local.alerts_cfg.exclude_list, [])
 
@@ -35,7 +32,7 @@ inputs = {
   datadog_api_key = get_env("TF_VAR_datadog_api_key", "")
   datadog_app_key = get_env("TF_VAR_datadog_app_key", "")
 
-  webhook_urls        = try(local.alerts_cfg.webhook_urls, [])
+  webhook_urls        = local.webhook_urls
   webhook_name_prefix = "${local.root.deployment_prefix}-pager"
 
   webhook_custom_payload_enabled = try(local.alerts_cfg.webhook_custom_payload_enabled, true)
@@ -43,6 +40,6 @@ inputs = {
 }
 
 exclude {
-  if      = !local.standalone_mode || !local.alerts_run || !local.datadog_enabled
+  if      = !local.alerts_run || !local.datadog_enabled
   actions = ["apply", "plan", "destroy", "refresh", "import", "init"]
 }

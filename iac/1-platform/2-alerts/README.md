@@ -37,10 +37,19 @@ the optional `datadog` block (Datadog needs its own query DSL — PromQL is not 
 |------------------|-------------------|----------------------------------------|
 | false            | *                 | skipped                                |
 | true             | false             | Azure / GCP Prometheus alerts          |
-| true             | true              | Same unit path; **sources Datadog module** |
+| true             | true              | `2-alerts/azure/datadog` or `gcp/alerts/datadog` runs |
 
-Use `terragrunt run-all --filter "**/azure"` (or `gcp`) — not `2-alerts/datadog` unless
-`TG_STANDALONE_DATADOG_ALERTS=1`.
+Use `terragrunt run-all --filter "**/azure"` (or `gcp`). Each cloud has two terragrunt
+children under the alerts path — only one runs at a time:
+
+```
+2-alerts/azure/datadog/      # Datadog module (when datadog.enabled)
+2-alerts/azure/prometheus/   # Azure Prom rules (when datadog.enabled = false)
+2-alerts/gcp/alerts/datadog/
+2-alerts/gcp/alerts/prometheus/
+```
+
+Standalone `2-alerts/datadog/` only with `TG_STANDALONE_DATADOG_ALERTS=1`.
 
 Only `CRITICAL` rules notify the configured webhook URLs. `WARNING` / `INFO`
 rules still fire but are recorded silently (no external notification).
@@ -143,8 +152,8 @@ TG_STANDALONE_DATADOG_ALERTS=1 terragrunt plan --terragrunt-working-dir 2-alerts
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | No `2-alerts/azure` in queue | `alerts.enabled` or `alerts.create` is false in your values file | Set both true in `VALUES_FILE` |
-| `2-alerts/azure` skipped | Old config excluded the unit when `datadog.enabled=true` | Pull latest; azure now runs Datadog module |
-| `2-alerts/datadog` never appears with `--filter "**/azure"` | Expected — Datadog lives under `2-alerts/azure`, not `2-alerts/datadog` | Use `2-alerts/azure` in the filter path |
+| Plan asks for Azure `location` but Datadog downloaded | Stale `.terragrunt-cache` from switching module source in one unit | `rm -rf 2-alerts/azure/.terragrunt-cache` then re-run |
+| `2-alerts/datadog` never in `--filter "**/azure"` | Expected | Active unit is `2-alerts/azure/datadog` |
 
 ## Adding a new alert
 
