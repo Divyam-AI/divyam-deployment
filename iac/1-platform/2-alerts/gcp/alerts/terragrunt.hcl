@@ -19,6 +19,34 @@ locals {
 
   datadog_module = "${get_repo_root()}/iac/1-platform/2-alerts/datadog"
   gcp_module     = "${get_repo_root()}/iac/1-platform/2-alerts/gcp/alerts"
+  rules_folder   = "${get_repo_root()}/iac/1-platform/2-alerts/common/rules"
+
+  datadog_inputs = {
+    enabled      = true
+    rules_folder = local.rules_folder
+    exclude_list = try(local.alerts_cfg.exclude_list, [])
+
+    env          = try(local.datadog_cfg.env, local.root.env_name)
+    cluster_name = try(local.root.k8s.name, "${local.root.deployment_prefix}-k8s-cluster")
+
+    datadog_site    = try(local.datadog_cfg.site, "datadoghq.com")
+    datadog_api_key = get_env("TF_VAR_datadog_api_key", "")
+    datadog_app_key = get_env("TF_VAR_datadog_app_key", "")
+
+    webhook_urls        = local.webhook_urls
+    webhook_name_prefix = "${local.root.deployment_prefix}-pager"
+
+    webhook_custom_payload_enabled = try(local.alerts_cfg.webhook_custom_payload_enabled, true)
+    webhook_custom_payload         = try(local.alerts_cfg.webhook_custom_payload, null)
+  }
+
+  gcp_inputs_static = {
+    enabled      = local.alerts_run
+    project_id   = local.root.resource_scope.name
+    region       = local.root.region
+    rules_folder = local.rules_folder
+    exclude_list = try(local.alerts_cfg.exclude_list, [])
+  }
 }
 
 terraform {
@@ -42,32 +70,12 @@ dependency "k8s" {
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
 }
 
-inputs = local.use_datadog ? {
-  enabled      = true
-  rules_folder = "${get_repo_root()}/iac/1-platform/2-alerts/common/rules"
-  exclude_list = try(local.alerts_cfg.exclude_list, [])
-
-  env          = try(local.datadog_cfg.env, local.root.env_name)
-  cluster_name = try(local.root.k8s.name, "${local.root.deployment_prefix}-k8s-cluster")
-
-  datadog_site    = try(local.datadog_cfg.site, "datadoghq.com")
-  datadog_api_key = get_env("TF_VAR_datadog_api_key", "")
-  datadog_app_key = get_env("TF_VAR_datadog_app_key", "")
-
-  webhook_urls        = local.webhook_urls
-  webhook_name_prefix = "${local.root.deployment_prefix}-pager"
-
-  webhook_custom_payload_enabled = try(local.alerts_cfg.webhook_custom_payload_enabled, true)
-  webhook_custom_payload         = try(local.alerts_cfg.webhook_custom_payload, null)
-  } : {
-  enabled      = local.alerts_run
-  project_id   = local.root.resource_scope.name
-  region       = local.root.region
-  rules_folder = "${get_repo_root()}/iac/1-platform/2-alerts/common/rules"
-  exclude_list = try(local.alerts_cfg.exclude_list, [])
-
-  notification_channels = dependency.notification_channels.outputs.notification_channel_ids
-}
+inputs = jsondecode(local.use_datadog ? jsonencode(local.datadog_inputs) : jsonencode(merge(
+  local.gcp_inputs_static,
+  {
+    notification_channels = dependency.notification_channels.outputs.notification_channel_ids
+  }
+)))
 
 exclude {
   if      = !local.alerts_run

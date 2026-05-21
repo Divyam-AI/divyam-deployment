@@ -21,6 +21,42 @@ locals {
 
   datadog_module = "${get_repo_root()}/iac/1-platform/2-alerts/datadog"
   azure_module   = "${get_repo_root()}/iac/1-platform/2-alerts/azure"
+  rules_folder   = "${get_repo_root()}/iac/1-platform/2-alerts/common/rules"
+
+  datadog_inputs = {
+    enabled      = true
+    rules_folder = local.rules_folder
+    exclude_list = try(local.alerts_cfg.exclude_list, [])
+
+    env          = try(local.datadog_cfg.env, local.root.env_name)
+    cluster_name = try(local.root.k8s.name, "${local.root.deployment_prefix}-k8s-cluster")
+
+    datadog_site    = try(local.datadog_cfg.site, "datadoghq.com")
+    datadog_api_key = get_env("TF_VAR_datadog_api_key", "")
+    datadog_app_key = get_env("TF_VAR_datadog_app_key", "")
+
+    webhook_urls        = local.webhook_urls
+    webhook_name_prefix = "${local.root.deployment_prefix}-pager"
+
+    webhook_custom_payload_enabled = try(local.alerts_cfg.webhook_custom_payload_enabled, true)
+    webhook_custom_payload         = try(local.alerts_cfg.webhook_custom_payload, null)
+  }
+
+  # dependency.* cannot be referenced inside locals; workspace IDs merged in inputs below.
+  azure_inputs_static = {
+    location            = local.root.region
+    resource_group_name = local.root.resource_scope.name
+    environment         = local.root.env_name
+    common_tags         = try(include.root.inputs.common_tags, {})
+    tag_globals         = try(include.root.inputs.tag_globals, {})
+    tag_context = {
+      resource_name = "${local.root.deployment_prefix}-alerts"
+    }
+
+    resource_name_prefix = local.root.deployment_prefix
+    rules_folder         = local.rules_folder
+    webhook_urls         = local.webhook_urls
+  }
 }
 
 terraform {
@@ -37,40 +73,14 @@ dependency "k8s" {
   }
 }
 
-inputs = local.use_datadog ? {
-  enabled      = true
-  rules_folder = "${get_repo_root()}/iac/1-platform/2-alerts/common/rules"
-  exclude_list = try(local.alerts_cfg.exclude_list, [])
-
-  env          = try(local.datadog_cfg.env, local.root.env_name)
-  cluster_name = try(local.root.k8s.name, "${local.root.deployment_prefix}-k8s-cluster")
-
-  datadog_site    = try(local.datadog_cfg.site, "datadoghq.com")
-  datadog_api_key = get_env("TF_VAR_datadog_api_key", "")
-  datadog_app_key = get_env("TF_VAR_datadog_app_key", "")
-
-  webhook_urls        = local.webhook_urls
-  webhook_name_prefix = "${local.root.deployment_prefix}-pager"
-
-  webhook_custom_payload_enabled = try(local.alerts_cfg.webhook_custom_payload_enabled, true)
-  webhook_custom_payload         = try(local.alerts_cfg.webhook_custom_payload, null)
-  } : {
-  location            = local.root.region
-  resource_group_name = local.root.resource_scope.name
-  environment         = local.root.env_name
-  common_tags         = try(include.root.inputs.common_tags, {})
-  tag_globals         = try(include.root.inputs.tag_globals, {})
-  tag_context = {
-    resource_name = "${local.root.deployment_prefix}-alerts"
+# jsonencode/jsondecode: Datadog and Azure inputs have different shapes (HCL ternary requires uniform types).
+inputs = jsondecode(local.use_datadog ? jsonencode(local.datadog_inputs) : jsonencode(merge(
+  local.azure_inputs_static,
+  {
+    azure_monitor_workspace_name = dependency.k8s.outputs.monitor_workspace_name
+    azure_monitor_workspace_id   = dependency.k8s.outputs.monitor_workspace_id
   }
-
-  azure_monitor_workspace_name = dependency.k8s.outputs.monitor_workspace_name
-  azure_monitor_workspace_id   = dependency.k8s.outputs.monitor_workspace_id
-  resource_name_prefix         = local.root.deployment_prefix
-  rules_folder                 = "${get_repo_root()}/iac/1-platform/2-alerts/common/rules"
-
-  webhook_urls = local.webhook_urls
-}
+)))
 
 exclude {
   if      = !local.alerts_run
