@@ -33,13 +33,14 @@ the optional `datadog` block (Datadog needs its own query DSL — PromQL is not 
 
 ## Selection logic
 
-| `alerts.enabled` | `datadog.enabled` | Azure / GCP alerts | Datadog alerts |
-|------------------|-------------------|--------------------|----------------|
-| false            | *                 | skipped            | skipped        |
-| true             | false             | applied            | skipped        |
-| true             | true              | skipped            | applied        |
+| `alerts.enabled` | `datadog.enabled` | `2-alerts/azure` or `gcp/alerts` unit |
+|------------------|-------------------|----------------------------------------|
+| false            | *                 | skipped                                |
+| true             | false             | Azure / GCP Prometheus alerts          |
+| true             | true              | Same unit path; **sources Datadog module** |
 
-The cloud-native (Azure / GCP) and Datadog paths are mutually exclusive.
+Use `terragrunt run-all --filter "**/azure"` (or `gcp`) — not `2-alerts/datadog` unless
+`TG_STANDALONE_DATADOG_ALERTS=1`.
 
 Only `CRITICAL` rules notify the configured webhook URLs. `WARNING` / `INFO`
 rules still fire but are recorded silently (no external notification).
@@ -115,16 +116,35 @@ Datadog additionally expects these env vars before running terragrunt:
 
 ## Run
 
+When `datadog.enabled = true`, **use the cloud path** — it sources the Datadog Terraform
+module automatically (so `terragrunt run-all --filter "**/azure"` includes alerts):
+
 ```bash
-# Azure (datadog.enabled = false):
-CLOUD_PROVIDER=azure terragrunt run-all plan --terragrunt-working-dir 2-alerts/azure
+export VALUES_FILE=values/divyam-pre-prod-defaults.hcl   # must have alerts.enabled = true
+export TF_VAR_datadog_api_key=...
+export TF_VAR_datadog_app_key=...
 
-# GCP (notification_channels first, then alerts; both gated by datadog.enabled = false):
-CLOUD_PROVIDER=gcp terragrunt run-all plan --terragrunt-working-dir 2-alerts/gcp
+# Azure (Prometheus rules when datadog.enabled=false; Datadog monitors when true):
+cd iac/1-platform
+CLOUD_PROVIDER=azure terragrunt run-all plan --filter "./**/azure"
 
-# Datadog (datadog.enabled = true, alerts.enabled = true):
-terragrunt plan --terragrunt-working-dir 2-alerts/datadog
+# GCP (notification_channels + alerts; alerts unit switches to Datadog when enabled):
+CLOUD_PROVIDER=gcp terragrunt run-all plan --filter "./**/gcp"
 ```
+
+Standalone Datadog path (only if you are not using `2-alerts/azure` or `gcp/alerts`):
+
+```bash
+TG_STANDALONE_DATADOG_ALERTS=1 terragrunt plan --terragrunt-working-dir 2-alerts/datadog
+```
+
+### Troubleshooting: Datadog unit not in run-all queue
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| No `2-alerts/azure` in queue | `alerts.enabled` or `alerts.create` is false in your values file | Set both true in `VALUES_FILE` |
+| `2-alerts/azure` skipped | Old config excluded the unit when `datadog.enabled=true` | Pull latest; azure now runs Datadog module |
+| `2-alerts/datadog` never appears with `--filter "**/azure"` | Expected — Datadog lives under `2-alerts/azure`, not `2-alerts/datadog` | Use `2-alerts/azure` in the filter path |
 
 ## Adding a new alert
 

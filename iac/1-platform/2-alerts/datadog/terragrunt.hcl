@@ -1,6 +1,8 @@
-# Datadog alerts. Config from values/defaults.hcl (alerts + datadog). Rules from
-# 2-alerts/common/rules (neutral schema). Runs only when alerts.enabled = true AND
-# datadog.enabled = true.
+# Standalone Datadog alerts entry (optional). Prefer the cloud-filtered units instead:
+#   - Azure: 2-alerts/azure/terragrunt.hcl  (sources this module when datadog.enabled)
+#   - GCP:   2-alerts/gcp/alerts/terragrunt.hcl
+# Set TG_STANDALONE_DATADOG_ALERTS=1 to plan/apply this path directly (avoids duplicate
+# monitors if you also run 2-alerts/azure or gcp/alerts with datadog.enabled).
 
 include "root" {
   path   = find_in_parent_folders("root.hcl")
@@ -16,6 +18,9 @@ locals {
   alerts_cfg      = try(local.root.alerts, {})
   datadog_cfg     = try(local.root.datadog, {})
   datadog_enabled = try(local.datadog_cfg.enabled, false)
+  alerts_run      = try(local.alerts_cfg.create, true) && try(local.alerts_cfg.enabled, false)
+  # Default excluded so run-all uses 2-alerts/<cloud>/ instead of this duplicate path.
+  standalone_mode = get_env("TG_STANDALONE_DATADOG_ALERTS", "0") == "1"
 }
 
 inputs = {
@@ -37,8 +42,7 @@ inputs = {
   webhook_custom_payload         = try(local.alerts_cfg.webhook_custom_payload, null)
 }
 
-# Run only when both flags are on. Inverse of the cloud-native module guards.
 exclude {
-  if      = !try(local.alerts_cfg.enabled, false) || !local.datadog_enabled
-  actions = ["apply", "plan", "destroy", "refresh", "import"]
+  if      = !local.standalone_mode || !local.alerts_run || !local.datadog_enabled
+  actions = ["apply", "plan", "destroy", "refresh", "import", "init"]
 }
