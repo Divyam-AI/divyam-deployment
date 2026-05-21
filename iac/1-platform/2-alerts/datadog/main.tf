@@ -50,6 +50,21 @@ locals {
     if url != null && url != ""
   }
 
+  # Zenduty-style default webhook body (Datadog template variables — see integrations/webhooks docs).
+  default_webhook_payload = {
+    alert_id         = "$ALERT_ID"
+    hostname         = "$HOSTNAME"
+    date_posix       = "$DATE_POSIX"
+    aggreg_key       = "$AGGREG_KEY"
+    title            = "$EVENT_TITLE"
+    alert_status     = "$ALERT_STATUS"
+    alert_transition = "$ALERT_TRANSITION"
+    link             = "$LINK"
+    event_msg        = "$TEXT_ONLY_MSG"
+  }
+
+  webhook_payload = var.webhook_custom_payload != null ? var.webhook_custom_payload : local.default_webhook_payload
+
   # All @-handles for CRITICAL monitors: one per registered webhook integration.
   webhook_handles         = [for name, _ in local.webhook_integrations : "@webhook-${name}"]
   critical_handles_suffix = length(local.webhook_handles) > 0 ? "\n\n${join(" ", local.webhook_handles)}" : ""
@@ -67,8 +82,10 @@ locals {
 resource "datadog_webhook" "pager" {
   for_each = var.enabled ? local.webhook_integrations : {}
 
-  name = each.key
-  url  = each.value
+  name      = each.key
+  url       = each.value
+  encode_as = var.webhook_custom_payload_enabled ? "json" : null
+  payload   = var.webhook_custom_payload_enabled ? jsonencode(local.webhook_payload) : null
 }
 
 resource "datadog_monitor" "alerts" {

@@ -56,6 +56,10 @@ alerts = {
   # Set the env var as a comma-separated list:
   #   export NOTIFICATION_WEBHOOK_URLS='https://www.zenduty.com/api/...,https://hooks.opsgenie.com/...'
   webhook_urls = compact(split(",", get_env("NOTIFICATION_WEBHOOK_URLS", "")))
+
+  # Datadog only — custom webhook JSON body (default on; see "Datadog webhook custom payload").
+  webhook_custom_payload_enabled = true
+  webhook_custom_payload         = null
 }
 
 datadog = {
@@ -65,6 +69,31 @@ datadog = {
   # ... other datadog fields
 }
 ```
+
+### Datadog webhook custom payload
+
+| Setting | Default | Effect |
+|---------|---------|--------|
+| `webhook_custom_payload_enabled` | `true` | Sets `encode_as=json` and `payload` on each `datadog_webhook` |
+| `webhook_custom_payload` | `null` | Built-in Zenduty template; override with a map to customize |
+
+Built-in default:
+
+```json
+{
+  "alert_id": "$ALERT_ID",
+  "hostname": "$HOSTNAME",
+  "date_posix": "$DATE_POSIX",
+  "aggreg_key": "$AGGREG_KEY",
+  "title": "$EVENT_TITLE",
+  "alert_status": "$ALERT_STATUS",
+  "alert_transition": "$ALERT_TRANSITION",
+  "link": "$LINK",
+  "event_msg": "$TEXT_ONLY_MSG"
+}
+```
+
+Set `webhook_custom_payload_enabled = false` to skip custom payload (Datadog UI default).
 
 ### Per-destination behavior
 
@@ -76,6 +105,8 @@ datadog = {
 - **Datadog**: each URL is registered as a `datadog_webhook` integration named
   `<deployment_prefix>-pager-<idx>`. Every CRITICAL `datadog_monitor` message has
   the corresponding `@webhook-<deployment_prefix>-pager-<idx>` handles appended.
+  When `alerts.webhook_custom_payload_enabled = true` (default), Terraform sets
+  `encode_as = json` and a Zenduty-friendly custom payload on each webhook (see below).
 
 Datadog additionally expects these env vars before running terragrunt:
 

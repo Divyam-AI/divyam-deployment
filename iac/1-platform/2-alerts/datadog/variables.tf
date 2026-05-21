@@ -53,3 +53,19 @@ variable "webhook_name_prefix" {
   type        = string
   default     = "divyam-pager"
 }
+
+variable "webhook_custom_payload_enabled" {
+  description = "When true, sets encode_as=json and payload on each datadog_webhook (Zenduty-friendly default unless webhook_custom_payload is set)."
+  type        = bool
+  default     = true
+}
+
+variable "webhook_custom_payload" {
+  description = <<-EOT
+    Optional map/object for the Datadog webhook custom JSON payload. Values may use Datadog template variables
+    (e.g. $ALERT_ID, $EVENT_TITLE). When null and webhook_custom_payload_enabled is true, a built-in Zenduty-style
+    default payload is applied. When webhook_custom_payload_enabled is false, payload is not set (Datadog UI default).
+  EOT
+  type        = any
+  default     = null
+}

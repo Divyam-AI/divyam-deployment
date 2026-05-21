@@ -283,6 +283,12 @@ locals {
     # Provide as a single comma-separated env var (NOTIFICATION_WEBHOOK_URLS) or
     # populate individual entries from env.
     webhook_urls = compact(split(",", get_env("NOTIFICATION_WEBHOOK_URLS", "")))
+
+    # Datadog only: auto-configure webhook custom JSON payload (Zenduty-friendly default).
+    webhook_custom_payload_enabled = true
+    # Optional override; null = default payload with $ALERT_ID, $EVENT_TITLE, $TEXT_ONLY_MSG, etc.
+    # webhook_custom_payload = { alert_id = "$ALERT_ID", title = "$EVENT_TITLE", ... }
+    webhook_custom_payload = { "alert_id": "$ALERT_ID", "hostname":"$HOSTNAME", "date_posix":"$DATE_POSIX", "aggreg_key":"$AGGREG_KEY", "title": "$EVENT_TITLE", "alert_status":"$ALERT_STATUS", "alert_transition":"$ALERT_TRANSITION", "link":"$LINK", "event_msg":"$TEXT_ONLY_MSG" }
   }
 
 #################### Application ##########################

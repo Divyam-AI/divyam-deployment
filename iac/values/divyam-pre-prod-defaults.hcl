@@ -243,6 +243,9 @@ locals {
 
     # Pager / Zenduty-style webhook URLs. Every CRITICAL alert fires to every URL.
     webhook_urls = compact(split(",", get_env("NOTIFICATION_WEBHOOK_URLS", "")))
+
+    webhook_custom_payload_enabled = true
+    webhook_custom_payload         = null
   }
 
 #################### Application ##########################

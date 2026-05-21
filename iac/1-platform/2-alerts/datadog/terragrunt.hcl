@@ -32,6 +32,9 @@ inputs = {
 
   webhook_urls        = try(local.alerts_cfg.webhook_urls, [])
   webhook_name_prefix = "${local.root.deployment_prefix}-pager"
+
+  webhook_custom_payload_enabled = try(local.alerts_cfg.webhook_custom_payload_enabled, true)
+  webhook_custom_payload         = try(local.alerts_cfg.webhook_custom_payload, null)
 }
 
 # Run only when both flags are on. Inverse of the cloud-native module guards.
