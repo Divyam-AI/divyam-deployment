@@ -44,10 +44,6 @@
       },
       "datadog": {
         "query": "max(last_15m):sum:kubernetes_state.container.status_report.count.waiting{reason:crashloopbackoff,kube_cluster_name:{{cluster_name}}} by {kube_namespace,pod_name} > 0",
-        "thresholds": {
-          "critical": "0",
-          "critical_recovery": "0"
-        },
         "message": "Pod {{pod_name.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} is in CrashLoopBackOff."
       }
     },
@@ -67,10 +63,6 @@
       },
       "datadog": {
         "query": "max(last_15m):sum:kubernetes_state.pod.status_phase{phase:failed,kube_cluster_name:{{cluster_name}}} by {kube_namespace,pod_name} > 0",
-        "thresholds": {
-          "critical": "0",
-          "critical_recovery": "0"
-        },
         "message": "Pod {{pod_name.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} is in Failed phase."
       }
     },
@@ -90,10 +82,6 @@
       },
       "datadog": {
         "query": "max(last_15m):sum:kubernetes_state.persistentvolumeclaim.status{phase:pending,kube_cluster_name:{{cluster_name}}} by {kube_namespace,persistentvolumeclaim} + sum:kubernetes_state.persistentvolumeclaim.status{phase:lost,kube_cluster_name:{{cluster_name}}} by {kube_namespace,persistentvolumeclaim} > 0",
-        "thresholds": {
-          "critical": "0",
-          "critical_recovery": "0"
-        },
         "message": "PVC {{persistentvolumeclaim.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} is not Bound."
       }
     },

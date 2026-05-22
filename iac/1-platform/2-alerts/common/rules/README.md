@@ -83,8 +83,9 @@ separate metric expressions instead (see `pvc-unbound-state`).
 warn at `< 0.9`, critical at `< 0.8`, with recovery at `0.85` / `0.95` (~5–10% above
 the alert boundary) to reduce flapping.
 
-**Count monitors** (crashloop, failed pods, unbound PVC): `critical` / `critical_recovery`
-of `0` with query `> 0` — recover when the count returns to zero.
+**Count monitors** (crashloop, failed pods, unbound PVC): use query `> 0` only — omit
+`thresholds`. Datadog rejects `critical_recovery` equal to `critical` on `>` comparisons;
+recovery happens automatically when the series drops to zero.
 
 ## Datadog module defaults (`alerts.*` in values)
 
