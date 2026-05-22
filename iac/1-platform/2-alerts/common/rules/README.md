@@ -28,7 +28,7 @@ by the respective `2-alerts/<destination>/` module.
       },
 
       "datadog": {                             // optional. required only when datadog.enabled.
-        "query": "min(last_15m):metric{kube_cluster_name:{{cluster_name}}} ...",  // use {{cluster_name}}; no comparison in query
+        "query": "min(last_15m):metric{kube_cluster_name:{{cluster_name}}} ... < 0.8",  // {{cluster_name}}; comparison must match thresholds.critical
         "thresholds": {                        // required for Datadog; warning/critical/recovery
           "critical": "0.8",
           "warning": "0.9",
@@ -73,3 +73,8 @@ Datadog monitors don't speak PromQL natively, so each rule must provide a
 The Datadog metric names typically come from the Datadog Kubernetes integration
 (prefix `kubernetes_state.*` or `kubernetes.io.*`), not from the upstream
 kube-state-metrics names used by Azure/GCP managed Prometheus.
+
+**Query vs `thresholds`:** Datadog validates that the comparison value in `query`
+(e.g. `< 0.8`, `> 80`) matches `thresholds.critical`. Put warning/recovery only in
+`thresholds`, not in the query string. Do not use `OR` inside tag filters — sum
+separate metric expressions instead (see `pvc-unbound-state`).
