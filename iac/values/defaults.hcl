@@ -290,6 +290,11 @@ locals {
     # Optional override; null = default payload with $ALERT_ID, $EVENT_TITLE, $TEXT_ONLY_MSG, etc.
     # webhook_custom_payload = { alert_id = "$ALERT_ID", title = "$EVENT_TITLE", ... }
     webhook_custom_payload = null
+
+    # Datadog monitors only (when datadog.enabled = true)
+    notify_no_data    = true
+    no_data_timeframe = 15
+    renotify_interval = 30
   }
 
 #################### Application ##########################

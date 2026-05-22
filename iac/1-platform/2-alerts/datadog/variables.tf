@@ -71,21 +71,21 @@ variable "webhook_custom_payload" {
 }
 
 variable "notify_no_data" {
-  description = "When true, notify when monitor stops receiving data."
+  description = "When true, notify when a monitor stops receiving metrics (detects integration gaps)."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "no_data_timeframe" {
   description = "Minutes without data before no-data notification (only when notify_no_data = true)."
   type        = number
-  default     = 10
+  default     = 15
 }
 
 variable "renotify_interval" {
-  description = "Minutes between re-notifications while alert stays triggered (monitors that page webhooks)."
+  description = "Minutes between re-notifications for CRITICAL monitors while still in alert/warn state."
   type        = number
-  default     = 60
+  default     = 30
 }
 
 variable "renotify_statuses" {

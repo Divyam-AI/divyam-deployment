@@ -15,7 +15,7 @@
       },
       "annotations": {
         "summary": "Deployment Replica Mismatch",
-        "description": "Less than 80% of replicas are available"
+        "description": "Warn when < 90% replicas available; critical when < 80%; recover above 85% (crit) / 95% (warn)"
       },
       "datadog": {
         "query": "min(last_15m):(avg:kubernetes_state.deployment.replicas_available{kube_cluster_name:{{cluster_name}}} by {kube_namespace,kube_deployment} / avg:kubernetes_state.deployment.replicas_desired{kube_cluster_name:{{cluster_name}}} by {kube_namespace,kube_deployment}) < 0.8",
@@ -44,6 +44,10 @@
       },
       "datadog": {
         "query": "max(last_15m):sum:kubernetes_state.container.status_report.count.waiting{reason:crashloopbackoff,kube_cluster_name:{{cluster_name}}} by {kube_namespace,pod_name} > 0",
+        "thresholds": {
+          "critical": "0",
+          "critical_recovery": "0"
+        },
         "message": "Pod {{pod_name.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} is in CrashLoopBackOff."
       }
     },
@@ -63,6 +67,10 @@
       },
       "datadog": {
         "query": "max(last_15m):sum:kubernetes_state.pod.status_phase{phase:failed,kube_cluster_name:{{cluster_name}}} by {kube_namespace,pod_name} > 0",
+        "thresholds": {
+          "critical": "0",
+          "critical_recovery": "0"
+        },
         "message": "Pod {{pod_name.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} is in Failed phase."
       }
     },
@@ -82,6 +90,10 @@
       },
       "datadog": {
         "query": "max(last_15m):sum:kubernetes_state.persistentvolumeclaim.status{phase:pending,kube_cluster_name:{{cluster_name}}} by {kube_namespace,persistentvolumeclaim} + sum:kubernetes_state.persistentvolumeclaim.status{phase:lost,kube_cluster_name:{{cluster_name}}} by {kube_namespace,persistentvolumeclaim} > 0",
+        "thresholds": {
+          "critical": "0",
+          "critical_recovery": "0"
+        },
         "message": "PVC {{persistentvolumeclaim.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} is not Bound."
       }
     },
@@ -123,7 +135,7 @@
       },
       "annotations": {
         "summary": "StatefulSet Replica Mismatch",
-        "description": "Less than 80% of StatefulSet replicas are ready"
+        "description": "Warn when < 90% replicas ready; critical when < 80%; recover above 85% (crit) / 95% (warn)"
       },
       "datadog": {
         "query": "min(last_15m):(avg:kubernetes_state.statefulset.replicas_ready{kube_cluster_name:{{cluster_name}}} by {kube_namespace,kube_statefulset} / avg:kubernetes_state.statefulset.replicas_desired{kube_cluster_name:{{cluster_name}}} by {kube_namespace,kube_statefulset}) < 0.8",

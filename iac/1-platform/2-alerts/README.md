@@ -51,8 +51,10 @@ children under the alerts path — only one runs at a time:
 
 Standalone `2-alerts/datadog/` only with `TG_STANDALONE_DATADOG_ALERTS=1`.
 
-Only `CRITICAL` rules notify the configured webhook URLs. `WARNING` / `INFO`
-rules still fire but are recorded silently (no external notification).
+Only `CRITICAL` rules notify webhooks by default. `WARNING` / `INFO` rules still
+fire in Datadog/Azure/GCP but do not page unless `datadog.notify: true` on the rule
+(e.g. `pvc-usage-high`). CRITICAL monitors re-page every `alerts.renotify_interval`
+minutes (default 30) while still in alert.
 
 ## Config (values/defaults.hcl)
 
@@ -70,6 +72,11 @@ alerts = {
   # Datadog only — custom webhook JSON body (default on; see "Datadog webhook custom payload").
   webhook_custom_payload_enabled = true
   webhook_custom_payload         = null
+
+  # Datadog monitors — detect missing metrics and repeat CRITICAL pages
+  notify_no_data    = true
+  no_data_timeframe = 15
+  renotify_interval = 30
 }
 
 datadog = {

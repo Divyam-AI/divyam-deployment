@@ -78,3 +78,21 @@ kube-state-metrics names used by Azure/GCP managed Prometheus.
 (e.g. `< 0.8`, `> 80`) matches `thresholds.critical`. Put warning/recovery only in
 `thresholds`, not in the query string. Do not use `OR` inside tag filters — sum
 separate metric expressions instead (see `pvc-unbound-state`).
+
+**Replica ratio monitors** (`deployment-replica-mismatch`, `statefulset-replica-mismatch`):
+warn at `< 0.9`, critical at `< 0.8`, with recovery at `0.85` / `0.95` (~5–10% above
+the alert boundary) to reduce flapping.
+
+**Count monitors** (crashloop, failed pods, unbound PVC): `critical` / `critical_recovery`
+of `0` with query `> 0` — recover when the count returns to zero.
+
+## Datadog module defaults (`alerts.*` in values)
+
+| Setting | Default | Purpose |
+|---------|---------|---------|
+| `notify_no_data` | `true` | Page when metrics stop flowing |
+| `no_data_timeframe` | `15` | Minutes without data before no-data alert |
+| `renotify_interval` | `30` | Re-page CRITICAL monitors every 30 minutes while still firing |
+
+Override in `VALUES_FILE` under `alerts`. `renotify_interval` applies only to
+`severity: CRITICAL` monitors (not WARNING rules with `datadog.notify`).

@@ -41,6 +41,10 @@ inputs = {
 
   webhook_custom_payload_enabled = try(local.alerts_cfg.webhook_custom_payload_enabled, true)
   webhook_custom_payload         = try(local.alerts_cfg.webhook_custom_payload, null)
+
+  notify_no_data    = try(local.alerts_cfg.notify_no_data, true)
+  no_data_timeframe = try(local.alerts_cfg.no_data_timeframe, 15)
+  renotify_interval = try(local.alerts_cfg.renotify_interval, 30)
 }
 
 exclude {
