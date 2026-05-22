@@ -18,7 +18,7 @@
         "description": "Less than 80% of replicas are available"
       },
       "datadog": {
-        "query": "min(last_15m):avg:kubernetes_state.deployment.replicas_available{kube_cluster_name:{{cluster_name}}} by {kube_namespace,kube_deployment} / avg:kubernetes_state.deployment.replicas_desired{kube_cluster_name:{{cluster_name}}} by {kube_namespace,kube_deployment}",
+        "query": "min(last_15m):(avg:kubernetes_state.deployment.replicas_available{kube_cluster_name:{{cluster_name}}} by {kube_namespace,kube_deployment} / avg:kubernetes_state.deployment.replicas_desired{kube_cluster_name:{{cluster_name}}} by {kube_namespace,kube_deployment}) < 0.9",
         "thresholds": {
           "critical": "0.8",
           "warning": "0.9",
@@ -43,11 +43,7 @@
         "description": "One or more pods are in CrashLoopBackOff state"
       },
       "datadog": {
-        "query": "max(last_15m):sum:kubernetes_state.container.status_report.count.waiting{reason:crashloopbackoff,kube_cluster_name:{{cluster_name}}} by {kube_namespace,pod_name}",
-        "thresholds": {
-          "critical": "0",
-          "critical_recovery": "0"
-        },
+        "query": "max(last_15m):sum:kubernetes_state.container.status_report.count.waiting{reason:crashloopbackoff,kube_cluster_name:{{cluster_name}}} by {kube_namespace,pod_name} > 0",
         "message": "Pod {{pod_name.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} is in CrashLoopBackOff."
       }
     },
@@ -66,11 +62,7 @@
         "description": "One or more pods are in Failed phase"
       },
       "datadog": {
-        "query": "max(last_15m):sum:kubernetes_state.pod.status_phase{phase:failed,kube_cluster_name:{{cluster_name}}} by {kube_namespace,pod_name}",
-        "thresholds": {
-          "critical": "0",
-          "critical_recovery": "0"
-        },
+        "query": "max(last_15m):sum:kubernetes_state.pod.status_phase{phase:failed,kube_cluster_name:{{cluster_name}}} by {kube_namespace,pod_name} > 0",
         "message": "Pod {{pod_name.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} is in Failed phase."
       }
     },
@@ -89,11 +81,7 @@
         "description": "One or more PVCs are not in Bound state"
       },
       "datadog": {
-        "query": "max(last_15m):sum:kubernetes_state.persistentvolumeclaim.status{phase:pending OR phase:lost,kube_cluster_name:{{cluster_name}}} by {kube_namespace,persistentvolumeclaim}",
-        "thresholds": {
-          "critical": "0",
-          "critical_recovery": "0"
-        },
+        "query": "max(last_15m):sum:kubernetes_state.persistentvolumeclaim.status{phase:pending OR phase:lost,kube_cluster_name:{{cluster_name}}} by {kube_namespace,persistentvolumeclaim} > 0",
         "message": "PVC {{persistentvolumeclaim.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} is not Bound."
       }
     },
@@ -112,7 +100,7 @@
         "description": "PVC usage has exceeded warning (60%) or critical (80%) thresholds"
       },
       "datadog": {
-        "query": "min(last_15m):(avg:kubernetes.io.persistentvolumeclaim.used_bytes{kube_cluster_name:{{cluster_name}}} by {kube_namespace,persistentvolumeclaim} / avg:kubernetes.io.persistentvolumeclaim.capacity_bytes{kube_cluster_name:{{cluster_name}}} by {kube_namespace,persistentvolumeclaim}) * 100",
+        "query": "min(last_15m):(avg:kubernetes.io.persistentvolumeclaim.used_bytes{kube_cluster_name:{{cluster_name}}} by {kube_namespace,persistentvolumeclaim} / avg:kubernetes.io.persistentvolumeclaim.capacity_bytes{kube_cluster_name:{{cluster_name}}} by {kube_namespace,persistentvolumeclaim}) * 100 > 60",
         "thresholds": {
           "warning": "60",
           "critical": "80",
@@ -138,7 +126,7 @@
         "description": "Less than 80% of StatefulSet replicas are ready"
       },
       "datadog": {
-        "query": "min(last_15m):avg:kubernetes_state.statefulset.replicas_ready{kube_cluster_name:{{cluster_name}}} by {kube_namespace,kube_statefulset} / avg:kubernetes_state.statefulset.replicas_desired{kube_cluster_name:{{cluster_name}}} by {kube_namespace,kube_statefulset}",
+        "query": "min(last_15m):(avg:kubernetes_state.statefulset.replicas_ready{kube_cluster_name:{{cluster_name}}} by {kube_namespace,kube_statefulset} / avg:kubernetes_state.statefulset.replicas_desired{kube_cluster_name:{{cluster_name}}} by {kube_namespace,kube_statefulset}) < 0.9",
         "thresholds": {
           "critical": "0.8",
           "warning": "0.9",

@@ -121,10 +121,11 @@ resource "datadog_monitor" "alerts" {
   dynamic "monitor_thresholds" {
     for_each = length(lookup(each.value.datadog, "thresholds", {})) > 0 ? [lookup(each.value.datadog, "thresholds", {})] : []
     content {
-      critical          = try(tonumber(monitor_thresholds.value.critical), monitor_thresholds.value.critical)
-      warning           = try(tonumber(monitor_thresholds.value.warning), monitor_thresholds.value.warning)
-      critical_recovery = try(tonumber(monitor_thresholds.value.critical_recovery), monitor_thresholds.value.critical_recovery)
-      warning_recovery  = try(tonumber(monitor_thresholds.value.warning_recovery), monitor_thresholds.value.warning_recovery)
+      # lookup() — JSON thresholds omit keys per rule (e.g. binary alerts have no warning tier).
+      critical          = try(tonumber(lookup(monitor_thresholds.value, "critical", null)), null)
+      warning           = try(tonumber(lookup(monitor_thresholds.value, "warning", null)), null)
+      critical_recovery = try(tonumber(lookup(monitor_thresholds.value, "critical_recovery", null)), null)
+      warning_recovery  = try(tonumber(lookup(monitor_thresholds.value, "warning_recovery", null)), null)
     }
   }
 }
