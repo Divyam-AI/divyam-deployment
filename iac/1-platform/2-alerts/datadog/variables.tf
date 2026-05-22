@@ -83,7 +83,7 @@ variable "no_data_timeframe" {
 }
 
 variable "renotify_interval" {
-  description = "Minutes between re-notifications for CRITICAL monitors while still in alert/warn state."
+  description = "Minutes between re-notifications for CRITICAL and WARNING monitors while still in alert/warn state."
   type        = number
   default     = 30
 }

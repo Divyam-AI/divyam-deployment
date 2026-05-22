@@ -111,8 +111,8 @@ resource "datadog_monitor" "alerts" {
 
   require_full_window = true
 
-  renotify_interval = each.value.severity == "CRITICAL" ? var.renotify_interval : 0
-  renotify_statuses = each.value.severity == "CRITICAL" ? var.renotify_statuses : null
+  renotify_interval = contains(["CRITICAL", "WARNING"], each.value.severity) ? var.renotify_interval : 0
+  renotify_statuses = contains(["CRITICAL", "WARNING"], each.value.severity) ? var.renotify_statuses : null
 
   dynamic "monitor_thresholds" {
     for_each = length(lookup(each.value.datadog, "thresholds", {})) > 0 ? [lookup(each.value.datadog, "thresholds", {})] : []
