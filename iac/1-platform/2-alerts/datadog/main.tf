@@ -30,6 +30,12 @@ locals {
     ]
   ])
 
+  # Map keyed by alert name (static at plan time). Do not pre-merge computed monitor fields here —
+  # that can make for_each values unknown when paired with depends_on on datadog_webhook.
+  rules_by_alert = {
+    for r in local.rules : r.alert => r
+  }
+
   severity_to_priority = {
     CRITICAL = 1
     WARNING  = 3
@@ -57,28 +63,13 @@ locals {
 
   webhook_handles = [for name, _ in local.webhook_integrations : "@webhook-${name}"]
   handles_suffix    = length(local.webhook_handles) > 0 ? "\n\n${join(" ", local.webhook_handles)}" : ""
-
-  monitors = {
-    for r in local.rules : r.alert => merge(r, {
-      _priority = lookup(local.severity_to_priority, r.severity, 3)
-      _type     = try(r.datadog.type, "metric alert")
-      _query = replace(
-        r.datadog.query,
-        "{{cluster_name}}",
-        var.cluster_name
-      )
-      _thresholds = lookup(r.datadog, "thresholds", {})
-      # Page on CRITICAL always; WARNING when datadog.notify = true (e.g. pvc-usage-high).
-      _notify = r.severity == "CRITICAL" || try(r.datadog.notify, false)
-      _message = "${try(r.datadog.message, r.annotations.description)}${(
-        (r.severity == "CRITICAL" || try(r.datadog.notify, false)) && length(local.webhook_handles) > 0
-      ) ? local.handles_suffix : ""}"
-    })
-  }
 }
 
 resource "datadog_webhook" "pager" {
-  for_each = var.enabled ? local.webhook_integrations : {}
+  for_each = {
+    for k, v in local.webhook_integrations : k => v
+    if var.enabled
+  }
 
   name      = each.key
   url       = each.value
@@ -87,13 +78,20 @@ resource "datadog_webhook" "pager" {
 }
 
 resource "datadog_monitor" "alerts" {
-  for_each = var.enabled ? local.monitors : {}
+  for_each = {
+    for k, v in local.rules_by_alert : k => v
+    if var.enabled
+  }
 
-  name     = each.value.alert
-  type     = each.value._type
-  query    = each.value._query
-  message  = each.value._message
-  priority = each.value._priority
+  name  = each.value.alert
+  type  = try(each.value.datadog.type, "metric alert")
+  query = replace(each.value.datadog.query, "{{cluster_name}}", var.cluster_name)
+
+  priority = lookup(local.severity_to_priority, each.value.severity, 3)
+
+  message = "${try(each.value.datadog.message, each.value.annotations.description)}${(
+    (each.value.severity == "CRITICAL" || try(each.value.datadog.notify, false)) && length(local.webhook_handles) > 0
+  ) ? local.handles_suffix : ""}"
 
   tags = concat(
     [
@@ -113,18 +111,20 @@ resource "datadog_monitor" "alerts" {
 
   require_full_window = true
 
-  renotify_interval = each.value._notify ? var.renotify_interval : 0
-  renotify_statuses = each.value._notify ? var.renotify_statuses : null
+  renotify_interval = (
+    each.value.severity == "CRITICAL" || try(each.value.datadog.notify, false)
+  ) ? var.renotify_interval : 0
+  renotify_statuses = (
+    each.value.severity == "CRITICAL" || try(each.value.datadog.notify, false)
+  ) ? var.renotify_statuses : null
 
   dynamic "monitor_thresholds" {
-    for_each = length(each.value._thresholds) > 0 ? [each.value._thresholds] : []
+    for_each = length(lookup(each.value.datadog, "thresholds", {})) > 0 ? [lookup(each.value.datadog, "thresholds", {})] : []
     content {
-      critical          = try(monitor_thresholds.value.critical, null)
-      warning           = try(monitor_thresholds.value.warning, null)
-      critical_recovery = try(monitor_thresholds.value.critical_recovery, null)
-      warning_recovery  = try(monitor_thresholds.value.warning_recovery, null)
+      critical          = try(tonumber(monitor_thresholds.value.critical), monitor_thresholds.value.critical)
+      warning           = try(tonumber(monitor_thresholds.value.warning), monitor_thresholds.value.warning)
+      critical_recovery = try(tonumber(monitor_thresholds.value.critical_recovery), monitor_thresholds.value.critical_recovery)
+      warning_recovery  = try(tonumber(monitor_thresholds.value.warning_recovery), monitor_thresholds.value.warning_recovery)
     }
   }
-
-  depends_on = [datadog_webhook.pager]
 }
