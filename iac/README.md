@@ -146,7 +146,7 @@ cd ..
 
 ## 3. Creating Platform Components: 
 Proceed with this step, if we need to create any one of the following:
-app_gw, divyam_object_storage, k8s cluster, alerts, bastion-kubectl-setup
+app_gw, divyam_object_storage, k8s cluster, bastion-kubectl-setup
 Selectively skip components by marking them `create=false` in the values file.
 Make sure `CLOUD_PROVIDER`, `VALUES_FILE` variables are exported and review the plan output before applying.
 ```
@@ -158,7 +158,7 @@ cd ..
 ```
 
 ## 4. Creating Divyam Application Entities: 
-This step is required to setup the secrets and IAM bindings required for divyam application to work.
+This step is required to setup the secrets, IAM bindings, alerts (`2-app/3-alerts`), dashboards (`2-app/2-dashboards`), and other app-layer modules required for the Divyam application to work.
 Export the below environment variables for the secrets to be created one time for the entire deployment.
 
 | Environment variable | Description |

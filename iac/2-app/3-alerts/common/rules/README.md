@@ -1,7 +1,7 @@
 # Alert rules (neutral format)
 
 One JSON file per logical group. Each file is rendered into Azure / GCP / Datadog
-by the respective `2-alerts/<destination>/` module.
+by the respective `3-alerts/<destination>/` module.
 
 ## Schema
 

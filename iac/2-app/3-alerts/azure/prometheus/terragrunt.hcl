@@ -16,11 +16,11 @@ locals {
 }
 
 terraform {
-  source = "${get_repo_root()}/iac/1-platform/2-alerts/azure"
+  source = "${get_repo_root()}/iac/2-app/3-alerts/azure"
 }
 
 dependency "k8s" {
-  config_path = "../../../1-k8s/azure"
+  config_path = "../../../../1-platform/1-k8s/azure"
   mock_outputs = {
     monitor_workspace_name = "mock-workspace"
     monitor_workspace_id   = "/subscriptions/mock/resourceGroups/mock/providers/Microsoft.Monitor/accounts/mock"
@@ -40,7 +40,7 @@ inputs = {
   azure_monitor_workspace_name = dependency.k8s.outputs.monitor_workspace_name
   azure_monitor_workspace_id   = dependency.k8s.outputs.monitor_workspace_id
   resource_name_prefix         = local.root.deployment_prefix
-  rules_folder                 = "${get_repo_root()}/iac/1-platform/2-alerts/common/rules"
+  rules_folder                 = "${get_repo_root()}/iac/2-app/3-alerts/common/rules"
 
   webhook_urls = local.webhook_urls
 }

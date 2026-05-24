@@ -1,8 +1,8 @@
 # GCP alerts: google_monitoring_alert_policy with condition_prometheus_query_language.
-# Reads the neutral alert schema from 2-alerts/common/rules and translates per rule
+# Reads the neutral alert schema from 3-alerts/common/rules and translates per rule
 # (one policy per rule). Notification channels are passed in by the parent module.
 #
-# Schema: see 2-alerts/common/rules/README.md.
+# Schema: see 3-alerts/common/rules/README.md.
 
 locals {
   rule_files = fileset(var.rules_folder, "*.json")

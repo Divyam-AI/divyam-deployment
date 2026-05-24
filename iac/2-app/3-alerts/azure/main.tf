@@ -1,8 +1,8 @@
 # Azure alerts: action group + Prometheus rule groups.
-# Reads the neutral alert schema from 2-alerts/common/rules and translates to Azure-native
+# Reads the neutral alert schema from 3-alerts/common/rules and translates to Azure-native
 # Prometheus rule groups (azurerm_monitor_alert_prometheus_rule_group).
 #
-# Schema: see 2-alerts/common/rules/README.md.
+# Schema: see 3-alerts/common/rules/README.md.
 # Severity is propagated as a label as-is.
 
 locals {

@@ -1,4 +1,4 @@
-# 2-alerts
+# 3-alerts
 
 Cloud-agnostic alerts, driven by `values/defaults.hcl` (`alerts`, `datadog`).
 
@@ -13,7 +13,7 @@ Cloud-agnostic alerts, driven by `values/defaults.hcl` (`alerts`, `datadog`).
 ## Layout
 
 ```
-2-alerts/
+3-alerts/
 ├── common/
 │   └── rules/                  Neutral alert schema (single source of truth)
 │       ├── README.md           Schema doc
@@ -33,23 +33,23 @@ the optional `datadog` block (Datadog needs its own query DSL — PromQL is not 
 
 ## Selection logic
 
-| `alerts.enabled` | `datadog.enabled` | `2-alerts/azure` or `gcp/alerts` unit |
+| `alerts.enabled` | `datadog.enabled` | `3-alerts/azure` or `gcp/alerts` unit |
 |------------------|-------------------|----------------------------------------|
 | false            | *                 | skipped                                |
 | true             | false             | Azure / GCP Prometheus alerts          |
-| true             | true              | `2-alerts/azure/datadog` or `gcp/alerts/datadog` runs |
+| true             | true              | `3-alerts/azure/datadog` or `gcp/alerts/datadog` runs |
 
 Use `terragrunt run-all --filter "**/azure"` (or `gcp`). Each cloud has two terragrunt
 children under the alerts path — only one runs at a time:
 
 ```
-2-alerts/azure/datadog/      # Datadog module (when datadog.enabled)
-2-alerts/azure/prometheus/   # Azure Prom rules (when datadog.enabled = false)
-2-alerts/gcp/alerts/datadog/
-2-alerts/gcp/alerts/prometheus/
+3-alerts/azure/datadog/      # Datadog module (when datadog.enabled)
+3-alerts/azure/prometheus/   # Azure Prom rules (when datadog.enabled = false)
+3-alerts/gcp/alerts/datadog/
+3-alerts/gcp/alerts/prometheus/
 ```
 
-Standalone `2-alerts/datadog/` only with `TG_STANDALONE_DATADOG_ALERTS=1`.
+Standalone `3-alerts/datadog/` only with `TG_STANDALONE_DATADOG_ALERTS=1`.
 
 Only `CRITICAL` rules notify webhooks by default. `WARNING` / `INFO` rules still
 fire in Datadog/Azure/GCP but do not page unless `datadog.notify: true` on the rule
@@ -141,35 +141,35 @@ export CLOUD_PROVIDER=azure
 export TF_VAR_datadog_api_key=...
 export TF_VAR_datadog_app_key=...
 
-# Azure — use BOTH filters so nested alert units are included (2-alerts/azure/datadog
+# Azure — use BOTH filters so nested alert units are included (3-alerts/azure/datadog
 # lives under azure/ but is not matched by ./**/azure alone):
-cd iac/1-platform
+cd iac/2-app
 terragrunt run plan --all \
   --filter "./**/${CLOUD_PROVIDER}" \
   --filter "./**/${CLOUD_PROVIDER}/**"
 
-# GCP — same pattern for 2-alerts/gcp/alerts/datadog:
+# GCP — same pattern for 3-alerts/gcp/alerts/datadog:
 terragrunt run plan --all \
   --filter "./**/gcp" \
   --filter "./**/gcp/**"
 ```
 
-Standalone Datadog path (only if you are not using `2-alerts/azure` or `gcp/alerts`):
+Standalone Datadog path (only if you are not using `3-alerts/azure` or `gcp/alerts`):
 
 ```bash
-TG_STANDALONE_DATADOG_ALERTS=1 terragrunt plan --terragrunt-working-dir 2-alerts/datadog
+TG_STANDALONE_DATADOG_ALERTS=1 terragrunt plan --terragrunt-working-dir 3-alerts/datadog
 ```
 
 ### Troubleshooting: Datadog unit not in run-all queue
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| No `2-alerts/azure` in queue | `alerts.enabled` or `alerts.create` is false in your values file | Set both true in `VALUES_FILE` |
-| Plan asks for Azure `location` but Datadog downloaded | Stale `.terragrunt-cache` from switching module source in one unit | `rm -rf 2-alerts/azure/.terragrunt-cache` then re-run |
-| No `2-alerts/*` in queue | Filter `./**/azure` skips nested `azure/datadog` paths | Add `--filter "./**/azure/**"` (see Run above) |
+| No `3-alerts/azure` in queue | `alerts.enabled` or `alerts.create` is false in your values file | Set both true in `VALUES_FILE` |
+| Plan asks for Azure `location` but Datadog downloaded | Stale `.terragrunt-cache` from switching module source in one unit | `rm -rf 3-alerts/azure/.terragrunt-cache` then re-run |
+| No `3-alerts/*` in queue | Filter `./**/azure` skips nested `azure/datadog` paths | Add `--filter "./**/azure/**"` (see Run above) |
 | No alert units at all | `alerts.enabled` or `alerts.create` is false in `VALUES_FILE` | Set both `true` in your values HCL |
-| Datadog unit skipped | `datadog.enabled = false` in values | Set `datadog.enabled = true` for `2-alerts/azure/datadog` |
-| `2-alerts/datadog` never in filter | Expected | Use `2-alerts/azure/datadog` with `**/azure/**` filter |
+| Datadog unit skipped | `datadog.enabled = false` in values | Set `datadog.enabled = true` for `3-alerts/azure/datadog` |
+| `3-alerts/datadog` never in filter | Expected | Use `3-alerts/azure/datadog` with `**/azure/**` filter |
 
 ## Adding a new alert
 

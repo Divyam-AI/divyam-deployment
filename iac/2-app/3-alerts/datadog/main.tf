@@ -1,7 +1,7 @@
 # Datadog alerts: one datadog_monitor per rule that supplies a `datadog` block.
-# Reads the neutral alert schema from 2-alerts/common/rules and translates per rule.
+# Reads the neutral alert schema from 3-alerts/common/rules and translates per rule.
 #
-# Schema: see 2-alerts/common/rules/README.md.
+# Schema: see 3-alerts/common/rules/README.md.
 #
 # Query placeholders: {{cluster_name}} is replaced with var.cluster_name at apply time.
 # Thresholds live in rules[].datadog.thresholds (warning / critical / recovery) — not in the query string.

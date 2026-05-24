@@ -14,7 +14,7 @@ locals {
 }
 
 terraform {
-  source = "${get_repo_root()}/iac/1-platform/2-alerts/gcp/alerts"
+  source = "${get_repo_root()}/iac/2-app/3-alerts/gcp/alerts"
 }
 
 dependency "notification_channels" {
@@ -25,7 +25,7 @@ dependency "notification_channels" {
 }
 
 dependency "k8s" {
-  config_path                             = "../../../../1-k8s/gcp"
+  config_path                             = "../../../../../1-platform/1-k8s/gcp"
   skip_outputs                            = true
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
 }
@@ -34,7 +34,7 @@ inputs = {
   enabled      = local.alerts_run
   project_id   = local.root.resource_scope.name
   region       = local.root.region
-  rules_folder = "${get_repo_root()}/iac/1-platform/2-alerts/common/rules"
+  rules_folder = "${get_repo_root()}/iac/2-app/3-alerts/common/rules"
   exclude_list = try(local.alerts_cfg.exclude_list, [])
 
   notification_channels = dependency.notification_channels.outputs.notification_channel_ids

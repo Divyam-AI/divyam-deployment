@@ -1,8 +1,8 @@
 # Standalone Datadog alerts entry (optional). Prefer the cloud-filtered units instead:
-#   - Azure: 2-alerts/azure/datadog/terragrunt.hcl
-#   - GCP:   2-alerts/gcp/alerts/datadog/terragrunt.hcl
+#   - Azure: 3-alerts/azure/datadog/terragrunt.hcl
+#   - GCP:   3-alerts/gcp/alerts/datadog/terragrunt.hcl
 # Set TG_STANDALONE_DATADOG_ALERTS=1 to plan/apply this path directly (avoids duplicate
-# monitors if you also run 2-alerts/azure or gcp/alerts with datadog.enabled).
+# monitors if you also run 3-alerts/azure or gcp/alerts with datadog.enabled).
 
 include "root" {
   path   = find_in_parent_folders("root.hcl")
@@ -10,7 +10,7 @@ include "root" {
 }
 
 terraform {
-  source = "${get_repo_root()}/iac/1-platform/2-alerts/datadog"
+  source = "${get_repo_root()}/iac/2-app/3-alerts/datadog"
 }
 
 locals {
@@ -19,13 +19,13 @@ locals {
   datadog_cfg     = try(local.root.datadog, {})
   datadog_enabled = try(local.datadog_cfg.enabled, false)
   alerts_run      = try(local.alerts_cfg.create, true) && try(local.alerts_cfg.enabled, false)
-  # Default excluded so run-all uses 2-alerts/<cloud>/ instead of this duplicate path.
+  # Default excluded so run-all uses 3-alerts/<cloud>/ instead of this duplicate path.
   standalone_mode = get_env("TG_STANDALONE_DATADOG_ALERTS", "0") == "1"
 }
 
 inputs = {
   enabled      = try(local.alerts_cfg.enabled, false) && local.datadog_enabled
-  rules_folder = "${get_repo_root()}/iac/1-platform/2-alerts/common/rules"
+  rules_folder = "${get_repo_root()}/iac/2-app/3-alerts/common/rules"
   exclude_list = try(local.alerts_cfg.exclude_list, [])
 
   # Monitor env tag follows deployment env_name (e.g. prod), not datadog.env (Agent tag, often dev).

@@ -17,12 +17,12 @@ locals {
 }
 
 terraform {
-  source = "${get_repo_root()}/iac/1-platform/2-alerts/datadog"
+  source = "${get_repo_root()}/iac/2-app/3-alerts/datadog"
 }
 
 inputs = {
   enabled      = true
-  rules_folder = "${get_repo_root()}/iac/1-platform/2-alerts/common/rules"
+  rules_folder = "${get_repo_root()}/iac/2-app/3-alerts/common/rules"
   exclude_list = try(local.alerts_cfg.exclude_list, [])
 
   env = coalesce(try(local.datadog_cfg.monitor_env, null), local.root.env_name)

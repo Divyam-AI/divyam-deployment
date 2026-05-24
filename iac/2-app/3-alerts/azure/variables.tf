@@ -24,7 +24,7 @@ variable "azure_monitor_workspace_id" {
 }
 
 variable "rules_folder" {
-  description = "Path to folder containing neutral alert rule group JSON files (see 2-alerts/common/rules/README.md)"
+  description = "Path to folder containing neutral alert rule group JSON files (see 3-alerts/common/rules/README.md)"
   type        = string
 }
 
