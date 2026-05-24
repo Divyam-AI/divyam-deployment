@@ -1,6 +1,6 @@
 # 2-dashboards
 
-Per-destination dashboards, uploaded as-is.
+Per-destination dashboards, uploaded as-is. Deploy with alerts: [`iac/README.md`](../README.md#monitoring-and-observability).
 
 > Dashboards are authored offline in each destination's native JSON format. This
 > module just uploads them. There is no transpilation step — each cloud has its

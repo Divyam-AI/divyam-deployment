@@ -131,6 +131,16 @@ resource "google_container_cluster" "gke_cluster" {
     }
   }
 
+  dynamic "monitoring_config" {
+    for_each = each.value.enable_managed_prometheus ? [1] : []
+    content {
+      enable_components = ["SYSTEM_COMPONENTS"]
+      managed_prometheus {
+        enabled = true
+      }
+    }
+  }
+
   binary_authorization {
     evaluation_mode = each.value.binauthz_evaluation_mode
   }
@@ -141,15 +151,6 @@ resource "google_container_cluster" "gke_cluster" {
       dns_config[0].additive_vpc_scope_dns_domain
     ]
   }
-}
-
-# Project _Default log bucket retention (GKE, load balancer, and other project logs). 1–3650 days.
-resource "google_logging_project_bucket_config" "default_bucket" {
-  count        = var.enabled && var.manage_project_log_bucket ? 1 : 0
-  project      = var.project_id
-  location     = "global"
-  bucket_id    = "_Default"
-  retention_days = min(3650, max(1, var.logs_retention_days))
 }
 
 # Additional node pools (e.g. GPU). Only for standard (non-Autopilot) clusters.

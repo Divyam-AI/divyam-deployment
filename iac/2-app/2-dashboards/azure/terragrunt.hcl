@@ -1,6 +1,6 @@
 # Azure dashboards (Azure Managed Grafana). Uploads every *.json in ./dashboards
 # (Grafana export format) as a grafana_dashboard against the Managed Grafana endpoint
-# created by 1-platform/1-k8s/azure. Runs when CLOUD_PROVIDER=azure and
+# Grafana endpoint from 1-platform/2-monitoring/native/azure. Runs when CLOUD_PROVIDER=azure and
 # datadog.enabled = false.
 
 include "root" {
@@ -8,8 +8,8 @@ include "root" {
   expose = true
 }
 
-dependency "k8s" {
-  config_path = "../../../1-platform/1-k8s/azure"
+dependency "monitoring" {
+  config_path = "../../../1-platform/2-monitoring/native/azure"
   mock_outputs = {
     grafana_endpoint = "https://mock-grafana.eastus.grafana.azure.com"
     grafana_name     = "mock-grafana"
@@ -29,7 +29,7 @@ locals {
 inputs = {
   enabled           = !local.datadog_enabled
   dashboards_folder = "${get_repo_root()}/iac/2-app/2-dashboards/azure/dashboards"
-  grafana_endpoint  = dependency.k8s.outputs.grafana_endpoint
+  grafana_endpoint  = dependency.monitoring.outputs.grafana_endpoint
   grafana_api_token = get_env("TF_VAR_grafana_api_token", "")
 }
 

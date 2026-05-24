@@ -88,8 +88,8 @@ inputs = {
   nat_public_ip_name      = try(local.root.nat.nat_public_ip_name, null)
   nat_resource_group_name = try(local.root.nat.nat_resource_group_name, null)
 
-  enable_log_collection    = local.datadog_enabled ? false : try(local.obs.enable_logs, true)
-  enable_metrics_collection = local.datadog_enabled ? false : try(local.obs.enable_metrics, true)
-  logs_retention_days      = min(730, try(local.obs.logs_retention_days, 730))
+  enable_log_collection     = local.datadog_enabled ? false : try(local.obs.enable_logs, true)
+  enable_metrics_collection = false
+  logs_retention_days       = min(730, try(local.obs.logs_retention_days, 730))
   artifacts_path           = try(local.root.helm_charts.artifacts_path, null)
 }

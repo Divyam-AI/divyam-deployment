@@ -41,8 +41,9 @@ variable "clusters" {
     binauthz_evaluation_mode   = string
     dns_scope                  = string
     dns_domain                 = string
-    enable_workload_logs       = bool
-    enable_cluster_logs        = bool
+    enable_workload_logs        = bool
+    enable_cluster_logs         = bool
+    enable_managed_prometheus   = bool
   }))
   default = {}
 }

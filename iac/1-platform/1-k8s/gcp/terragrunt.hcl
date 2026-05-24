@@ -72,8 +72,9 @@ locals {
     binauthz_evaluation_mode  = "DISABLED"
     dns_scope                 = "CLUSTER_SCOPE"
     dns_domain                = ""
-    enable_workload_logs      = local.datadog_enabled ? false : try(local.obs.enable_logs, true)
-    enable_cluster_logs       = local.datadog_enabled ? false : try(local.obs.enable_logs, true)
+    enable_workload_logs        = local.datadog_enabled ? false : try(local.obs.enable_logs, true)
+    enable_cluster_logs         = local.datadog_enabled ? false : try(local.obs.enable_logs, true)
+    enable_managed_prometheus   = local.datadog_enabled ? false : try(local.obs.enable_metrics, false)
   }
   clusters_with_links = { (local.k8s.name) = local.cluster_config }
   # Additional node pools (GCP shape): machine_type from instance_type (single value per cloud from defaults ternary) or legacy keys.
@@ -98,8 +99,8 @@ inputs = merge(
     cluster_name          = local.k8s.create ? null : local.k8s.name
     clusters              = local.k8s.create ? local.clusters_with_links : {}
     additional_node_pools = local.additional_node_pools
-    logs_retention_days   = min(3650, max(1, try(local.obs.logs_retention_days, 3650)))
-    manage_project_log_bucket = !local.datadog_enabled
+    logs_retention_days       = min(3650, max(1, try(local.obs.logs_retention_days, 3650)))
+    manage_project_log_bucket = false
     common_tags           = try(local.root.common_tags, {})
     tag_globals           = try(include.root.inputs.tag_globals, {})
     tag_context = {

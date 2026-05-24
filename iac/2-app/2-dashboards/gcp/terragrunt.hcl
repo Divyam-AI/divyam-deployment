@@ -7,7 +7,7 @@ include "root" {
 }
 
 dependency "k8s" {
-  config_path                             = "../../../1-platform/1-k8s/gcp"
+  config_path                             = "../../../1-platform/2-monitoring/native/gcp"
   skip_outputs                            = true
   mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
 }

@@ -234,20 +234,41 @@ locals {
     }
 
     observability = {
-      enable_logs         = false
-      # Maximum retention: GCP _Default bucket = 3650 days; Azure Log Analytics = 730 days (capped in 1-k8s).
+      enable_logs         = true
+      # Maximum retention: GCP _Default bucket = 3650 days; Azure Log Analytics = 730 days (capped in 1-k8s / 2-monitoring).
       logs_retention_days = 30
-      enable_metrics      = false
+      enable_metrics      = true
     }
 
     # Upgrade cadence: Azure = automatic_channel_upgrade (stable|rapid|patch|node-image), GCP = release_channel (REGULAR|RAPID|STABLE). Set per cloud.
     release_channel = local.cloud_provider == "azure" ? "stable" : "REGULAR"
 
-    # When true, enables 1-platform/2-bastion-kubectl-setup (run setup-kubectl on bastion after cluster exists). Bastion must have been created with bastion.configure_kubectl so the script exists.
+    # When true, enables 1-platform/3-bastion-kubectl-setup (run setup-kubectl on bastion after cluster exists). Bastion must have been created with bastion.configure_kubectl so the script exists.
     setup_kubectl_on_bastion = false
   }
 
-  # --- Datadog ---
+  # --- Platform monitoring (1-platform/2-monitoring) ---
+  monitoring = {
+    create   = true
+    provider = "cloud_native"
+
+    native = {
+      enable_logs    = true
+      enable_metrics = true
+      logs_retention_days = 30
+      manage_project_log_bucket = true
+
+      create_amw = true
+      azure_monitor_workspace_name = null
+      azure_monitor_workspace_id   = null
+      grafana_endpoint             = null
+
+      gcp_project_id   = null
+      gmp_cluster_name = null
+    }
+  }
+
+  # --- Datadog (optional; 1-platform/2-monitoring/datadog when enabled) ---
   # When enabled:
   # - set registry to your Datadog site (for example: datadoghq.com, datadoghq.eu, ap1.datadoghq.com)
   # - set env to the deployment environment tag to be sent to Datadog
@@ -256,11 +277,12 @@ locals {
   # - exclude_namespaces_logs and exclude_namespaces_metrics are additive granular lists
   #   appended to the shared exclude_namespaces list.
   datadog = {
-    enabled  = true
+    enabled  = false
     site = "ap1.datadoghq.com"
     registry = "asia.gcr.io/datadoghq"
-    env      = "dev"  # Datadog Agent env tag only (2-app/0-datadog). Monitors use env_name via monitor_env.
+    env      = "dev"  # Datadog Agent env tag only (2-monitoring/datadog). Monitors use env_name via monitor_env.
     # monitor_env = null  # optional override for monitor env: tag; default = env_name (e.g. prod)
+    # custom_cluster_name = null  # when k8s.create = false; must match {{cluster_name}} in 2-alerts rules
     exclude_namespaces = [
       "default",
       "kube-system",
