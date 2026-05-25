@@ -38,6 +38,7 @@ repositories:
   Optional keys in provider.yaml (merged into listed charts when present):
     - monitoring         (top-level; merged with per-chart values.monitoring; chart wins on overlap)
     - ingress            (top-level; merged with per-chart values.ingress; chart wins on overlap)
+    - secrets            (top-level; merged with per-chart values.secrets; chart wins on overlap)
 */}}
 {{- $providerVals := readFile (printf "%s/provider.yaml" $valuesDir) | fromYaml }}
 {{- $resources := readFile (printf "%s/resources.yaml" $valuesDir) | fromYaml }}
@@ -168,6 +169,26 @@ repositories:
   "divyam-router-controller"      true
   "divyam-route-selector"         true
   "infinity"                      true
+-}}
+
+{{/*
+  Charts whose values.yaml defines a top-level `secrets` key — merged from
+  provider.yaml `secrets` (when present) with per-chart resources values
+  (chart wins on overlap). If provider.yaml omits `secrets`, only chart values apply.
+  Add chart names here as "chart-name" true — membership is explicit, not name-based.
+*/}}
+{{- $chartsWithProviderSecrets := dict
+  "clickhouse"                    true
+  "mysql"                         true
+  "superset-postgres"             true
+  "superset"                      true
+  "divyam-db-upgrades"            true
+  "divyam-evaluator"              true
+  "divyam-route-selector"         true
+  "divyam-router-controller"      true
+  "divyam-selector-training"      true
+  "divyam-control-plane-exporter" true
+  "divyam-e2e-test-runner"        true
 -}}
 
 ###############################################################################
@@ -353,7 +374,7 @@ releases:
 
     {{- $chartVals := $cfg.values | default dict }}
     {{- $omitProviderKeys := false }}
-    {{- if or (hasKey $chartsWithProviderIngress $name) (hasKey $chartsWithProviderMonitoring $name) }}
+    {{- if or (hasKey $chartsWithProviderIngress $name) (hasKey $chartsWithProviderMonitoring $name) (hasKey $chartsWithProviderSecrets $name) }}
     {{- $omitProviderKeys = true }}
     {{- end }}
     {{- if $omitProviderKeys }}
@@ -363,6 +384,9 @@ releases:
     {{- end }}
     {{- if hasKey $chartsWithProviderMonitoring $name }}
     {{- $valsBody = omit $valsBody "monitoring" }}
+    {{- end }}
+    {{- if hasKey $chartsWithProviderSecrets $name }}
+    {{- $valsBody = omit $valsBody "secrets" }}
     {{- end }}
     {{- if $valsBody }}
     - {{ toYaml $valsBody | nindent 6 }}
@@ -379,6 +403,12 @@ releases:
     {{- $mergedMonitoring := merge (index $values.global "monitoring" | default dict) (index $chartVals "monitoring" | default dict) }}
     - monitoring:
       {{ $mergedMonitoring | toYaml | nindent 8 }}
+    {{- end }}
+
+    {{- if and (hasKey $chartsWithProviderSecrets $name) (index $values.global "secrets") }}
+    {{- $mergedSecrets := merge (index $values.global "secrets" | default dict) (index $chartVals "secrets" | default dict) }}
+    - secrets:
+      {{ $mergedSecrets | toYaml | nindent 8 }}
     {{- end }}
 
     {{- if and (eq $name "divyam-persistent-storage") ($settings.storage_class) }}
