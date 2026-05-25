@@ -316,6 +316,7 @@ export VALUES_FILE=values/example-custom-k8s-datadog.hcl
 export KUBECONFIG=/path/to/kubeconfig
 export TG_USE_LOCAL_BACKEND=1
 export TF_VAR_datadog_api_key=...
+# datadog.site / datadog.registry in VALUES_FILE must match your org (see values file)
 
 cd iac/1-platform/2-monitoring/datadog/custom
 terragrunt init -reconfigure

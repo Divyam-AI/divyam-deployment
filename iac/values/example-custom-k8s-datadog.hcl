@@ -4,6 +4,8 @@
 #   - Cluster API reachable via kubeconfig (export KUBECONFIG or use default ~/.kube/config)
 #   - k8s.create = false in this file
 #   - datadog.custom_cluster_name matches {{cluster_name}} in 2-app/2-alerts/common/rules
+#   - datadog.site / datadog.registry must match your org (e.g. ap1.datadoghq.com + asia.gcr.io/datadoghq).
+#     Sandbox scripts require DATADOG_SITE and DATADOG_REGISTRY env vars when using get_env() below.
 #
 # Copy and adjust resource_scope, env_name, and cluster names for your environment.
 
@@ -57,8 +59,8 @@ locals {
 
   datadog = {
     enabled              = true
-    site                 = "datadoghq.com"
-    registry             = "gcr.io/datadoghq"
+    site                 = "ap1.datadoghq.com"       # must match API key org site
+    registry             = "asia.gcr.io/datadoghq"
     env                  = local.env_name
     custom_cluster_name  = "custom-k8s"
     exclude_namespaces   = ["kube-system"]
