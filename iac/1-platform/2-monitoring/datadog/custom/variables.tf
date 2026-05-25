@@ -15,6 +15,11 @@ variable "datadog_enabled" {
 
 variable "datadog_site" {
   type = string
+
+  validation {
+    condition     = !var.datadog_enabled || trimspace(var.datadog_site) != ""
+    error_message = "When datadog.enabled is true, set datadog.site in VALUES_FILE."
+  }
 }
 
 variable "datadog_env" {
@@ -24,6 +29,11 @@ variable "datadog_env" {
 variable "datadog_api_key" {
   type      = string
   sensitive = true
+
+  validation {
+    condition     = !var.datadog_enabled || trimspace(var.datadog_api_key) != ""
+    error_message = "When datadog.enabled is true, export TF_VAR_datadog_api_key before plan/apply."
+  }
 }
 
 variable "datadog_docker_registry" {

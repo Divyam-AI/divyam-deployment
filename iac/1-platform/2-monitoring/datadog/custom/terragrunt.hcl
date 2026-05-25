@@ -11,6 +11,52 @@ terraform {
   source = "./"
 }
 
+generate "common_module" {
+  path      = "common_module.tf"
+  if_exists = "overwrite"
+  contents  = <<EOF
+module "datadog_k8s" {
+  source = "${get_terragrunt_dir()}/../common"
+
+  datadog_enabled         = var.datadog_enabled
+  cluster_name            = var.cluster_name
+  datadog_site            = var.datadog_site
+  datadog_env             = var.datadog_env
+  datadog_api_key         = var.datadog_api_key
+  datadog_docker_registry = var.datadog_docker_registry
+
+  datadog_exclude_namespaces         = var.datadog_exclude_namespaces
+  datadog_exclude_namespaces_logs    = var.datadog_exclude_namespaces_logs
+  datadog_exclude_namespaces_metrics = var.datadog_exclude_namespaces_metrics
+  divyam_clickhouse_password         = var.divyam_clickhouse_password
+  divyam_db_password                 = var.divyam_db_password
+}
+EOF
+}
+
+generate "k8s_providers_override" {
+  path      = "zz_datadog_k8s_override.tf"
+  if_exists = "overwrite_terragrunt"
+  contents  = <<EOF
+terraform {
+  required_providers {
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = ">= 2.0.0"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = ">= 2.0.0"
+    }
+    kubectl = {
+      source  = "gavinbunney/kubectl"
+      version = ">= 1.14.0"
+    }
+  }
+}
+EOF
+}
+
 locals {
   root            = include.root.locals.merged
   datadog_cfg     = try(local.root.datadog, {})

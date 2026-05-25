@@ -44,9 +44,12 @@ For clusters **not** created by this repo’s `1-k8s` (k3s, kubeadm, on-prem, et
 ```bash
 export VALUES_FILE=values/example-custom-k8s-datadog.hcl   # copy and edit
 export KUBECONFIG=/path/to/kubeconfig
+export TG_USE_LOCAL_BACKEND=1
 export TF_VAR_datadog_api_key=...
 
-terragrunt apply --terragrunt-working-dir 1-platform/2-monitoring/datadog/custom
+cd iac/1-platform/2-monitoring/datadog/custom
+terragrunt init -reconfigure
+terragrunt apply
 ```
 
 **Why a separate Terragrunt unit?** Credentials are already external (`KUBECONFIG`). The split is not duplicate secret storage:

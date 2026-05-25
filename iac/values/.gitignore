@@ -1,0 +1,2 @@
+# Copied at runtime by external custom-K8s monitoring wrapper scripts (if used)
+.microk8s-monitoring-active.hcl

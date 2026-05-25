@@ -304,25 +304,25 @@ Alert rules: [`2-app/2-alerts/common/rules/`](2-app/2-alerts/common/rules/) (Pro
 
 For any cluster **not** provisioned by `1-k8s` (`k8s.create = false`):
 
-1. Copy [`values/example-custom-k8s-datadog.hcl`](values/example-custom-k8s-datadog.hcl) or the cloud-native examples [`example-custom-k8s-gcp-native.hcl`](values/example-custom-k8s-gcp-native.hcl) / [`example-custom-k8s-azure-native.hcl`](values/example-custom-k8s-azure-native.hcl).
-2. Set `datadog.custom_cluster_name` (or `k8s.name`) to match `{{cluster_name}}` in alert rules.
-3. **Datadog agent:** export `KUBECONFIG`, then apply `1-platform/2-monitoring/datadog/custom` (credentials are external; see [why a separate unit](1-platform/2-monitoring/README.md#custom-kubernetes-datadog) in the monitoring README).
-4. **Monitors/dashboards:** from any host with API keys:
+1. Copy an example values file:
+   - Datadog: [`values/example-custom-k8s-datadog.hcl`](values/example-custom-k8s-datadog.hcl)
+   - Cloud-native GCP / Azure: [`example-custom-k8s-gcp-native.hcl`](values/example-custom-k8s-gcp-native.hcl), [`example-custom-k8s-azure-native.hcl`](values/example-custom-k8s-azure-native.hcl)
+2. Set `datadog.custom_cluster_name` (or `k8s.name`) to match `{{cluster_name}}` in [`2-app/2-alerts/common/rules`](2-app/2-alerts/common/rules).
+3. **Datadog agent:** export `KUBECONFIG`, apply [`1-platform/2-monitoring/datadog/custom`](1-platform/2-monitoring/datadog/custom) (see [why a separate unit](1-platform/2-monitoring/README.md#custom-kubernetes-datadog)).
+4. **Datadog monitors/dashboards:** `TF_VAR_datadog_app_key`, then `2-app/2-alerts/**/datadog` and `2-app/2-dashboards/datadog`.
 
 ```bash
-export VALUES_FILE=values/<your-custom-k8s>.hcl
+export VALUES_FILE=values/example-custom-k8s-datadog.hcl
 export KUBECONFIG=/path/to/kubeconfig
+export TG_USE_LOCAL_BACKEND=1
 export TF_VAR_datadog_api_key=...
 
-terragrunt apply --terragrunt-working-dir 1-platform/2-monitoring/datadog/custom
-
-export TF_VAR_datadog_app_key=...
-terragrunt run apply --all \
-  --filter "./**/2-alerts/**/datadog" \
-  --filter "./**/2-dashboards/datadog"
+cd iac/1-platform/2-monitoring/datadog/custom
+terragrunt init -reconfigure
+terragrunt apply
 ```
 
-**Cloud-native on custom K8s:** export metrics to GCP ([GMP non-GKE](https://cloud.google.com/stackdriver/docs/managed-prometheus/setup-unmanaged)) or Azure ([Prometheus remote_write](https://learn.microsoft.com/en-us/azure/azure-monitor/containers/prometheus-remote-write)), then apply `2-app` with `datadog.enabled = false` and a non-prod `resource_scope`.
+**Cloud-native on custom K8s:** this repo’s Terraform creates **alert policies and dashboards** in GCP/Azure only. It does **not** install in-cluster metric exporters for custom clusters. You must export metrics yourself ([GMP non-GKE](https://cloud.google.com/stackdriver/docs/managed-prometheus/setup-unmanaged) or [Azure Prometheus remote_write](https://learn.microsoft.com/en-us/azure/azure-monitor/containers/prometheus-remote-write)), then apply `2-app` with `datadog.enabled = false`. `2-monitoring/native/gcp` on custom K8s is mainly project log-bucket settings — not cluster scraping.
 
 **Upgrading:** [`scripts/migration.sh`](scripts/migration.sh) before first `2-monitoring` apply on existing envs.
 
