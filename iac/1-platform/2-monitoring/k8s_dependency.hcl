@@ -12,7 +12,8 @@ locals {
 }
 
 dependency "k8s" {
-  config_path = "../1-k8s/${local.cloud}"
+  # config_path is resolved from the *child* module dir (e.g. datadog/azure), not this file's dir.
+  config_path = "${local.repo_root}/iac/1-platform/1-k8s/${local.cloud}"
 
   mock_outputs = local.cloud == "azure" ? {
     aks_cluster_id   = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mock/providers/Microsoft.ContainerService/managedClusters/mock"
