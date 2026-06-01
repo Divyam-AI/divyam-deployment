@@ -48,7 +48,7 @@ shows in the UI. See [Cloud Monitoring Dashboards REST schema](https://cloud.goo
 ### Azure
 Standard Grafana dashboard exports (from any Grafana UI: "Share" → "Export" → "Save
 to file"). Place into `azure/dashboards/`. Will be applied against the Azure Managed
-Grafana instance created in `1-platform/1-k8s/azure`.
+Grafana instance created in `1-platform/2-monitoring/native/azure` (or set `monitoring.native.grafana_endpoint` for BYO Grafana).
 
 ## Required env vars
 

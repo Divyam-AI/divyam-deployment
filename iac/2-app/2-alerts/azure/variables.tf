@@ -13,14 +13,15 @@ variable "environment" {
   type        = string
 }
 
-variable "azure_monitor_workspace_name" {
-  description = "Name of the Azure Monitor workspace"
+variable "cluster_name" {
+  description = "AKS cluster name from values k8s.name; used to derive the Azure Monitor workspace name when azure_monitor_workspace_name is null."
   type        = string
 }
 
-variable "azure_monitor_workspace_id" {
-  description = "ID of the Azure Monitor workspace"
+variable "azure_monitor_workspace_name" {
+  description = "Optional override for the Azure Monitor workspace name (monitoring.native.azure_monitor_workspace_name)."
   type        = string
+  default     = null
 }
 
 variable "rules_folder" {

@@ -1,11 +1,10 @@
-include "monitoring" {
-  path   = "${get_parent_terragrunt_dir()}/../../terragrunt.hcl"
-  expose = true
-}
-
 include "root" {
   path   = find_in_parent_folders("root.hcl")
   expose = true
+}
+
+include "k8s_dep" {
+  path = "${get_parent_terragrunt_dir()}/../../k8s_dependency.hcl"
 }
 
 terraform {

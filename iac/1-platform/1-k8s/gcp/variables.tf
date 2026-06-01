@@ -39,11 +39,8 @@ variable "clusters" {
     services_ipv4_cidr         = string
     additional_pod_range_names = list(string)
     binauthz_evaluation_mode   = string
-    dns_scope                  = string
-    dns_domain                 = string
-    enable_workload_logs        = bool
-    enable_cluster_logs         = bool
-    enable_managed_prometheus   = bool
+    dns_scope    = string
+    dns_domain   = string
   }))
   default = {}
 }
@@ -63,14 +60,3 @@ variable "additional_node_pools" {
   default = {}
 }
 
-variable "logs_retention_days" {
-  description = "Retention in days for the project _Default log bucket (GKE, LB, and other project logs). GCP max = 3650; values above 3650 are capped at 3650."
-  type        = number
-  default     = 7
-}
-
-variable "manage_project_log_bucket" {
-  description = "When true, manage retention of the project _Default log bucket."
-  type        = bool
-  default     = true
-}

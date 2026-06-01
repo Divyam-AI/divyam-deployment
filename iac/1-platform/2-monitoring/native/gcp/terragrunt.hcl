@@ -1,13 +1,12 @@
-# GCP Cloud Monitoring log bucket. GKE logging/GMP remain on 1-k8s/gcp (cluster resource).
-
-include "monitoring" {
-  path   = "${get_parent_terragrunt_dir()}/../../terragrunt.hcl"
-  expose = true
-}
+# GCP native observability: project log bucket + GKE logging/GMP (cluster observability).
 
 include "root" {
   path   = find_in_parent_folders("root.hcl")
   expose = true
+}
+
+include "k8s_dep" {
+  path = "${get_parent_terragrunt_dir()}/../../k8s_dependency.hcl"
 }
 
 terraform {
@@ -45,19 +44,26 @@ locals {
 
   cluster_name = coalesce(
     try(local.native_cfg.gmp_cluster_name, null),
-    local.root.k8s.name
+    try(local.root.k8s.name, null)
   )
 }
 
 inputs = {
-  enabled = local.native_enabled
+  enabled    = local.native_enabled
   project_id = coalesce(try(local.native_cfg.gcp_project_id, null), local.root.resource_scope.name)
-  logs_retention_days = min(3650, max(1, try(local.native_cfg.logs_retention_days, try(local.k8s_obs.logs_retention_days, 30))))
+  region     = local.root.region
+  cluster_name = local.cluster_name
+
+  enable_workload_logs      = try(local.native_cfg.enable_logs, try(local.k8s_obs.enable_logs, true))
+  enable_cluster_logs       = try(local.native_cfg.enable_logs, try(local.k8s_obs.enable_logs, true))
+  enable_managed_prometheus = try(local.native_cfg.enable_metrics, try(local.k8s_obs.enable_metrics, false))
+
+  logs_retention_days       = min(3650, max(1, try(local.native_cfg.logs_retention_days, try(local.k8s_obs.logs_retention_days, 30))))
   manage_project_log_bucket = try(local.native_cfg.manage_project_log_bucket, true)
 
   common_tags = try(local.root.common_tags, {})
-  tag_globals = try(include.root.inputs.tag_globals, {})
-  tag_context = { resource_name = "${local.root.deployment_prefix}-monitoring" }
+  tag_globals   = try(include.root.inputs.tag_globals, {})
+  tag_context   = { resource_name = "${local.root.deployment_prefix}-monitoring" }
 }
 
 exclude {

@@ -4,13 +4,24 @@ variable "enabled" {
   default     = true
 }
 
-variable "dashboards_folder" {
-  description = "Path to folder containing Grafana dashboard JSON files."
+variable "resource_group_name" {
+  description = "Azure resource group containing the Managed Grafana instance."
   type        = string
 }
 
-variable "grafana_endpoint" {
-  description = "Azure Managed Grafana endpoint URL (e.g. https://<name>-<suffix>.<region>.grafana.azure.com)."
+variable "cluster_name" {
+  description = "AKS cluster name from values k8s.name; used to derive Managed Grafana name when grafana_endpoint_override is null."
+  type        = string
+}
+
+variable "grafana_endpoint_override" {
+  description = "Optional Managed Grafana endpoint URL (monitoring.native.grafana_endpoint). When set, skips data lookup."
+  type        = string
+  default     = null
+}
+
+variable "dashboards_folder" {
+  description = "Path to folder containing Grafana dashboard JSON files."
   type        = string
 }
 
