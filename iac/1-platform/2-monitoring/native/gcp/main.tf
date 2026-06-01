@@ -2,8 +2,6 @@
 # Cluster lifecycle remains in 1-k8s/gcp; this module updates observability settings only.
 
 locals {
-  tag_context_base = merge(var.tag_globals, var.tag_context)
-
   logging_components = (
     var.enable_workload_logs && var.enable_cluster_logs ? [
       "SYSTEM_COMPONENTS",
