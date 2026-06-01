@@ -2,7 +2,7 @@
 # Include from child terragrunt.hcl alongside include "root" (each include is one level only).
 #
 #   include "root" { path = find_in_parent_folders("root.hcl"); expose = true }
-#   include "k8s_dep" { path = "${get_parent_terragrunt_dir()}/../../k8s_dependency.hcl" }
+#   include "k8s_dep" { path = "${get_repo_root()}/iac/1-platform/2-monitoring/k8s_dependency.hcl" }
 
 locals {
   repo_root   = get_repo_root()

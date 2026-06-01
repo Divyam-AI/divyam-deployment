@@ -8,7 +8,7 @@ Platform observability parallel to [`1-k8s`](../1-k8s). Runs **after** the clust
 
 ```hcl
 include "root" { path = find_in_parent_folders("root.hcl"); expose = true }
-include "k8s_dep" { path = "${get_parent_terragrunt_dir()}/../../k8s_dependency.hcl" }
+include "k8s_dep" { path = "${get_repo_root()}/iac/1-platform/2-monitoring/k8s_dependency.hcl" }
 ```
 
 Apply order: **`1-k8s` before `2-monitoring`**. Do not add `1-k8s` → `2-monitoring` (monitoring would run before the cluster exists).

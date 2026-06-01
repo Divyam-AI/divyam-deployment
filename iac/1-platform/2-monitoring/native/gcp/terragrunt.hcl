@@ -6,7 +6,7 @@ include "root" {
 }
 
 include "k8s_dep" {
-  path = "${get_parent_terragrunt_dir()}/../../k8s_dependency.hcl"
+  path = "${get_repo_root()}/iac/1-platform/2-monitoring/k8s_dependency.hcl"
 }
 
 terraform {
