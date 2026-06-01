@@ -334,6 +334,12 @@ releases:
   namespace: {{ $ns }}
   chart: {{ $chart }}
 
+  {{- if eq $name "mysql" }}
+  postRenderer: {{ printf "%s/mysql/scripts/inject-pvc-volumename.py" $base }}
+  postRendererArgs:
+    - {{ $ns | quote }}
+  {{- end }}
+
   {{- if $needs }}
   needs:
     {{- range $dep := $needs }}
