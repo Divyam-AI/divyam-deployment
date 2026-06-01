@@ -1,15 +1,8 @@
 # GCP notification channels. Config from values/defaults.hcl alerts.webhook_urls.
-# Run before 3-alerts/gcp/alerts.
 
 include "root" {
   path   = find_in_parent_folders("root.hcl")
   expose = true
-}
-
-dependency "k8s" {
-  config_path                             = "../../../../1-platform/2-monitoring/native/gcp"
-  skip_outputs                            = true
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
 }
 
 terraform {

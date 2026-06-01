@@ -167,6 +167,7 @@ migrate_azure() {
 
 migrate_gcp() {
   log "GCP: migrate log bucket from 1-k8s/gcp → 2-monitoring/native/gcp"
+  log "      (GKE logging/GMP: import cluster into 2-monitoring after first 1-k8s apply — see Verification)"
 
   local src="${WORKDIR}/k8s-gcp.tfstate"
   local dst="${WORKDIR}/monitoring-gcp.tfstate"
@@ -226,7 +227,7 @@ Verification
   cd iac/1-platform/1-k8s/${CLOUD_PROVIDER}
   terragrunt plan
 
-  cd iac/2-app/3-alerts/${CLOUD_PROVIDER}/prometheus   # or gcp/alerts/prometheus
+  cd iac/2-app/2-alerts/${CLOUD_PROVIDER}/prometheus   # or gcp/alerts/prometheus
   terragrunt plan
 
 Import fallback (resource exists in cloud, missing from state)
@@ -242,6 +243,11 @@ Import fallback (resource exists in cloud, missing from state)
   GCP log bucket (project-level):
     terragrunt import 'google_logging_project_bucket_config.default_bucket[0]' \
       'projects/<project-id>/locations/global/buckets/_Default'
+
+  GKE observability (logging/GMP — run once per cluster after pulling this refactor):
+    cd 1-platform/2-monitoring/native/gcp
+    terragrunt import 'google_container_cluster.observability[0]' \
+      'projects/<project-id>/locations/<region>/clusters/<cluster-name>'
 
 EOF
 

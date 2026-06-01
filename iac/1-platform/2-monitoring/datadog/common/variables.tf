@@ -12,16 +12,72 @@ variable "cluster_name" {
   type        = string
 }
 
+# --- Cloud-specific (only one set is used per Terragrunt unit: azure / gcp / custom) ---
+
+variable "kube_config" {
+  description = "AKS kubeconfig from 1-k8s/azure outputs (Azure unit only)."
+  type = object({
+    host                   = string
+    client_certificate     = string
+    client_key             = string
+    cluster_ca_certificate = string
+  })
+  default   = null
+  sensitive = true
+}
+
+variable "project_id" {
+  description = "GCP project ID (GCP unit only)."
+  type        = string
+  default     = null
+}
+
+variable "region" {
+  description = "GCP region (GCP unit only)."
+  type        = string
+  default     = null
+}
+
+variable "cluster_endpoint" {
+  description = "GKE control plane endpoint without https:// scheme (GCP unit only)."
+  type        = string
+  default     = null
+}
+
+variable "cluster_ca_certificate" {
+  description = "GKE cluster CA certificate, base64-encoded (GCP unit only)."
+  type        = string
+  default     = null
+  sensitive   = true
+}
+
+variable "kubeconfig_path" {
+  description = "Path to kubeconfig on the apply host (custom K8s unit only)."
+  type        = string
+  default     = null
+  sensitive   = true
+}
+
 variable "datadog_site" {
   description = "Datadog site (e.g. datadoghq.com)."
   type        = string
   default     = ""
+
+  validation {
+    condition     = !var.datadog_enabled || trimspace(var.datadog_site) != ""
+    error_message = "When datadog.enabled is true, datadog.site must be set in the values file."
+  }
 }
 
 variable "datadog_env" {
   description = "Datadog environment tag (env:...)."
   type        = string
   default     = ""
+
+  validation {
+    condition     = !var.datadog_enabled || trimspace(var.datadog_env) != ""
+    error_message = "When datadog.enabled is true, datadog.env must be set in the values file."
+  }
 }
 
 variable "datadog_api_key" {
@@ -29,6 +85,11 @@ variable "datadog_api_key" {
   type        = string
   default     = ""
   sensitive   = true
+
+  validation {
+    condition     = !var.datadog_enabled || trimspace(var.datadog_api_key) != ""
+    error_message = "When datadog.enabled is true, export TF_VAR_datadog_api_key."
+  }
 }
 
 variable "divyam_clickhouse_password" {

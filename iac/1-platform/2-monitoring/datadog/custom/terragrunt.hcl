@@ -16,7 +16,7 @@ generate "common_module" {
   if_exists = "overwrite"
   contents  = <<EOF
 module "datadog_k8s" {
-  source = "${get_terragrunt_dir()}/../common"
+  source = "${get_repo_root()}/iac/1-platform/2-monitoring/datadog/common"
 
   datadog_enabled         = var.datadog_enabled
   cluster_name            = var.cluster_name

@@ -6,12 +6,6 @@ include "root" {
   expose = true
 }
 
-dependency "k8s" {
-  config_path                             = "../../../1-platform/2-monitoring/native/gcp"
-  skip_outputs                            = true
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
-}
-
 terraform {
   source = "${get_repo_root()}/iac/2-app/2-dashboards/gcp"
 }

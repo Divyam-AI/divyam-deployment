@@ -1,13 +1,12 @@
 # Azure Monitor workspace, Prometheus DCR, Managed Grafana. Runs when datadog.enabled = false.
 
-include "monitoring" {
-  path   = "${get_parent_terragrunt_dir()}/../../terragrunt.hcl"
-  expose = true
-}
-
 include "root" {
   path   = find_in_parent_folders("root.hcl")
   expose = true
+}
+
+include "k8s_dep" {
+  path = "${get_repo_root()}/iac/1-platform/2-monitoring/k8s_dependency.hcl"
 }
 
 terraform {
@@ -36,8 +35,7 @@ inputs = {
   location            = local.root.region
   resource_group_name = local.root.resource_scope.name
   cluster_name        = try(dependency.k8s.outputs.aks_cluster_name, local.root.k8s.name)
-  # Required for azurerm_monitor_data_collection_rule_association (Prometheus DCR on AKS).
-  aks_cluster_id = try(dependency.k8s.outputs.aks_cluster_id, null)
+  aks_cluster_id      = try(dependency.k8s.outputs.aks_cluster_id, null)
 
   enable_metrics_collection = try(local.native_cfg.enable_metrics, try(local.k8s_obs.enable_metrics, true))
 

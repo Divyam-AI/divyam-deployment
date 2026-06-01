@@ -71,11 +71,11 @@ resource "azurerm_monitor_alert_prometheus_rule_group" "alerts" {
   name                = replace(each.value.name, "_", "-")
   location            = var.location
   resource_group_name = var.resource_group_name
-  cluster_name        = var.azure_monitor_workspace_name
+  cluster_name        = data.azurerm_monitor_workspace.prometheus.name
   description         = lookup(each.value, "description", each.value.name)
   rule_group_enabled  = lookup(each.value, "enabled", true)
   interval            = each.value.interval
-  scopes              = [var.azure_monitor_workspace_id]
+  scopes              = [data.azurerm_monitor_workspace.prometheus.id]
 
   dynamic "rule" {
     for_each = each.value.rules

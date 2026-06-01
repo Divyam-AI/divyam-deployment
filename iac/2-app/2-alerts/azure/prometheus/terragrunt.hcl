@@ -1,5 +1,6 @@
 # Azure Monitor Prometheus alert rules. Matched by terragrunt --filter "**/azure".
 # Skipped when datadog.enabled = true.
+# Resolves Azure Monitor workspace via data source (no dependency on 1-platform/2-monitoring).
 
 include "root" {
   path   = find_in_parent_folders("root.hcl")
@@ -9,6 +10,7 @@ include "root" {
 locals {
   root            = include.root.locals.merged
   alerts_cfg      = try(local.root.alerts, {})
+  monitoring_cfg  = try(local.root.monitoring.native, {})
   datadog_enabled = try(local.root.datadog.enabled, false)
   alerts_run      = try(local.alerts_cfg.create, true) && try(local.alerts_cfg.enabled, false)
 
@@ -17,15 +19,6 @@ locals {
 
 terraform {
   source = "${get_repo_root()}/iac/2-app/2-alerts/azure"
-}
-
-dependency "monitoring" {
-  config_path = "../../../../1-platform/2-monitoring/native/azure"
-  mock_outputs = {
-    monitor_workspace_name = "mock-workspace"
-    monitor_workspace_id   = "/subscriptions/mock/resourceGroups/mock/providers/Microsoft.Monitor/accounts/mock"
-  }
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
 }
 
 inputs = {
@@ -38,8 +31,8 @@ inputs = {
     resource_name = "${local.root.deployment_prefix}-alerts"
   }
 
-  azure_monitor_workspace_name = dependency.monitoring.outputs.monitor_workspace_name
-  azure_monitor_workspace_id   = dependency.monitoring.outputs.monitor_workspace_id
+  cluster_name                 = local.root.k8s.name
+  azure_monitor_workspace_name = try(local.monitoring_cfg.azure_monitor_workspace_name, null)
   resource_name_prefix         = local.root.deployment_prefix
   rules_folder                 = "${get_repo_root()}/iac/2-app/2-alerts/common/rules"
 

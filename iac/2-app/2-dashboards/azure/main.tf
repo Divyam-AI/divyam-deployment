@@ -12,7 +12,7 @@
 # coexist with the terraform {} block that root.hcl generates in provider.tf.
 
 provider "grafana" {
-  url  = var.grafana_endpoint
+  url  = local.grafana_endpoint_resolved
   auth = var.grafana_api_token
 }
 

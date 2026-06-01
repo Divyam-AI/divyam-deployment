@@ -4,13 +4,11 @@ Platform observability parallel to [`1-k8s`](../1-k8s). Runs **after** the clust
 
 ## Dependency on `1-k8s`
 
-[`terragrunt.hcl`](terragrunt.hcl) declares `dependency "k8s"` → `../1-k8s/<cloud>`. Children `datadog/{gcp,azure}` and `native/*` include it:
+[`terragrunt.hcl`](terragrunt.hcl) documents apply order. Shared `dependency "k8s"` is in [`k8s_dependency.hcl`](k8s_dependency.hcl); children include it alongside `root.hcl`:
 
 ```hcl
-include "monitoring" {
-  path   = "${get_parent_terragrunt_dir()}/../../terragrunt.hcl"
-  expose = true
-}
+include "root" { path = find_in_parent_folders("root.hcl"); expose = true }
+include "k8s_dep" { path = "${get_repo_root()}/iac/1-platform/2-monitoring/k8s_dependency.hcl" }
 ```
 
 Apply order: **`1-k8s` before `2-monitoring`**. Do not add `1-k8s` → `2-monitoring` (monitoring would run before the cluster exists).
@@ -18,7 +16,7 @@ Apply order: **`1-k8s` before `2-monitoring`**. Do not add `1-k8s` → `2-monito
 | Cloud | Needs `dependency.k8s`? | Why |
 |-------|-------------------------|-----|
 | Azure `native/azure` | Yes | DCR association requires AKS resource ID |
-| GCP `native/gcp` | Order only | Log bucket here; GMP on cluster in `1-k8s/gcp` |
+| GCP `native/gcp` | Order only | Log bucket + GKE logging/GMP (cluster observability import) |
 | Datadog `datadog/{gcp,azure}` | Yes | GKE token / AKS kubeconfig from `1-k8s` outputs |
 | Datadog `datadog/custom` | **No** | Uses kubeconfig on the apply host (`KUBECONFIG`) |
 
@@ -29,7 +27,7 @@ Apply order: **`1-k8s` before `2-monitoring`**. Do not add `1-k8s` → `2-monito
 | `datadog/{gcp,azure}` | `datadog.enabled`, cluster from `1-k8s` | Operator + agent |
 | `datadog/custom` | `datadog.enabled`, **custom K8s** (`k8s.create = false`) | Same install; auth via external kubeconfig |
 | `native/azure` | `datadog.enabled = false` | AMW, Prometheus DCR, Managed Grafana |
-| `native/gcp` | `datadog.enabled = false` | Project log bucket retention |
+| `native/gcp` | `datadog.enabled = false` | Project log bucket + GKE logging/GMP |
 
 Shared Helm/CR logic: `datadog/common/`.
 
@@ -71,4 +69,4 @@ terragrunt run apply --all --filter "./**/1-k8s/${CLOUD_PROVIDER}"
 terragrunt run apply --all --filter "./**/2-monitoring/**/${CLOUD_PROVIDER}"
 ```
 
-**Existing deployments:** [`scripts/migration.sh`](../../scripts/migration.sh) before first apply on this module.
+**Existing deployments:** [`scripts/migration.sh`](../../scripts/migration.sh) before first apply on this module. For GCP, the cluster observability resource is auto-imported on first apply when the GKE cluster already exists (created by `1-k8s/gcp`).
