@@ -338,6 +338,7 @@ releases:
   postRenderer: {{ printf "%s/mysql/scripts/inject-pvc-volumename.py" $base }}
   postRendererArgs:
     - {{ $ns | quote }}
+    - {{ printf "mysql-%s-pvc" $env | quote }}
   {{- end }}
 
   {{- if $needs }}
