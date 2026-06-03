@@ -14,7 +14,7 @@ locals {
 }
 
 terraform {
-  source = "${get_repo_root()}/iac/2-app/2-alerts/gcp/alerts"
+  source = "${get_repo_root()}/iac/2-app/2-alerts//gcp/alerts"
 }
 
 dependency "notification_channels" {

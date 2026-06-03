@@ -10,7 +10,7 @@ include "root" {
 }
 
 terraform {
-  source = "${get_repo_root()}/iac/2-app/2-alerts/datadog"
+  source = "${get_repo_root()}/iac/2-app/2-alerts//datadog"
 }
 
 locals {

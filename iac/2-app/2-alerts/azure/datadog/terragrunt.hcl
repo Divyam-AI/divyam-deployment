@@ -17,7 +17,7 @@ locals {
 }
 
 terraform {
-  source = "${get_repo_root()}/iac/2-app/2-alerts/datadog"
+  source = "${get_repo_root()}/iac/2-app/2-alerts//datadog"
 }
 
 inputs = {
@@ -49,7 +49,9 @@ inputs = {
   renotify_interval = try(local.alerts_cfg.renotify_interval, 30)
 }
 
+# Cloud-gated: this Azure unit and gcp/alerts/datadog share the same datadog module and Datadog org.
+# Without the cloud_provider guard a `**/datadog` run selects BOTH and creates duplicate monitors.
 exclude {
-  if      = !local.alerts_run || !local.datadog_enabled
+  if      = !local.alerts_run || !local.datadog_enabled || try(local.root.cloud_provider, "") != "azure"
   actions = ["apply", "plan", "destroy", "refresh", "import", "init"]
 }

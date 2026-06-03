@@ -18,7 +18,7 @@ locals {
 }
 
 terraform {
-  source = "${get_repo_root()}/iac/2-app/2-alerts/azure"
+  source = "${get_repo_root()}/iac/2-app/2-alerts//azure"
 }
 
 inputs = {
