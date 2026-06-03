@@ -5,11 +5,6 @@ locals {
   default_node_pool_name = "system"
   log_workspace_name     = "${var.cluster.name}-log-workspace"
   aks_dcr_name           = "${var.cluster.name}-aks-dcr"
-  amw_prefix             = join("", [for p in split("-", var.cluster.name) : substr(p, 0, 3)])
-  amw_name               = "${local.amw_prefix}-amw"
-  prom_dcr_name          = "${var.cluster.name}-prom-dcr"
-  grafana_name           = "${local.amw_prefix}-gf"
-
   tag_context_base = merge(var.tag_globals, var.tag_context)
 
   # Rendered tags: resource_name comes from the names above so tags always match the resource name.
@@ -17,9 +12,6 @@ locals {
   rendered_tags_system       = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = local.default_node_pool_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
   rendered_tags_log_workspace = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = local.log_workspace_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
   rendered_tags_aks_dcr       = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = local.aks_dcr_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
-  rendered_tags_amw          = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = local.amw_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
-  rendered_tags_prom_dcr     = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = local.prom_dcr_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
-  rendered_tags_grafana      = { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = local.grafana_name }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) }
   rendered_tags_for_pool     = { for pk in keys(var.cluster.additional_node_pools) : pk => { for k, v in var.common_tags : k => replace(v, "/#\\{([^}]+)\\}/", lookup(merge(local.tag_context_base, { resource_name = pk }), try(regex("#\\{([^}]+)\\}", v)[0], ""), "")) } }
 
   log_streams = [
@@ -178,11 +170,6 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
     }
   }
 
-  dynamic "monitor_metrics" {
-    for_each = var.create && var.enable_metrics_collection ? { "enabled" = true } : {}
-    content {}
-  }
-
   tags = local.rendered_tags_cluster
 
   lifecycle {
@@ -287,94 +274,6 @@ resource "azurerm_monitor_data_collection_rule_association" "aks_dcr_assoc" {
   target_resource_id      = azurerm_kubernetes_cluster.aks_cluster[0].id
   data_collection_rule_id = azurerm_monitor_data_collection_rule.aks_logs["enabled"].id
 }
-
-# ---------------------------
-# Managed metrics collection
-# ---------------------------
-resource "azurerm_monitor_workspace" "prometheus" {
-  for_each = var.create && var.enable_metrics_collection ? { "enabled" = true } : {}
-
-  name                = local.amw_name
-  location            = var.location
-  resource_group_name = var.resource_group_name
-
-  tags = local.rendered_tags_amw
-}
-
-resource "azurerm_monitor_data_collection_rule" "aks_prometheus" {
-  for_each = var.create && var.enable_metrics_collection ? { "enabled" = true } : {}
-
-  name                = local.prom_dcr_name
-  location             = var.location
-  resource_group_name  = var.resource_group_name
-
-  destinations {
-    monitor_account {
-      monitor_account_id = azurerm_monitor_workspace.prometheus["enabled"].id
-      name               = "prometheus-dest"
-    }
-  }
-
-  data_sources {
-    prometheus_forwarder {
-      name    = "prometheus-forwarder-metrics"
-      streams = ["Microsoft-PrometheusMetrics"]
-    }
-  }
-
-  data_flow {
-    streams      = ["Microsoft-PrometheusMetrics"]
-    destinations = ["prometheus-dest"]
-  }
-
-  tags = local.rendered_tags_prom_dcr
-}
-
-resource "azurerm_monitor_data_collection_rule_association" "aks_assoc" {
-  for_each = var.create && var.enable_metrics_collection ? { "enabled" = true } : {}
-
-  name                    = "${var.cluster.name}-aks-prometheus-assoc"
-  target_resource_id      = azurerm_kubernetes_cluster.aks_cluster[0].id
-  data_collection_rule_id = azurerm_monitor_data_collection_rule.aks_prometheus["enabled"].id
-}
-
-resource "azurerm_dashboard_grafana" "grafana" {
-  for_each = var.create && var.enable_metrics_collection ? { "enabled" = true } : {}
-
-  name                = local.grafana_name
-  resource_group_name = var.resource_group_name
-  location              = var.location
-  grafana_major_version = 11
-
-  azure_monitor_workspace_integrations {
-    resource_id = azurerm_monitor_workspace.prometheus["enabled"].id
-  }
-
-  identity {
-    type = "SystemAssigned"
-  }
-
-  tags = local.rendered_tags_grafana
-}
-
-resource "azurerm_role_assignment" "grafana_reader" {
-  for_each = var.create && var.enable_metrics_collection ? { "enabled" = true } : {}
-
-  scope                = azurerm_monitor_workspace.prometheus["enabled"].id
-  role_definition_name = "Monitoring Data Reader"
-  principal_id         = azurerm_dashboard_grafana.grafana["enabled"].identity[0].principal_id
-
-  lifecycle {
-    prevent_destroy = false
-    ignore_changes = [
-      name,
-      role_definition_name,
-      principal_id,
-      scope,
-    ]
-  }
-}
-
 
 # ---------------------------
 # AKS subnet permissions fix (CRITICAL)

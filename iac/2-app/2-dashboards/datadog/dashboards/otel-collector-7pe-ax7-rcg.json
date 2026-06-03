@@ -1,0 +1,1667 @@
+{
+  "id": "7pe-ax7-rcg",
+  "title": "OTel Collector",
+  "description": "Industry-standard monitoring dashboard for the OpenTelemetry Collector StatefulSet in otel-collector-prod-ns. Covers the full pipeline: Receiver -> Processor -> Exporter, plus resource utilization and Kubernetes infrastructure health. Designed for proactive degradation detection.",
+  "author_handle": "rbharathkumar0409@gmail.com",
+  "author_name": "Bharath Kumar",
+  "layout_type": "ordered",
+  "url": "/dashboard/7pe-ax7-rcg/otel-collector",
+  "template_variables": [
+    {
+      "name": "exporter",
+      "prefix": "exporter",
+      "available_values": [
+        "kafka/metering_logs",
+        "kafka/raw_logs"
+      ],
+      "defaults": [
+        "kafka/metering_logs",
+        "kafka/raw_logs"
+      ]
+    },
+    {
+      "name": "host",
+      "prefix": "host",
+      "available_values": [
+        "aks-cpu-spot-7hdzm-divyam-prod-k8s-cluster",
+        "aks-cpu-spot-ggv8j-divyam-prod-k8s-cluster",
+        "aks-cpu-spot-t6dbd-divyam-prod-k8s-cluster"
+      ],
+      "defaults": [
+        "aks-cpu-spot-7hdzm-divyam-prod-k8s-cluster",
+        "aks-cpu-spot-ggv8j-divyam-prod-k8s-cluster",
+        "aks-cpu-spot-t6dbd-divyam-prod-k8s-cluster"
+      ]
+    }
+  ],
+  "widgets": [
+    {
+      "id": 7525687315195665,
+      "definition": {
+        "title": "Overview",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 7077507214943004,
+            "definition": {
+              "type": "note",
+              "content": "**OTel Collector v0.123.0** | StatefulSet: `otel-collector-prod-sts` (3 replicas) | Cluster: `divyam-prod-k8s-cluster`\n\nPipeline: **OTLP Receiver (gRPC)** -> **Memory Limiter + Batch Processor** -> **Kafka Exporters** (raw_logs, metering_logs)\n\n**Degradation signals:** Rising queue size, increasing export failures, CPU/memory spikes, batch timeout triggers, refused records at receiver.",
+              "background_color": "white",
+              "font_size": "14",
+              "text_align": "left",
+              "vertical_align": "top",
+              "show_tick": false,
+              "tick_pos": "50%",
+              "tick_edge": "left",
+              "has_padding": true
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 4,
+              "height": 4
+            }
+          },
+          {
+            "id": 3880702092813555,
+            "definition": {
+              "title": "Running Pods",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:kubernetes.pods.running{kube_namespace:otel-collector-prod-ns,kube_stateful_set:otel-collector-prod-sts,$host}",
+                      "aggregator": "last"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 4,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 4032237231521180,
+            "definition": {
+              "title": "Container Restarts",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:kubernetes.containers.restarts{kube_namespace:otel-collector-prod-ns,kube_stateful_set:otel-collector-prod-sts,$host}",
+                      "aggregator": "last"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "conditional_formats": [
+                    {
+                      "comparator": ">",
+                      "value": 0,
+                      "palette": "white_on_red"
+                    },
+                    {
+                      "comparator": "<=",
+                      "value": 0,
+                      "palette": "white_on_green"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 2544812421059476,
+            "definition": {
+              "title": "Receiver Accepted Rate",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:otel_collector_prod_ns.otelcol_receiver_accepted_log_records.count{kube_namespace:otel-collector-prod-ns,$host}.as_rate()",
+                      "aggregator": "avg"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "custom_unit": "rec/s",
+              "precision": 2
+            },
+            "layout": {
+              "x": 8,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 1165672778263435,
+            "definition": {
+              "title": "Exporter Send Rate",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:otel_collector_prod_ns.otelcol_exporter_sent_log_records.count{kube_namespace:otel-collector-prod-ns,$exporter,$host}.as_rate()",
+                      "aggregator": "avg"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "custom_unit": "rec/s",
+              "precision": 2
+            },
+            "layout": {
+              "x": 10,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 3055829847523238,
+            "definition": {
+              "title": "Export Failures Rate",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:otel_collector_prod_ns.otelcol_exporter_send_failed_log_records.count{kube_namespace:otel-collector-prod-ns,$exporter,$host}.as_rate()",
+                      "aggregator": "avg"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "conditional_formats": [
+                    {
+                      "comparator": ">",
+                      "value": 0,
+                      "palette": "white_on_red"
+                    },
+                    {
+                      "comparator": "<=",
+                      "value": 0,
+                      "palette": "white_on_green"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "custom_unit": "rec/s",
+              "precision": 2
+            },
+            "layout": {
+              "x": 4,
+              "y": 2,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 374732510853385,
+            "definition": {
+              "title": "Exporter Queue Size",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "max:otel_collector_prod_ns.otelcol_exporter_queue_size{kube_namespace:otel-collector-prod-ns,$exporter,$host}",
+                      "aggregator": "last"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "conditional_formats": [
+                    {
+                      "comparator": ">",
+                      "value": 50,
+                      "palette": "white_on_red"
+                    },
+                    {
+                      "comparator": ">",
+                      "value": 10,
+                      "palette": "white_on_yellow"
+                    },
+                    {
+                      "comparator": "<=",
+                      "value": 10,
+                      "palette": "white_on_green"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 6,
+              "y": 2,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 1503654167373257,
+            "definition": {
+              "title": "Refused at Receiver",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:otel_collector_prod_ns.otelcol_receiver_refused_log_records.count{kube_namespace:otel-collector-prod-ns,$host}.as_rate()",
+                      "aggregator": "avg"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "conditional_formats": [
+                    {
+                      "comparator": ">",
+                      "value": 0,
+                      "palette": "white_on_red"
+                    },
+                    {
+                      "comparator": "<=",
+                      "value": 0,
+                      "palette": "white_on_green"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "custom_unit": "rec/s",
+              "precision": 2
+            },
+            "layout": {
+              "x": 8,
+              "y": 2,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 3121036851811411,
+            "definition": {
+              "title": "Batch Timeout Triggers",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:otel_collector_prod_ns.otelcol_processor_batch_timeout_trigger_send.count{kube_namespace:otel-collector-prod-ns,$host}.as_rate()",
+                      "aggregator": "avg"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "custom_unit": "/s",
+              "precision": 2
+            },
+            "layout": {
+              "x": 10,
+              "y": 2,
+              "width": 2,
+              "height": 2
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 0,
+        "width": 12,
+        "height": 5
+      }
+    },
+    {
+      "id": 4601896048948184,
+      "definition": {
+        "title": "Receiver Pipeline",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 7177009392228896,
+            "definition": {
+              "title": "Accepted Log Records Rate",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:otel_collector_prod_ns.otelcol_receiver_accepted_log_records.count{kube_namespace:otel-collector-prod-ns,$host} by {receiver,transport}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a",
+                      "alias": "Accepted Records"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 630718266525517,
+            "definition": {
+              "title": "Refused Log Records Rate",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:otel_collector_prod_ns.otelcol_receiver_refused_log_records.count{kube_namespace:otel-collector-prod-ns,$host} by {receiver,transport}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a",
+                      "alias": "Refused Records"
+                    }
+                  ],
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 5,
+        "width": 12,
+        "height": 4
+      }
+    },
+    {
+      "id": 8555397713701290,
+      "definition": {
+        "title": "Processor Pipeline",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 1781608253224302,
+            "definition": {
+              "title": "Processor Incoming vs Outgoing Items Rate",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:otel_collector_prod_ns.otelcol_processor_incoming_items.count{kube_namespace:otel-collector-prod-ns,$host} by {processor}.as_rate()"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "sum:otel_collector_prod_ns.otelcol_processor_outgoing_items.count{kube_namespace:otel-collector-prod-ns,$host} by {processor}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a",
+                      "alias": "Incoming"
+                    },
+                    {
+                      "formula": "b",
+                      "alias": "Outgoing"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 8667736387747710,
+            "definition": {
+              "title": "Batch Processor - Send Size & Timeout Triggers",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:otel_collector_prod_ns.otelcol_processor_batch_batch_send_size.sum{kube_namespace:otel-collector-prod-ns,$host} by {processor}.as_rate()"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "sum:otel_collector_prod_ns.otelcol_processor_batch_batch_send_size.count{kube_namespace:otel-collector-prod-ns,$host} by {processor}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a",
+                      "alias": "Batch Size (sum/s)"
+                    },
+                    {
+                      "formula": "b",
+                      "alias": "Batch Count/s"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 4742099430390620,
+            "definition": {
+              "title": "Batch Timeout Triggers Rate",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:otel_collector_prod_ns.otelcol_processor_batch_timeout_trigger_send.count{kube_namespace:otel-collector-prod-ns,$host} by {processor}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a",
+                      "alias": "Timeout Triggers/s"
+                    }
+                  ],
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 6052732558534585,
+            "definition": {
+              "title": "Batch Metadata Cardinality",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:otel_collector_prod_ns.otelcol_processor_batch_metadata_cardinality{kube_namespace:otel-collector-prod-ns,$host} by {processor}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a",
+                      "alias": "Metadata Cardinality"
+                    }
+                  ],
+                  "style": {
+                    "palette": "purple",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 9,
+        "width": 12,
+        "height": 7
+      }
+    },
+    {
+      "id": 7488691961893719,
+      "definition": {
+        "title": "Exporter Pipeline",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 5710947794521246,
+            "definition": {
+              "title": "Sent Log Records Rate by Exporter",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:otel_collector_prod_ns.otelcol_exporter_sent_log_records.count{kube_namespace:otel-collector-prod-ns,$exporter,$host} by {exporter}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a",
+                      "alias": "Sent Records/s"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 8381199377580038,
+            "definition": {
+              "title": "Failed Log Records Rate by Exporter",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:otel_collector_prod_ns.otelcol_exporter_send_failed_log_records.count{kube_namespace:otel-collector-prod-ns,$exporter,$host} by {exporter}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a",
+                      "alias": "Failed Records/s"
+                    }
+                  ],
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 435705798910774,
+            "definition": {
+              "title": "Exporter Queue Size vs Capacity",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:otel_collector_prod_ns.otelcol_exporter_queue_size{kube_namespace:otel-collector-prod-ns,$exporter,$host} by {exporter}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "avg:otel_collector_prod_ns.otelcol_exporter_queue_capacity{kube_namespace:otel-collector-prod-ns,$exporter,$host} by {exporter}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a",
+                      "alias": "Queue Size"
+                    },
+                    {
+                      "formula": "b",
+                      "alias": "Queue Capacity",
+                      "style": {
+                        "palette": "warm",
+                        "palette_index": 4
+                      }
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              },
+              "markers": [
+                {
+                  "label": "Queue Full",
+                  "value": "y = 100",
+                  "display_type": "error dashed"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 2309959203491989,
+            "definition": {
+              "title": "Exporter Queue Utilization %",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:otel_collector_prod_ns.otelcol_exporter_queue_size{kube_namespace:otel-collector-prod-ns,$exporter,$host} by {exporter}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "avg:otel_collector_prod_ns.otelcol_exporter_queue_capacity{kube_namespace:otel-collector-prod-ns,$exporter,$host} by {exporter}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "(a / b) * 100",
+                      "alias": "Queue Utilization %"
+                    }
+                  ],
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "max": "100"
+              },
+              "markers": [
+                {
+                  "label": "Warning 75%",
+                  "value": "y = 75",
+                  "display_type": "warning dashed"
+                },
+                {
+                  "label": "Critical 90%",
+                  "value": "y = 90",
+                  "display_type": "error dashed"
+                }
+              ]
+            },
+            "layout": {
+              "x": 6,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 16,
+        "width": 12,
+        "height": 7
+      }
+    },
+    {
+      "id": 132576498431471,
+      "definition": {
+        "title": "Collector Resource Utilization",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 6172297217875982,
+            "definition": {
+              "title": "Collector CPU Usage by Host",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:otel_collector_prod_ns.otelcol_process_cpu_seconds.count{kube_namespace:otel-collector-prod-ns,$host} by {host}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a",
+                      "alias": "CPU Seconds/s"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 7876839938550037,
+            "definition": {
+              "title": "Memory RSS by Host",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:otel_collector_prod_ns.otelcol_process_memory_rss_bytes{kube_namespace:otel-collector-prod-ns,$host} by {host}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a",
+                      "alias": "RSS Memory"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 678380204284633,
+            "definition": {
+              "title": "Go Heap Alloc vs Total System Memory",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:otel_collector_prod_ns.otelcol_process_runtime_heap_alloc_bytes{kube_namespace:otel-collector-prod-ns,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "avg:otel_collector_prod_ns.otelcol_process_runtime_total_sys_memory_bytes{kube_namespace:otel-collector-prod-ns,$host} by {host}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a",
+                      "alias": "Heap Alloc"
+                    },
+                    {
+                      "formula": "b",
+                      "alias": "Total Sys Memory"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 7880957942431854,
+            "definition": {
+              "title": "Go Runtime Total Alloc Rate",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:otel_collector_prod_ns.otelcol_process_runtime_total_alloc_bytes.count{kube_namespace:otel-collector-prod-ns,$host} by {host}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a",
+                      "alias": "Alloc Rate (bytes/s)"
+                    }
+                  ],
+                  "style": {
+                    "palette": "cool",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 23,
+        "width": 12,
+        "height": 7
+      }
+    },
+    {
+      "id": 3040030445324099,
+      "definition": {
+        "title": "Kubernetes Infrastructure",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 4224803587375808,
+            "definition": {
+              "title": "CPU Usage vs Requests vs Limits",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kubernetes.cpu.usage.total{kube_namespace:otel-collector-prod-ns,kube_stateful_set:otel-collector-prod-sts,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "avg:kubernetes.cpu.requests{kube_namespace:otel-collector-prod-ns,kube_stateful_set:otel-collector-prod-sts,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "c",
+                      "query": "avg:kubernetes.cpu.limits{kube_namespace:otel-collector-prod-ns,kube_stateful_set:otel-collector-prod-sts,$host} by {host}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a",
+                      "alias": "CPU Usage"
+                    },
+                    {
+                      "formula": "b",
+                      "alias": "CPU Requests",
+                      "style": {
+                        "palette": "warm",
+                        "palette_index": 4
+                      }
+                    },
+                    {
+                      "formula": "c",
+                      "alias": "CPU Limits",
+                      "style": {
+                        "palette": "warm",
+                        "palette_index": 2
+                      }
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 1935067824469789,
+            "definition": {
+              "title": "Memory Usage vs Requests vs Limits",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kubernetes.memory.usage{kube_namespace:otel-collector-prod-ns,kube_stateful_set:otel-collector-prod-sts,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "avg:kubernetes.memory.requests{kube_namespace:otel-collector-prod-ns,kube_stateful_set:otel-collector-prod-sts,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "c",
+                      "query": "avg:kubernetes.memory.limits{kube_namespace:otel-collector-prod-ns,kube_stateful_set:otel-collector-prod-sts,$host} by {host}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a",
+                      "alias": "Memory Usage"
+                    },
+                    {
+                      "formula": "b",
+                      "alias": "Memory Requests",
+                      "style": {
+                        "palette": "warm",
+                        "palette_index": 4
+                      }
+                    },
+                    {
+                      "formula": "c",
+                      "alias": "Memory Limits",
+                      "style": {
+                        "palette": "warm",
+                        "palette_index": 2
+                      }
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 6548963687750242,
+            "definition": {
+              "title": "CPU Throttling",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kubernetes.cpu.cfs.throttled.periods{kube_namespace:otel-collector-prod-ns,kube_stateful_set:otel-collector-prod-sts,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "avg:kubernetes.cpu.cfs.periods{kube_namespace:otel-collector-prod-ns,kube_stateful_set:otel-collector-prod-sts,$host} by {host}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "(a / b) * 100",
+                      "alias": "Throttled %"
+                    }
+                  ],
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              },
+              "markers": [
+                {
+                  "label": "Warning 25%",
+                  "value": "y = 25",
+                  "display_type": "warning dashed"
+                },
+                {
+                  "label": "Critical 50%",
+                  "value": "y = 50",
+                  "display_type": "error dashed"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 5253830072314613,
+            "definition": {
+              "title": "Network I/O",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kubernetes.network.rx_bytes{kube_namespace:otel-collector-prod-ns,kube_stateful_set:otel-collector-prod-sts,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "avg:kubernetes.network.tx_bytes{kube_namespace:otel-collector-prod-ns,kube_stateful_set:otel-collector-prod-sts,$host} by {host}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a",
+                      "alias": "RX Bytes"
+                    },
+                    {
+                      "formula": "b",
+                      "alias": "TX Bytes"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 2201705231539373,
+            "definition": {
+              "title": "Disk I/O",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kubernetes.io.read_bytes{kube_namespace:otel-collector-prod-ns,kube_stateful_set:otel-collector-prod-sts,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "avg:kubernetes.io.write_bytes{kube_namespace:otel-collector-prod-ns,kube_stateful_set:otel-collector-prod-sts,$host} by {host}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a",
+                      "alias": "Read Bytes"
+                    },
+                    {
+                      "formula": "b",
+                      "alias": "Write Bytes"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 6,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 2109051428176487,
+            "definition": {
+              "title": "Persistent Volume Usage vs Capacity",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kubernetes.kubelet.volume.stats.used_bytes{kube_namespace:otel-collector-prod-ns,$host} by {persistentvolumeclaim}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "avg:kubernetes.kubelet.volume.stats.capacity_bytes{kube_namespace:otel-collector-prod-ns,$host} by {persistentvolumeclaim}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a",
+                      "alias": "Used"
+                    },
+                    {
+                      "formula": "b",
+                      "alias": "Capacity"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 6,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 30,
+        "width": 12,
+        "height": 10
+      }
+    }
+  ],
+  "notify_list": [],
+  "created_at": "2026-04-24T04:17:19.283588+00:00",
+  "modified_at": "2026-04-24T04:27:04.873367+00:00",
+  "reflow_type": "fixed",
+  "tags": [
+    "ai:created_with_ai"
+  ],
+  "restricted_roles": []
+}

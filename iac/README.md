@@ -144,12 +144,13 @@ cd ..
 > [!WARNING]
 > Terraform state is saved **locally** for the foundation layer; if it is created once, do not re-run apply blindly — coordinate with your team on state location.
 
-## 3. Creating Platform Components: 
-Proceed with this step, if we need to create any one of the following:
-app_gw, divyam_object_storage, k8s cluster, alerts, bastion-kubectl-setup
-Selectively skip components by marking them `create=false` in the values file.
-Make sure `CLOUD_PROVIDER`, `VALUES_FILE` variables are exported and review the plan output before applying.
-```
+## 3. Creating Platform Components
+
+Proceed with this step if you need any of: `0-app_gw`, `0-divyam_object_storage`, `1-k8s`, `2-monitoring`, `3-bastion-kubectl-setup`.
+
+Selectively skip components with `create = false` in your values file. Export `CLOUD_PROVIDER` and `VALUES_FILE`, then review the plan before apply.
+
+```bash
 cd 1-platform
 terragrunt init -reconfigure --all --filter "./**/${CLOUD_PROVIDER}"
 terragrunt run plan  --all --filter "./**/${CLOUD_PROVIDER}"
@@ -157,8 +158,179 @@ terragrunt run apply --all --filter "./**/${CLOUD_PROVIDER}"
 cd ..
 ```
 
+Apply **`1-k8s` before `2-monitoring`** on first deploy (monitoring depends on cluster outputs). Terragrunt `run --all` usually respects dependency order when configured; if not, run k8s then monitoring explicitly:
+
+```bash
+cd 1-platform
+terragrunt run apply --all --filter "./**/1-k8s/${CLOUD_PROVIDER}"
+terragrunt run apply --all --filter "./**/2-monitoring/**/${CLOUD_PROVIDER}"
+cd ..
+```
+
+---
+
+## Monitoring and observability
+
+Platform observability: **`1-platform/2-monitoring`** (with **`1-k8s`** for managed clusters). Alerts and dashboards: **`2-app/2-alerts`**, **`2-app/2-dashboards`**.
+
+Module layout, dependencies, and custom-K8s rationale: [`1-platform/2-monitoring/README.md`](1-platform/2-monitoring/README.md). Alert schema: [`2-app/2-alerts/README.md`](2-app/2-alerts/README.md).
+
+### Provider profiles (`values/*.hcl`)
+
+| Profile | `datadog.enabled` | `k8s` | Platform agent | App alerts/dashboards |
+|--------|-------------------|-------|----------------|------------------------|
+| **Cloud-native (default)** | `false` | `create = true` (GKE/AKS) | `2-monitoring/native/{gcp\|azure}` | `2-alerts/*/prometheus`, `2-dashboards/{gcp\|azure}` |
+| **Datadog on GKE/AKS** | `true` | `create = true` | `2-monitoring/datadog/{gcp\|azure}` | `2-alerts/**/datadog`, `2-dashboards/datadog` |
+| **Datadog on custom K8s** | `true` | `create = false` | `2-monitoring/datadog/custom` + `KUBECONFIG` | same as Datadog row |
+| **Cloud-native + custom K8s** | `false` | `create = false` | metrics exported to cloud (your setup) | `2-alerts` with example values; see below |
+
+Configure in your values file (see `values/defaults.hcl`):
+
+```hcl
+k8s = {
+  create = true
+  observability = {
+    enable_logs    = true
+    enable_metrics = true
+    logs_retention_days = 30
+  }
+}
+
+datadog = {
+  enabled  = false   # true = optional Datadog path
+  site     = "ap1.datadoghq.com"
+  env      = "dev"   # Agent tag only; monitors use env_name unless monitor_env is set
+  # custom_cluster_name = "custom-k8s"  # when k8s.create = false; matches alert rules {{cluster_name}}
+  exclude_namespaces = ["default", "kube-system"]
+}
+
+monitoring = {
+  native = {
+    # Azure only — create new AMW or reuse existing
+    create_amw = true
+    azure_monitor_workspace_name = null  # required when create_amw = false
+    azure_monitor_workspace_id   = null
+    grafana_endpoint             = null  # optional BYO Grafana URL for dashboard upload
+  }
+}
+
+alerts = {
+  create  = true
+  enabled = true
+  webhook_urls = compact(split(",", get_env("NOTIFICATION_WEBHOOK_URLS", "")))
+}
+```
+
+#### Azure `create_amw`
+
+| `monitoring.native.create_amw` | Workspace name/id in values | Behavior |
+|-------------------------------|------------------------------|----------|
+| `true` | ignored | Terraform creates AMW, Prometheus DCR (when AKS exists), Managed Grafana |
+| `false` | **required** | Reuses existing AMW |
+| `false` | missing | Plan/apply fails with a clear error |
+
+### Environment variables
+
+| Variable | When required |
+|----------|----------------|
+| `TF_VAR_datadog_api_key` | `datadog.enabled = true` (agent + optional Datadog alerts) |
+| `TF_VAR_datadog_app_key` | Datadog monitors (`2-alerts/**/datadog`) |
+| `KUBECONFIG` | Custom K8s: path to kubeconfig when applying `datadog/custom` |
+| `TF_VAR_grafana_api_token` | Azure Managed Grafana dashboards (`2-dashboards/azure`) |
+| `NOTIFICATION_WEBHOOK_URLS` | Comma-separated pager/Zenduty URLs for CRITICAL alerts |
+
+### Deploy monitoring with Terraform (after `1-k8s`)
+
+**GCP (cloud-native):**
+
+```bash
+export CLOUD_PROVIDER=gcp
+export VALUES_FILE=values/<your-env>.hcl
+export NOTIFICATION_WEBHOOK_URLS='https://your-test-webhook...'
+
+cd iac/1-platform
+terragrunt run plan --all --filter "./**/2-monitoring/**/gcp"
+terragrunt run apply --all --filter "./**/2-monitoring/**/gcp"
+
+cd ../2-app
+terragrunt run plan --all \
+  --filter "./**/gcp" \
+  --filter "./**/gcp/**"
+terragrunt run apply --all \
+  --filter "./**/gcp" \
+  --filter "./**/gcp/**"
+```
+
+**Azure (cloud-native):**
+
+```bash
+export CLOUD_PROVIDER=azure
+export VALUES_FILE=values/<your-env>.hcl
+export NOTIFICATION_WEBHOOK_URLS='https://your-test-webhook...'
+export TF_VAR_grafana_api_token='...'   # for 2-dashboards/azure
+
+cd iac/1-platform
+terragrunt run plan --all --filter "./**/2-monitoring/**/azure"
+terragrunt run apply --all --filter "./**/2-monitoring/**/azure"
+
+cd ../2-app
+terragrunt run plan --all \
+  --filter "./**/azure" \
+  --filter "./**/azure/**"
+terragrunt run apply --all \
+  --filter "./**/azure" \
+  --filter "./**/azure/**"
+```
+
+Use **both** filters for `2-app` on Azure so nested units like `2-alerts/azure/datadog` are included (see [`2-app/2-alerts/README.md`](2-app/2-alerts/README.md)).
+
+**Optional Datadog:**
+
+```bash
+# datadog.enabled = true in VALUES_FILE
+export TF_VAR_datadog_api_key=...
+export TF_VAR_datadog_app_key=...
+
+cd iac/1-platform
+terragrunt run apply --all --filter "./**/2-monitoring/datadog/${CLOUD_PROVIDER}"
+
+cd ../2-app
+terragrunt run apply --all --filter "./**/${CLOUD_PROVIDER}/**"
+```
+
+Alert rules: [`2-app/2-alerts/common/rules/`](2-app/2-alerts/common/rules/) (PromQL or `datadog.query` per destination).
+
+### Custom Kubernetes
+
+For any cluster **not** provisioned by `1-k8s` (`k8s.create = false`):
+
+1. Copy an example values file:
+   - Datadog: [`values/example-custom-k8s-datadog.hcl`](values/example-custom-k8s-datadog.hcl)
+   - Cloud-native GCP / Azure: [`example-custom-k8s-gcp-native.hcl`](values/example-custom-k8s-gcp-native.hcl), [`example-custom-k8s-azure-native.hcl`](values/example-custom-k8s-azure-native.hcl)
+2. Set `datadog.custom_cluster_name` (or `k8s.name`) to match `{{cluster_name}}` in [`2-app/2-alerts/common/rules`](2-app/2-alerts/common/rules).
+3. **Datadog agent:** export `KUBECONFIG`, apply [`1-platform/2-monitoring/datadog/custom`](1-platform/2-monitoring/datadog/custom) (see [why a separate unit](1-platform/2-monitoring/README.md#custom-kubernetes-datadog)).
+4. **Datadog monitors/dashboards:** `TF_VAR_datadog_app_key`, then `2-app/2-alerts/**/datadog` and `2-app/2-dashboards/datadog`.
+
+```bash
+export VALUES_FILE=values/example-custom-k8s-datadog.hcl
+export KUBECONFIG=/path/to/kubeconfig
+export TG_USE_LOCAL_BACKEND=1
+export TF_VAR_datadog_api_key=...
+# datadog.site / datadog.registry in VALUES_FILE must match your org (see values file)
+
+cd iac/1-platform/2-monitoring/datadog/custom
+terragrunt init -reconfigure
+terragrunt apply
+```
+
+**Cloud-native on custom K8s:** this repo’s Terraform creates **alert policies and dashboards** in GCP/Azure only. It does **not** install in-cluster metric exporters for custom clusters. You must export metrics yourself ([GMP non-GKE](https://cloud.google.com/stackdriver/docs/managed-prometheus/setup-unmanaged) or [Azure Prometheus remote_write](https://learn.microsoft.com/en-us/azure/azure-monitor/containers/prometheus-remote-write)), then apply `2-app` with `datadog.enabled = false`. `2-monitoring/native/gcp` on custom K8s is mainly project log-bucket settings — not cluster scraping.
+
+**Upgrading:** [`scripts/migration.sh`](scripts/migration.sh) before first `2-monitoring` apply on existing envs.
+
+---
+
 ## 4. Creating Divyam Application Entities: 
-This step is required to setup the secrets and IAM bindings required for divyam application to work.
+This step is required to setup the secrets, IAM bindings, alerts (`2-app/2-alerts`), dashboards (`2-app/2-dashboards`), and other app-layer modules required for the Divyam application to work.
 Export the below environment variables for the secrets to be created one time for the entire deployment.
 
 | Environment variable | Description |
@@ -168,7 +340,10 @@ Export the below environment variables for the secrets to be created one time fo
 | `TF_VAR_divyam_deployment_id` | Unique identifier for this installation; Divyam uses it to recognize your environment. |
 | `TF_VAR_divyam_deployment_api_key` | Secret key the deployment uses to authenticate to with Divyam. |
 | `TF_VAR_divyam_artifactory_docker_auth` | Set this to the **path** of the credential file the Divyam team gives you, So Kubernetes authenticate to Divyam’s private container registry and pull application images |
-| `TF_VAR_datadog_api_key` | Datadog API key used only when `datadog.enabled = true` in the values file. |
+| `TF_VAR_datadog_api_key` | Datadog API key when `datadog.enabled = true` ([`1-platform/2-monitoring/datadog`](1-platform/2-monitoring/datadog)) |
+| `TF_VAR_datadog_app_key` | Datadog Application key for Terraform monitors (`2-app/2-alerts/**/datadog`) |
+| `NOTIFICATION_WEBHOOK_URLS` | Comma-separated pager/Zenduty URLs for CRITICAL alerts |
+| `TF_VAR_grafana_api_token` | Azure Managed Grafana when applying `2-dashboards/azure` |
 
 > [!NOTE]
 > Export `CLOUD_PROVIDER`, `VALUES_FILE`, and the environment variables in the table below before `plan`/`apply`. Review the plan output before applying.

@@ -46,17 +46,7 @@ output "aks_api_fqdn" {
   value       = local.aks_cluster.fqdn
 }
 
-output "monitor_workspace_name" {
-  description = "Name of the monitor workspace (Prometheus); null when create = false or metrics disabled"
-  value       = var.create && var.enable_metrics_collection ? azurerm_monitor_workspace.prometheus["enabled"].name : null
-}
-
-output "monitor_workspace_id" {
-  description = "ID of the monitor workspace; null when create = false or metrics disabled"
-  value       = var.create && var.enable_metrics_collection ? azurerm_monitor_workspace.prometheus["enabled"].id : null
-}
-
-output aks_principal_id {
+output "aks_principal_id" {
   description = "Principal ID of the AKS cluster"
   value       = local.aks_cluster.identity[0].principal_id
 }

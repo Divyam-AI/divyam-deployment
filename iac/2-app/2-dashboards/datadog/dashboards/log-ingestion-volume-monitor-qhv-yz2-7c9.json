@@ -1,0 +1,1152 @@
+{
+  "id": "qhv-yz2-7c9",
+  "title": "Log Ingestion Volume Monitor",
+  "description": "Monitor log ingestion volume across clusters, namespaces, pods, and services. Track trends, identify noisy services, and flag debug-level log ingestion.",
+  "author_handle": "rbharathkumar0409@gmail.com",
+  "author_name": "Bharath Kumar",
+  "layout_type": "ordered",
+  "url": "/dashboard/qhv-yz2-7c9/log-ingestion-volume-monitor",
+  "template_variables": [
+    {
+      "name": "cluster",
+      "prefix": "kube_cluster_name",
+      "available_values": [
+        "divyam-prod-k8s-cluster"
+      ],
+      "default": "divyam-prod-k8s-cluster"
+    },
+    {
+      "name": "namespace",
+      "prefix": "kube_namespace",
+      "available_values": [],
+      "default": "*"
+    },
+    {
+      "name": "pod",
+      "prefix": "pod_name",
+      "available_values": [],
+      "default": "*"
+    },
+    {
+      "name": "service",
+      "prefix": "service",
+      "available_values": [
+        "clickhouse-server",
+        "divyam_evaluator",
+        "agent",
+        "metrics-exporter",
+        "kubernetes-ingress",
+        "router_controller",
+        "infinity",
+        "kafka",
+        "nginx",
+        "kafka-connect-azblob-sink",
+        "route_selector",
+        "ip-masq-agent-v2",
+        "operator",
+        "superset_divyam_custom",
+        "azure-npm",
+        "selector_training",
+        "coredns",
+        "kube-proxy",
+        "external-secrets",
+        "clickhouse-operator",
+        "cluster-agent",
+        "opentelemetry-collector-contrib",
+        "clickhouse-keeper",
+        "mysql"
+      ],
+      "default": "*"
+    }
+  ],
+  "widgets": [
+    {
+      "id": 3396220776009652,
+      "definition": {
+        "title": "Log Ingestion Overview",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 3902957015209271,
+            "definition": {
+              "type": "note",
+              "content": "Overview of log ingestion volume across your infrastructure. Use the template variables above to filter by **cluster**, **namespace**, **pod**, or **service**. Metrics are sourced from `datadog.estimated_usage.logs.*` and live log counts.",
+              "background_color": "blue",
+              "font_size": "14",
+              "text_align": "left",
+              "vertical_align": "center",
+              "show_tick": false,
+              "tick_pos": "50%",
+              "tick_edge": "left",
+              "has_padding": true
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 3,
+              "height": 3
+            }
+          },
+          {
+            "id": 2484926671257136,
+            "definition": {
+              "title": "Total Logs Ingested",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "logs",
+                      "name": "a",
+                      "indexes": [
+                        "*"
+                      ],
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "group_by": [],
+                      "search": {
+                        "query": "$cluster $namespace $pod $service"
+                      }
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 3,
+              "y": 0,
+              "width": 3,
+              "height": 3
+            }
+          },
+          {
+            "id": 5576585866468885,
+            "definition": {
+              "title": "Estimated Ingested Bytes",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:datadog.estimated_usage.logs.ingested_bytes{$service}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 2
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 3,
+              "height": 3
+            }
+          },
+          {
+            "id": 5945681352177794,
+            "definition": {
+              "title": "Error Logs",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "logs",
+                      "name": "a",
+                      "indexes": [
+                        "*"
+                      ],
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "group_by": [],
+                      "search": {
+                        "query": "status:error $cluster $namespace $pod $service"
+                      }
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "conditional_formats": [
+                    {
+                      "comparator": ">",
+                      "value": 0,
+                      "palette": "white_on_red"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 9,
+              "y": 0,
+              "width": 3,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 0,
+        "width": 12,
+        "height": 4
+      }
+    },
+    {
+      "id": 6147327437139797,
+      "definition": {
+        "title": "Log Volume Trends",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 3045454105805667,
+            "definition": {
+              "title": "Log Volume Over Time by Status",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "logs",
+                      "name": "a",
+                      "indexes": [
+                        "*"
+                      ],
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "group_by": [
+                        {
+                          "facet": "status",
+                          "limit": 10,
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "desc"
+                          }
+                        }
+                      ],
+                      "search": {
+                        "query": "$cluster $namespace $pod $service"
+                      }
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "semantic"
+                  },
+                  "display_type": "bars"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 4
+            }
+          },
+          {
+            "id": 8160687403789939,
+            "definition": {
+              "title": "Estimated Ingested Bytes Over Time",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:datadog.estimated_usage.logs.ingested_bytes{$service}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic"
+                  },
+                  "display_type": "bars"
+                }
+              ]
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 4
+            }
+          },
+          {
+            "id": 5485535155111293,
+            "definition": {
+              "title": "Log Volume by Top Services Over Time",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "logs",
+                      "name": "a",
+                      "indexes": [
+                        "*"
+                      ],
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "group_by": [
+                        {
+                          "facet": "service",
+                          "limit": 10,
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "desc"
+                          }
+                        }
+                      ],
+                      "search": {
+                        "query": "$cluster $namespace $pod $service"
+                      }
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 4,
+              "width": 6,
+              "height": 4
+            }
+          },
+          {
+            "id": 7885380952070291,
+            "definition": {
+              "title": "Estimated Ingested Events Over Time by Service",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:datadog.estimated_usage.logs.ingested_events{$service}.as_count()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic"
+                  },
+                  "display_type": "bars"
+                }
+              ]
+            },
+            "layout": {
+              "x": 6,
+              "y": 4,
+              "width": 6,
+              "height": 4
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 4,
+        "width": 12,
+        "height": 9
+      }
+    },
+    {
+      "id": 444266031698143,
+      "definition": {
+        "title": "Service Log Volume Analysis",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 8422742749136673,
+            "definition": {
+              "title": "Top Services by Log Count",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "toplist",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "logs",
+                      "name": "a",
+                      "indexes": [
+                        "*"
+                      ],
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "group_by": [
+                        {
+                          "facet": "service",
+                          "limit": 15,
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "desc"
+                          }
+                        }
+                      ],
+                      "search": {
+                        "query": "$cluster $namespace $pod $service"
+                      }
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ]
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 4,
+              "height": 4
+            }
+          },
+          {
+            "id": 8438480006779,
+            "definition": {
+              "title": "Top Services by Estimated Bytes",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "toplist",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:datadog.estimated_usage.logs.ingested_bytes{$service} by {service}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ]
+                }
+              ]
+            },
+            "layout": {
+              "x": 4,
+              "y": 0,
+              "width": 4,
+              "height": 4
+            }
+          },
+          {
+            "id": 7376547844034043,
+            "definition": {
+              "title": "Service Log Volume Breakdown by Status",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_table",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "logs",
+                      "name": "a",
+                      "indexes": [
+                        "*"
+                      ],
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "group_by": [
+                        {
+                          "facet": "service",
+                          "limit": 20,
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "desc"
+                          }
+                        },
+                        {
+                          "facet": "status",
+                          "limit": 10,
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "desc"
+                          }
+                        }
+                      ],
+                      "search": {
+                        "query": "$cluster $namespace $pod $service"
+                      }
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a",
+                      "limit": {
+                        "count": 50,
+                        "order": "desc"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "layout": {
+              "x": 8,
+              "y": 0,
+              "width": 4,
+              "height": 4
+            }
+          },
+          {
+            "id": 1983665057530101,
+            "definition": {
+              "title": "Estimated Ingested Bytes by Service Over Time",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:datadog.estimated_usage.logs.ingested_bytes{$service} by {service}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 4,
+              "width": 6,
+              "height": 4
+            }
+          },
+          {
+            "id": 7310100822829909,
+            "definition": {
+              "title": "Estimated Ingested Events by Service Over Time",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:datadog.estimated_usage.logs.ingested_events{$service} by {service}.as_count()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic"
+                  },
+                  "display_type": "bars"
+                }
+              ]
+            },
+            "layout": {
+              "x": 6,
+              "y": 4,
+              "width": 6,
+              "height": 4
+            }
+          },
+          {
+            "id": 8640418387695062,
+            "definition": {
+              "title": "Service Log Volume -- Click Row to View Logs",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_table",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "logs",
+                      "name": "total",
+                      "indexes": [
+                        "*"
+                      ],
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "group_by": [
+                        {
+                          "facet": "service",
+                          "limit": 25,
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "desc"
+                          }
+                        }
+                      ],
+                      "search": {
+                        "query": "$cluster $namespace $pod $service"
+                      }
+                    },
+                    {
+                      "data_source": "logs",
+                      "name": "errors",
+                      "indexes": [
+                        "*"
+                      ],
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "group_by": [
+                        {
+                          "facet": "service",
+                          "limit": 25,
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "desc"
+                          }
+                        }
+                      ],
+                      "search": {
+                        "query": "status:error $cluster $namespace $pod $service"
+                      }
+                    },
+                    {
+                      "data_source": "logs",
+                      "name": "warns",
+                      "indexes": [
+                        "*"
+                      ],
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "group_by": [
+                        {
+                          "facet": "service",
+                          "limit": 25,
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "desc"
+                          }
+                        }
+                      ],
+                      "search": {
+                        "query": "status:warn $cluster $namespace $pod $service"
+                      }
+                    },
+                    {
+                      "data_source": "logs",
+                      "name": "debug_msgs",
+                      "indexes": [
+                        "*"
+                      ],
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "group_by": [
+                        {
+                          "facet": "service",
+                          "limit": 25,
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "desc"
+                          }
+                        }
+                      ],
+                      "search": {
+                        "query": "(status:debug OR \"<Debug>\") $cluster $namespace $pod $service"
+                      }
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "total",
+                      "alias": "Total Logs",
+                      "limit": {
+                        "count": 25,
+                        "order": "desc"
+                      },
+                      "cell_display_mode": "bar"
+                    },
+                    {
+                      "formula": "errors",
+                      "alias": "Errors",
+                      "cell_display_mode": "bar",
+                      "conditional_formats": [
+                        {
+                          "comparator": ">",
+                          "value": 1000,
+                          "palette": "white_on_red"
+                        }
+                      ]
+                    },
+                    {
+                      "formula": "warns",
+                      "alias": "Warnings",
+                      "cell_display_mode": "bar",
+                      "conditional_formats": [
+                        {
+                          "comparator": ">",
+                          "value": 100,
+                          "palette": "white_on_yellow"
+                        }
+                      ]
+                    },
+                    {
+                      "formula": "debug_msgs",
+                      "alias": "Debug Messages",
+                      "cell_display_mode": "bar",
+                      "conditional_formats": [
+                        {
+                          "comparator": ">",
+                          "value": 0,
+                          "palette": "yellow_on_white"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "custom_links": [
+                {
+                  "label": "View Logs for {{service.value}}",
+                  "link": "/logs?query=service%3A{{service.value}}&from_ts={{timestamp_start}}&to_ts={{timestamp_end}}&live=true"
+                },
+                {
+                  "label": "View Error Logs for {{service.value}}",
+                  "link": "/logs?query=service%3A{{service.value}}%20status%3Aerror&from_ts={{timestamp_start}}&to_ts={{timestamp_end}}&live=true"
+                },
+                {
+                  "label": "View Debug Logs for {{service.value}}",
+                  "link": "/logs?query=service%3A{{service.value}}%20(%22%3CDebug%3E%22%20OR%20status%3Adebug)&from_ts={{timestamp_start}}&to_ts={{timestamp_end}}&live=true"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 8,
+              "width": 12,
+              "height": 5
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 13,
+        "width": 12,
+        "height": 14
+      }
+    },
+    {
+      "id": 7182967113007097,
+      "definition": {
+        "title": "Debug Log Warnings",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 2461416869725280,
+            "definition": {
+              "type": "note",
+              "content": "**Debug Log Detection**\n\nThis section monitors for debug-level log messages being ingested. Debug logs in production increase costs and add noise. Services flagged here should have their log levels reviewed.\n\nThe detection searches for messages containing `<Debug>` patterns and logs with `status:debug`. Review flagged services and adjust log levels accordingly.",
+              "background_color": "yellow",
+              "font_size": "14",
+              "text_align": "left",
+              "vertical_align": "top",
+              "show_tick": false,
+              "tick_pos": "50%",
+              "tick_edge": "left",
+              "has_padding": true
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 3,
+              "height": 4
+            }
+          },
+          {
+            "id": 7852751609661981,
+            "definition": {
+              "title": "Debug-Level Messages Ingested",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "logs",
+                      "name": "a",
+                      "indexes": [
+                        "*"
+                      ],
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "group_by": [],
+                      "search": {
+                        "query": "(status:debug OR \"<Debug>\") $cluster $namespace $pod $service"
+                      }
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "conditional_formats": [
+                    {
+                      "comparator": ">",
+                      "value": 0,
+                      "palette": "white_on_yellow"
+                    },
+                    {
+                      "comparator": "<=",
+                      "value": 0,
+                      "palette": "white_on_green"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 3,
+              "y": 0,
+              "width": 3,
+              "height": 4
+            }
+          },
+          {
+            "id": 603440468293675,
+            "definition": {
+              "title": "Services Ingesting Debug-Level Messages",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "toplist",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "logs",
+                      "name": "a",
+                      "indexes": [
+                        "*"
+                      ],
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "group_by": [
+                        {
+                          "facet": "service",
+                          "limit": 15,
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "desc"
+                          }
+                        }
+                      ],
+                      "search": {
+                        "query": "(status:debug OR \"<Debug>\") $cluster $namespace $pod $service"
+                      }
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ]
+                }
+              ]
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 4
+            }
+          },
+          {
+            "id": 8277816114573179,
+            "definition": {
+              "title": "Debug-Level Message Trend Over Time",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "logs",
+                      "name": "a",
+                      "indexes": [
+                        "*"
+                      ],
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "group_by": [
+                        {
+                          "facet": "service",
+                          "limit": 10,
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "desc"
+                          }
+                        }
+                      ],
+                      "search": {
+                        "query": "(status:debug OR \"<Debug>\") $cluster $namespace $pod $service"
+                      }
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "warm"
+                  },
+                  "display_type": "bars"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 4,
+              "width": 6,
+              "height": 4
+            }
+          },
+          {
+            "id": 4308821155914112,
+            "definition": {
+              "title": "Services with Warning Logs",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "toplist",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "logs",
+                      "name": "a",
+                      "indexes": [
+                        "*"
+                      ],
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "group_by": [
+                        {
+                          "facet": "service",
+                          "limit": 15,
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "desc"
+                          }
+                        }
+                      ],
+                      "search": {
+                        "query": "status:warn $cluster $namespace $pod $service"
+                      }
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ]
+                }
+              ]
+            },
+            "layout": {
+              "x": 6,
+              "y": 4,
+              "width": 6,
+              "height": 4
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 27,
+        "width": 12,
+        "height": 9
+      }
+    }
+  ],
+  "notify_list": [],
+  "created_at": "2026-04-27T05:19:44.328407+00:00",
+  "modified_at": "2026-04-27T05:29:53.043553+00:00",
+  "reflow_type": "fixed",
+  "tags": [
+    "ai:created_with_ai"
+  ],
+  "restricted_roles": []
+}

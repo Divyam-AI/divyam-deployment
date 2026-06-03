@@ -1,0 +1,3 @@
+# Place Grafana dashboard JSON exports in this folder.
+# Each file is uploaded as-is to the Azure Managed Grafana instance.
+# Export from any Grafana UI via "Share -> Export -> Save to file".
