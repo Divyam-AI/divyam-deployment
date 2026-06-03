@@ -19,6 +19,23 @@ variable "rules_folder" {
   type        = string
 }
 
+variable "metric_map_file" {
+  description = "Path to the central metric catalog consumed by the render module (generic name -> {prometheus, datadog})."
+  type        = string
+}
+
+variable "cluster_name" {
+  description = "Kubernetes cluster name substituted for {{cluster_name}} in rules (and the Datadog scope, unused here). Default empty."
+  type        = string
+  default     = ""
+}
+
+variable "env" {
+  description = "Deployment environment name substituted for {{env}} in rules (e.g. env-suffixed namespaces). Default empty."
+  type        = string
+  default     = ""
+}
+
 variable "exclude_list" {
   description = "Alert names to skip (matches rules[].alert)."
   type        = list(string)

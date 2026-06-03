@@ -29,6 +29,17 @@ variable "rules_folder" {
   type        = string
 }
 
+variable "metric_map_file" {
+  description = "Path to the central metric catalog consumed by the render module (generic name -> {prometheus, datadog})."
+  type        = string
+}
+
+variable "exclude_list" {
+  description = "Alert names to skip (matches rules[].alert). Honored consistently with the GCP and Datadog backends."
+  type        = list(string)
+  default     = []
+}
+
 variable "webhook_urls" {
   description = "List of pager / Zenduty-style webhook URLs to notify on CRITICAL alerts."
   type        = list(string)

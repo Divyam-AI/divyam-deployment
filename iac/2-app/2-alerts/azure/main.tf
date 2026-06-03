@@ -1,33 +1,34 @@
 # Azure alerts: action group + Prometheus rule groups.
-# Reads the neutral alert schema from 3-alerts/common/rules and translates to Azure-native
-# Prometheus rule groups (azurerm_monitor_alert_prometheus_rule_group).
+# Query rendering + multi-tier (warning/critical) expansion is done by the shared common/render
+# module; this module groups the rendered rules back by rule group and maps them onto
+# azurerm_monitor_alert_prometheus_rule_group. Severity is propagated as a label as-is.
 #
-# Schema: see 3-alerts/common/rules/README.md.
-# Severity is propagated as a label as-is.
+# Schema: see common/rules/README.md.
+
+module "render" {
+  source          = "../common/render"
+  rules_folder    = var.rules_folder
+  metric_map_file = var.metric_map_file
+  cluster_name    = var.cluster_name
+  env             = var.environment
+  exclude_list    = var.exclude_list
+}
 
 locals {
-  rule_files = fileset(var.rules_folder, "*.json")
-  groups = {
-    for f in local.rule_files :
-    trimsuffix(basename(f), ".json") => jsondecode(file("${var.rules_folder}/${f}"))
-  }
+  rules = module.render.prometheus_rules
 
-  # Convert Go-duration shorthand ("30s", "2m", "1h") to ISO-8601 ("PT30S", "PT2M", "PT1H").
-  # Only supports a single unit suffix s|m|h. Combined values ("1h30m") are not supported.
-  to_pt = {
-    for f, g in local.groups : f => merge(
-      {
-        interval = "PT${upper(g.interval)}"
-      },
-      {
-        rules = [
-          for r in g.rules : merge(r, {
-            for_iso          = "PT${upper(r.for)}"
-            auto_resolve_iso = lookup(r, "auto_resolve", null) != null ? "PT${upper(r.auto_resolve)}" : null
-          })
-        ]
-      }
-    )
+  # Re-group the flat rendered rules by rule group. The for_each key is the file basename
+  # (group_name, e.g. "k8s") — stable across edits; the resource `name` attribute is the group's
+  # JSON `name` (group_title, e.g. "kubernetes"), preserving the existing resource identity.
+  group_names = distinct([for r in local.rules : r.group_name])
+  groups = {
+    for gname in local.group_names : gname => {
+      title       = [for r in local.rules : r.group_title if r.group_name == gname][0]
+      description = [for r in local.rules : r.group_description if r.group_name == gname][0]
+      interval    = [for r in local.rules : r.interval if r.group_name == gname][0]
+      enabled     = [for r in local.rules : r.group_enabled if r.group_name == gname][0]
+      rules       = [for r in local.rules : r if r.group_name == gname]
+    }
   }
 
   tag_context_base  = merge(var.tag_globals, var.tag_context)
@@ -67,14 +68,14 @@ resource "azurerm_monitor_action_group" "alerts" {
 }
 
 resource "azurerm_monitor_alert_prometheus_rule_group" "alerts" {
-  for_each            = local.to_pt
-  name                = replace(each.value.name, "_", "-")
+  for_each            = local.groups
+  name                = replace(each.value.title, "_", "-")
   location            = var.location
   resource_group_name = var.resource_group_name
   cluster_name        = data.azurerm_monitor_workspace.prometheus.name
-  description         = lookup(each.value, "description", each.value.name)
-  rule_group_enabled  = lookup(each.value, "enabled", true)
-  interval            = each.value.interval
+  description         = each.value.description
+  rule_group_enabled  = each.value.enabled
+  interval            = "PT${upper(each.value.interval)}"
   scopes              = [data.azurerm_monitor_workspace.prometheus.id]
 
   dynamic "rule" {
@@ -82,14 +83,14 @@ resource "azurerm_monitor_alert_prometheus_rule_group" "alerts" {
     content {
       alert      = rule.value.alert
       expression = rule.value.expr
-      for        = rule.value.for_iso
-      enabled    = lookup(rule.value, "enabled", true)
+      for        = "PT${upper(rule.value.for)}"
+      enabled    = rule.value.enabled && rule.value.group_enabled
 
       dynamic "alert_resolution" {
-        for_each = rule.value.auto_resolve_iso != null ? [1] : []
+        for_each = try(rule.value.auto_resolve, null) != null ? [1] : []
         content {
           auto_resolved   = true
-          time_to_resolve = rule.value.auto_resolve_iso
+          time_to_resolve = "PT${upper(rule.value.auto_resolve)}"
         }
       }
 
@@ -97,17 +98,21 @@ resource "azurerm_monitor_alert_prometheus_rule_group" "alerts" {
         {
           severity = rule.value.severity
         },
-        lookup(rule.value, "labels", {})
+        rule.value.labels
       )
 
-      annotations = {
-        summary     = rule.value.annotations.summary
-        description = rule.value.annotations.description
-      }
+      # Drop null runbook/dashboard via a filtered map comprehension (avoids ternary type mismatch).
+      annotations = merge(
+        {
+          summary     = rule.value.summary
+          description = rule.value.description
+        },
+        { for k, v in { runbook_url = rule.value.runbook_url, dashboard_url = rule.value.dashboard_url } : k => v if v != null }
+      )
 
-      # Attach action group only for CRITICAL alerts (all configured webhooks fire).
+      # Attach action group for CRITICAL alerts and any rule that opts in via notification.notify.
       dynamic "action" {
-        for_each = rule.value.severity == "CRITICAL" ? [1] : []
+        for_each = (rule.value.severity == "CRITICAL" || rule.value.notify) ? [1] : []
         content {
           action_group_id = azurerm_monitor_action_group.alerts.id
         }
