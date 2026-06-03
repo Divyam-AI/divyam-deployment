@@ -25,11 +25,15 @@ dependency "notification_channels" {
 }
 
 inputs = {
-  enabled      = local.alerts_run
-  project_id   = local.root.resource_scope.name
-  region       = local.root.region
-  rules_folder = "${get_repo_root()}/iac/2-app/2-alerts/common/rules"
-  exclude_list = try(local.alerts_cfg.exclude_list, [])
+  enabled         = local.alerts_run
+  project_id      = local.root.resource_scope.name
+  region          = local.root.region
+  rules_folder    = "${get_repo_root()}/iac/2-app/2-alerts/common/rules"
+  metric_map_file = "${get_repo_root()}/iac/2-app/2-alerts/common/rules/metric_map.json"
+  exclude_list    = try(local.alerts_cfg.exclude_list, [])
+
+  cluster_name = try(local.root.k8s.name, "${local.root.deployment_prefix}-k8s-cluster")
+  env          = local.root.env_name
 
   notification_channels = dependency.notification_channels.outputs.notification_channel_ids
 }

@@ -35,6 +35,8 @@ inputs = {
   azure_monitor_workspace_name = try(local.monitoring_cfg.azure_monitor_workspace_name, null)
   resource_name_prefix         = local.root.deployment_prefix
   rules_folder                 = "${get_repo_root()}/iac/2-app/2-alerts/common/rules"
+  metric_map_file              = "${get_repo_root()}/iac/2-app/2-alerts/common/rules/metric_map.json"
+  exclude_list                 = try(local.alerts_cfg.exclude_list, [])
 
   webhook_urls = local.webhook_urls
 }

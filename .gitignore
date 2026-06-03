@@ -31,3 +31,6 @@ outputs/*
 
 # ignore intellij project files
 .idea/
+# generated throwaway TF secrets (gen-tf-env.sh) — never commit
+.tf-secrets.env
+*.tf-secrets.env

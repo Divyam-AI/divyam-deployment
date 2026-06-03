@@ -2,137 +2,163 @@
   "name": "kubernetes",
   "description": "Kubernetes alerts (deployment / pod / pvc / statefulset health).",
   "interval": "1m",
+  "labels": {
+    "rule_group": "Kubernetes",
+    "alert_rule": "AlwaysOn"
+  },
   "rules": [
     {
       "alert": "deployment-replica-mismatch",
-      "expr": "(kube_deployment_status_replicas_available / kube_deployment_spec_replicas) < 0.8",
+      "query": {
+        "terms": [{ "metric": "replicas_available" }],
+        "denominator": [{ "metric": "replicas_desired" }],
+        "comparison": "<",
+        "aggregation": "avg",
+        "group_by": ["kube_namespace", "kube_deployment"],
+        "rollup": "min"
+      },
+      "window": "15m",
       "for": "2m",
       "severity": "CRITICAL",
       "auto_resolve": "30m",
-      "labels": {
-        "rule_group": "Kubernetes",
-        "alert_rule": "AlwaysOn"
+      "thresholds": {
+        "critical": "0.8",
+        "warning": "0.9",
+        "critical_recovery": "0.85",
+        "warning_recovery": "0.95"
       },
       "annotations": {
         "summary": "Deployment Replica Mismatch",
-        "description": "Warn when < 90% replicas available; critical when < 80%; recover above 85% (crit) / 95% (warn)"
+        "description": "Warn when < 90% replicas available; critical when < 80%; recover above 85% (crit) / 95% (warn)",
+        "runbook_url": "https://runbooks.divyam.ai/kubernetes/deployment-replica-mismatch"
       },
       "datadog": {
-        "query": "min(last_15m):(avg:kubernetes_state.deployment.replicas_available{kube_cluster_name:{{cluster_name}}} by {kube_namespace,kube_deployment} / avg:kubernetes_state.deployment.replicas_desired{kube_cluster_name:{{cluster_name}}} by {kube_namespace,kube_deployment}) < 0.8",
-        "thresholds": {
-          "critical": "0.8",
-          "warning": "0.9",
-          "critical_recovery": "0.85",
-          "warning_recovery": "0.95"
-        },
         "message": "Deployment {{kube_deployment.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} has less than 80% replicas available."
       }
     },
     {
       "alert": "pods-in-crashloopbackoff",
-      "expr": "(kube_pod_container_status_waiting_reason{reason='CrashLoopBackOff'}) > 0",
+      "query": {
+        "terms": [{ "metric": "container_waiting", "filters": { "reason": "CrashLoopBackOff" } }],
+        "comparison": ">",
+        "aggregation": "sum",
+        "group_by": ["kube_namespace", "pod_name"],
+        "rollup": "max"
+      },
+      "window": "15m",
       "for": "2m",
       "severity": "CRITICAL",
       "auto_resolve": "30m",
-      "labels": {
-        "rule_group": "Kubernetes",
-        "alert_rule": "AlwaysOn"
-      },
+      "thresholds": { "critical": "0" },
       "annotations": {
         "summary": "Pods in CrashLoopBackOff",
-        "description": "One or more pods are in CrashLoopBackOff state"
+        "description": "One or more pods are in CrashLoopBackOff state",
+        "runbook_url": "https://runbooks.divyam.ai/kubernetes/pods-in-crashloopbackoff"
       },
       "datadog": {
-        "query": "max(last_15m):sum:kubernetes_state.container.status_report.count.waiting{reason:crashloopbackoff,kube_cluster_name:{{cluster_name}}} by {kube_namespace,pod_name} > 0",
         "message": "Pod {{pod_name.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} is in CrashLoopBackOff."
       }
     },
     {
       "alert": "pods-in-failed-state",
-      "expr": "(kube_pod_status_phase{phase='Failed'}) > 0",
+      "query": {
+        "terms": [{ "metric": "pod_phase", "filters": { "phase": "Failed" } }],
+        "comparison": ">",
+        "aggregation": "sum",
+        "group_by": ["kube_namespace", "pod_name"],
+        "rollup": "max"
+      },
+      "window": "15m",
       "for": "2m",
       "severity": "CRITICAL",
       "auto_resolve": "30m",
-      "labels": {
-        "rule_group": "Kubernetes",
-        "alert_rule": "AlwaysOn"
-      },
+      "thresholds": { "critical": "0" },
       "annotations": {
         "summary": "Pods in Failed State",
-        "description": "One or more pods are in Failed phase"
+        "description": "One or more pods are in Failed phase",
+        "runbook_url": "https://runbooks.divyam.ai/kubernetes/pods-in-failed-state"
       },
       "datadog": {
-        "query": "max(last_15m):sum:kubernetes_state.pod.status_phase{phase:failed,kube_cluster_name:{{cluster_name}}} by {kube_namespace,pod_name} > 0",
         "message": "Pod {{pod_name.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} is in Failed phase."
       }
     },
     {
       "alert": "pvc-unbound-state",
-      "expr": "(kube_persistentvolumeclaim_status_phase{phase!='Bound'}) > 0",
+      "_comment": "Template rule (hybrid escape hatch): PromQL uses phase!='Bound' (negation), Datadog sums the pending + lost series. These shapes diverge per backend, so the query is authored per backend with placeholders rather than via the structured `query` IR.",
+      "expr": "(kube_persistentvolumeclaim_status_phase{phase!='Bound'}) > {{threshold}}",
+      "window": "15m",
       "for": "1m",
       "severity": "CRITICAL",
       "auto_resolve": "30m",
-      "labels": {
-        "rule_group": "Kubernetes",
-        "alert_rule": "AlwaysOn"
-      },
+      "thresholds": { "critical": "0" },
       "annotations": {
         "summary": "PVC Unbound State",
-        "description": "One or more PVCs are not in Bound state"
+        "description": "One or more PVCs are not in Bound state",
+        "runbook_url": "https://runbooks.divyam.ai/kubernetes/pvc-unbound-state"
       },
       "datadog": {
-        "query": "max(last_15m):sum:kubernetes_state.persistentvolumeclaim.status{phase:pending,kube_cluster_name:{{cluster_name}}} by {kube_namespace,persistentvolumeclaim} + sum:kubernetes_state.persistentvolumeclaim.status{phase:lost,kube_cluster_name:{{cluster_name}}} by {kube_namespace,persistentvolumeclaim} > 0",
+        "query": "max(last_{{window}}):sum:kubernetes_state.persistentvolumeclaim.status{phase:pending,kube_cluster_name:{{cluster_name}}} by {kube_namespace,persistentvolumeclaim} + sum:kubernetes_state.persistentvolumeclaim.status{phase:lost,kube_cluster_name:{{cluster_name}}} by {kube_namespace,persistentvolumeclaim} > {{threshold}}",
         "message": "PVC {{persistentvolumeclaim.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} is not Bound."
       }
     },
     {
       "alert": "pvc-usage-high",
-      "expr": "(kubelet_volume_stats_used_bytes * 100 / kubelet_volume_stats_capacity_bytes) > 60",
+      "query": {
+        "terms": [{ "metric": "pvc_used_bytes" }],
+        "denominator": [{ "metric": "pvc_capacity_bytes" }],
+        "comparison": ">",
+        "scale": 100,
+        "aggregation": "avg",
+        "group_by": ["kube_namespace", "persistentvolumeclaim"],
+        "rollup": "min"
+      },
+      "window": "15m",
       "for": "1m",
       "severity": "WARNING",
       "auto_resolve": "30m",
-      "labels": {
-        "rule_group": "Kubernetes",
-        "alert_rule": "AlwaysOn"
-      },
+      "thresholds": { "critical": "60" },
       "annotations": {
         "summary": "PVC Usage High",
-        "description": "PVC usage has exceeded warning (60%) or critical (80%) thresholds"
+        "description": "PVC usage has exceeded warning (60%) or critical (80%) thresholds",
+        "runbook_url": "https://runbooks.divyam.ai/kubernetes/pvc-usage-high"
       },
       "datadog": {
-        "query": "min(last_15m):(avg:kubernetes.io.persistentvolumeclaim.used_bytes{kube_cluster_name:{{cluster_name}}} by {kube_namespace,persistentvolumeclaim} / avg:kubernetes.io.persistentvolumeclaim.capacity_bytes{kube_cluster_name:{{cluster_name}}} by {kube_namespace,persistentvolumeclaim}) * 100 > 80",
+        "notify": true,
         "thresholds": {
           "warning": "60",
           "critical": "80",
           "warning_recovery": "55",
           "critical_recovery": "75"
         },
-        "notify": true,
         "message": "PVC {{persistentvolumeclaim.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} exceeded usage thresholds (warn 60%, critical 80%)."
       }
     },
     {
       "alert": "statefulset-replica-mismatch",
-      "expr": "(kube_statefulset_status_replicas_ready / kube_statefulset_replicas) < 0.8",
+      "query": {
+        "terms": [{ "metric": "sts_replicas_ready" }],
+        "denominator": [{ "metric": "sts_replicas_desired" }],
+        "comparison": "<",
+        "aggregation": "avg",
+        "group_by": ["kube_namespace", "kube_statefulset"],
+        "rollup": "min"
+      },
+      "window": "15m",
       "for": "2m",
       "severity": "CRITICAL",
       "auto_resolve": "30m",
-      "labels": {
-        "rule_group": "Kubernetes",
-        "alert_rule": "AlwaysOn"
+      "thresholds": {
+        "critical": "0.8",
+        "warning": "0.9",
+        "critical_recovery": "0.85",
+        "warning_recovery": "0.95"
       },
       "annotations": {
         "summary": "StatefulSet Replica Mismatch",
-        "description": "Warn when < 90% replicas ready; critical when < 80%; recover above 85% (crit) / 95% (warn)"
+        "description": "Warn when < 90% replicas ready; critical when < 80%; recover above 85% (crit) / 95% (warn)",
+        "runbook_url": "https://runbooks.divyam.ai/kubernetes/statefulset-replica-mismatch"
       },
       "datadog": {
-        "query": "min(last_15m):(avg:kubernetes_state.statefulset.replicas_ready{kube_cluster_name:{{cluster_name}}} by {kube_namespace,kube_statefulset} / avg:kubernetes_state.statefulset.replicas_desired{kube_cluster_name:{{cluster_name}}} by {kube_namespace,kube_statefulset}) < 0.8",
-        "thresholds": {
-          "critical": "0.8",
-          "warning": "0.9",
-          "critical_recovery": "0.85",
-          "warning_recovery": "0.95"
-        },
         "message": "StatefulSet {{kube_statefulset.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} has less than 80% replicas ready."
       }
     }

@@ -1,0 +1,43 @@
+{
+  "_comment": "Central metric catalog: generic name -> per-backend metric identifier. The render module resolves a structured query term's `metric` here; if a generic name is absent, it is used as-is. Prometheus names come from kube-state-metrics / kubelet; Datadog names from the Datadog Kubernetes integration. Datadog names are normalized (lowercase, '-'->'_') by the renderer at emit time, so list them in their canonical Datadog form here.",
+
+  "replicas_available": {
+    "prometheus": "kube_deployment_status_replicas_available",
+    "datadog": "kubernetes_state.deployment.replicas_available"
+  },
+  "replicas_desired": {
+    "prometheus": "kube_deployment_spec_replicas",
+    "datadog": "kubernetes_state.deployment.replicas_desired"
+  },
+
+  "sts_replicas_ready": {
+    "prometheus": "kube_statefulset_status_replicas_ready",
+    "datadog": "kubernetes_state.statefulset.replicas_ready"
+  },
+  "sts_replicas_desired": {
+    "prometheus": "kube_statefulset_replicas",
+    "datadog": "kubernetes_state.statefulset.replicas_desired"
+  },
+
+  "container_waiting": {
+    "prometheus": "kube_pod_container_status_waiting_reason",
+    "datadog": "kubernetes_state.container.status_report.count.waiting"
+  },
+  "pod_phase": {
+    "prometheus": "kube_pod_status_phase",
+    "datadog": "kubernetes_state.pod.status_phase"
+  },
+
+  "pvc_phase": {
+    "prometheus": "kube_persistentvolumeclaim_status_phase",
+    "datadog": "kubernetes_state.persistentvolumeclaim.status"
+  },
+  "pvc_used_bytes": {
+    "prometheus": "kubelet_volume_stats_used_bytes",
+    "datadog": "kubernetes.io.persistentvolumeclaim.used_bytes"
+  },
+  "pvc_capacity_bytes": {
+    "prometheus": "kubelet_volume_stats_capacity_bytes",
+    "datadog": "kubernetes.io.persistentvolumeclaim.capacity_bytes"
+  }
+}

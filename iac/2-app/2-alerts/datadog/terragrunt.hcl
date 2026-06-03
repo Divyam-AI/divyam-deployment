@@ -24,12 +24,13 @@ locals {
 }
 
 inputs = {
-  enabled      = try(local.alerts_cfg.enabled, false) && local.datadog_enabled
-  rules_folder = "${get_repo_root()}/iac/2-app/2-alerts/common/rules"
-  exclude_list = try(local.alerts_cfg.exclude_list, [])
+  enabled         = try(local.alerts_cfg.enabled, false) && local.datadog_enabled
+  rules_folder    = "${get_repo_root()}/iac/2-app/2-alerts/common/rules"
+  metric_map_file = "${get_repo_root()}/iac/2-app/2-alerts/common/rules/metric_map.json"
+  exclude_list    = try(local.alerts_cfg.exclude_list, [])
 
   # Monitor env tag follows deployment env_name (e.g. prod), not datadog.env (Agent tag, often dev).
-  env = coalesce(try(local.datadog_cfg.monitor_env, null), local.root.env_name)
+  env          = coalesce(try(local.datadog_cfg.monitor_env, null), local.root.env_name)
   cluster_name = try(local.root.k8s.name, "${local.root.deployment_prefix}-k8s-cluster")
 
   datadog_site    = try(local.datadog_cfg.site, "datadoghq.com")
