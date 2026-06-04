@@ -66,3 +66,55 @@ divyam-db-upgrades:
 
 divyam-e2e-test-runner:
   values: {}
+
+lakefs:
+  values:
+    objectStorage:
+      type: gcs           # change per env: gcs | s3 | azure | local
+      gcs:
+        bucket: ""        # required: terraform-provisioned, e.g. "<env>-lakefs-data"
+      # s3:    { bucket: "", region: "" }
+      # azure: { account: "", container: "" }
+    lakefs:
+      lakefsConfig: |
+        database:
+          type: postgres
+        blockstore:
+          type: gcs
+
+evalm8-server:
+  values:
+    config:
+      temporal:   { namespace: default }
+      annotation: { argilla: { enabled: true } }
+      connectors:
+        langfuse:   { enabled: false }
+        divyamLogs: { enabled: false }   # flip on when ClickHouse is in this env
+    image:
+      tag: ""    # pin per release
+
+evalm8-wfs:
+  values:
+    config:
+      temporal:   { namespace: default }
+      annotation: { argilla: { enabled: true } }
+      connectors:
+        langfuse:   { enabled: false }
+        divyamLogs: { enabled: false }
+    image:
+      tag: ""
+
+evalm8-ui:
+  values:
+    image:
+      tag: ""
+    ui:
+      viteApiBaseUrl: "/api/v1"
+
+evalm8-ingress:
+  values:
+    ingress:
+      deploy: true
+      external: false
+      domain:
+        evalm8: ""        # required per env: "evalm8.<env>.divyam.local"

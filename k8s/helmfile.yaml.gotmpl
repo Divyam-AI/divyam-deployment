@@ -127,6 +127,23 @@ repositories:
 
   "divyam-e2e-test-runner"               "e2e-test-runner"
 
+  "temporal"                              "temporal"
+  "temporal-postgres"                     "temporal"
+  "temporal-elasticsearch"                "temporal"
+
+  "lakefs"                                "lakefs"
+  "lakefs-postgres"                       "lakefs"
+
+  "argilla"                               "argilla"
+  "argilla-postgres"                      "argilla"
+  "argilla-elasticsearch"                 "argilla"
+  "argilla-redis"                         "argilla"
+
+  "evalm8-server"                         "evalm8"
+  "evalm8-wfs"                            "evalm8"
+  "evalm8-ui"                             "evalm8"
+  "evalm8-ingress"                        "evalm8"
+
 -}}
 
 {{/*
@@ -137,6 +154,7 @@ repositories:
 {{- $chartsWithProviderIngress := dict
   "superset-ingress"                  true
   "divyam-router-controller-ingress"  true
+  "evalm8-ingress"                    true
 -}}
 
 {{/*
@@ -168,6 +186,9 @@ repositories:
   "divyam-router-controller"      true
   "divyam-route-selector"         true
   "infinity"                      true
+  "evalm8-server"                 true
+  "evalm8-ui"                     true
+  "temporal"                      true
 -}}
 
 ###############################################################################
@@ -196,6 +217,19 @@ repositories:
   "divyam-db-upgrades"           (list "clickhouse" "mysql" "kafka-cluster" "external-secrets-operator")
   "divyam-control-plane-exporter" (list "mysql" "clickhouse" "divyam-db-upgrades" )
   "divyam-e2e-test-runner"        (list "divyam-router-controller" "divyam-route-selector" "clickhouse" "mysql")
+  "temporal-postgres"             (list "external-secrets-operator")
+  "temporal-elasticsearch"        (list)
+  "temporal"                      (list "temporal-postgres" "temporal-elasticsearch")
+  "lakefs-postgres"               (list "external-secrets-operator")
+  "lakefs"                        (list "lakefs-postgres" "external-secrets-operator")
+  "argilla-postgres"              (list "external-secrets-operator")
+  "argilla-elasticsearch"         (list)
+  "argilla-redis"                 (list)
+  "argilla"                       (list "argilla-postgres" "argilla-elasticsearch" "argilla-redis" "external-secrets-operator")
+  "evalm8-server"                 (list "temporal" "lakefs" "argilla" "mysql" "external-secrets-operator")
+  "evalm8-wfs"                    (list "temporal" "lakefs" "argilla" "mysql" "external-secrets-operator" "evalm8-server")
+  "evalm8-ui"                     (list "evalm8-server")
+  "evalm8-ingress"                (list "evalm8-server" "evalm8-ui")
 
 -}}
 
@@ -207,6 +241,11 @@ repositories:
   "clickhouse" "clickhouse-clk-%s"
   "divyam-route-selector" "route-selector-%s-svc"
   "divyam-router-controller" "router-controller-%s-svc"
+  "temporal"                "temporal-%s-svc"
+  "lakefs"                  "lakefs-%s-svc"
+  "argilla"                 "argilla-%s-svc"
+  "evalm8-server"           "evalm8-server-%s-svc"
+  "evalm8-ui"               "evalm8-ui-%s-svc"
 -}}
 
 ###############################################################################

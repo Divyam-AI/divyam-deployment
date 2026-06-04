@@ -242,7 +242,7 @@ charts:
   divyam-db-upgrades:
     values: {}
 
-  divyam-e2e-test-runner: 
+  divyam-e2e-test-runner:
     values:
       resources:
         requests:
@@ -251,4 +251,104 @@ charts:
         limits:
           cpu: 1
           memory: 1Gi
+
+  temporal-postgres:
+    values:
+      postgresql:
+        primary:
+          persistence:
+            storageClass: premiumSsd
+            size: 20Gi
+          resources:
+            requests: { cpu: "500m", memory: "2Gi" }
+            limits:   { cpu: "2",    memory: "4Gi" }
+
+  temporal-elasticsearch:
+    values:
+      elasticsearch:
+        master:
+          persistence:
+            storageClass: premiumSsd
+            size: 30Gi
+          resources:
+            requests: { cpu: "500m", memory: "2Gi" }
+            limits:   { cpu: "2",    memory: "4Gi" }
+
+  temporal:
+    values: {}
+
+  lakefs-postgres:
+    values:
+      postgresql:
+        primary:
+          persistence:
+            storageClass: divyam-default
+            size: 10Gi
+
+  lakefs:
+    values: {}
+
+  argilla-postgres:
+    values:
+      postgresql:
+        primary:
+          persistence:
+            storageClass: divyam-default
+            size: 10Gi
+
+  argilla-elasticsearch:
+    values:
+      elasticsearch:
+        master:
+          persistence:
+            storageClass: divyam-default
+            size: 20Gi
+
+  argilla-redis:
+    values:
+      redis:
+        master:
+          persistence:
+            storageClass: divyam-default
+            size: 5Gi
+
+  argilla:
+    values:
+      server:
+        replicaCount: 1
+        resources:
+          requests: { cpu: "500m", memory: "1Gi" }
+          limits:   { cpu: "1",    memory: "2Gi" }
+      worker:
+        replicaCount: 1
+        resources:
+          requests: { cpu: "250m", memory: "512Mi" }
+          limits:   { cpu: "500m", memory: "1Gi" }
+
+  evalm8-server:
+    values:
+      server:
+        replicaCount: 2
+        resources:
+          requests: { cpu: "500m", memory: "1Gi" }
+          limits:   { cpu: "1",    memory: "2Gi" }
+
+  evalm8-wfs:
+    values:
+      worker:
+        replicaCount: 2
+        resources:
+          requests: { cpu: "500m", memory: "1Gi" }
+          limits:   { cpu: "1",    memory: "2Gi" }
+
+  evalm8-ui:
+    values:
+      ui:
+        replicaCount: 1
+        resources:
+          requests: { cpu: "100m", memory: "128Mi" }
+          limits:   { cpu: "250m", memory: "256Mi" }
+
+  evalm8-ingress:
+    values: {}
 
