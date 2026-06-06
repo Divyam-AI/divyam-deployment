@@ -19,6 +19,11 @@ A single helmfile that deploys the entire Divyam platform stack with correct nam
 - Helm Diff Plugin (v3.7.x)
 - K9s (Kubernetes debugging)
 
+> [!TIP]
+> From the repo root, `make prereqs` installs/verifies all of these (plus the `helm dashboard` and
+> `helm tui` plugins) in one step; `make prereqs-check` verifies only. The manual steps below are the
+> underlying detail. The deploy workflow then runs through `make k8s -- <cmd>`.
+
 ### 1. Install Base Dependencies
 
 ```bash
@@ -112,6 +117,21 @@ k9s version
 > [!TIP]
 > For **Azure** non-interactive login (CI/CD, service principals), use **`ARM_CLIENT_ID`**, **`ARM_CLIENT_SECRET`**, **`ARM_SUBSCRIPTION_ID`**, and **`ARM_TENANT_ID`** — the same names as in [iac/README.md](../iac/README.md) and [docs/cicd-overview.md](docs/cicd-overview.md).
 
+### Recommended: one command
+
+From the repo root, `make k8s -- kubeconfig` resolves the cluster (from `terragrunt output` →
+`provider.yaml` → naming convention) and runs the right cloud `get-credentials` — GCP via
+`gcloud …`, Azure via `az login --service-principal` (from `ARM_*`) + `az aks get-credentials`.
+Pass `--cluster`/`--resource-group`/`--project`/`--region`/`--zone` only if resolution fails.
+
+```bash
+make k8s -- kubeconfig
+kubectl get ns          # verify
+```
+
+Interactive cloud login (`az login` / `gcloud auth login`) is the user's job. The manual equivalents
+below show what the command runs under the hood (and the cloud-CLI install steps).
+
 ### For Azure
 
 #### Install Azure CLI
@@ -184,44 +204,45 @@ your_values/
 ---
 
 ## 3. Usage
-All commands below assume you're in the directory containing your values files (or have `HELMFILE_VALUES_DIR` set). Replace `<env>` with your environment name (e.g. `dev`, `preprod`) and `<helmfile>` with the path to `helmfile.yaml.gotmpl`.
+Run everything through `make k8s -- <cmd>` (the entrypoint; forwards to `scripts/k8s.sh`). It defaults
+to values dir `k8s/helm-values` (override with `-d <dir>` or `make k8s -- config -d <dir> -e <env>`);
+`<env>` is read from `provider.yaml` or set with `-e`. Add `-n` to preview the helmfile command.
+
+```bash
+make k8s -- config -d k8s/helm-values -e <env>   # remember once
+```
 
 ### First-Time Install
 
 > [!WARNING]
-> Use `sync` only for the **initial** deployment. It installs **all** releases regardless of whether anything has changed, which can cause unnecessary restarts if used routinely in production.
-
-Use `sync` for the initial deployment. This installs **all** releases regardless of whether anything has changed:
+> `install` (= helmfile `sync`) is for the **initial** deployment only. It installs **all** releases
+> regardless of whether anything has changed, which can cause unnecessary restarts if used routinely.
 
 ```bash
-cd /path/to/your/values
-helmfile -f <helmfile> sync
+make k8s -- diff                      # always preview first
+make k8s -- install -a 26.04.01-rc1   # installs ALL releases (helmfile sync)
 ```
 
 ### Upgrading an Existing Deployment
 
-Use `apply` for subsequent deployments. It diffs each release against the cluster and only upgrades charts where it detects changes:
+`upgrade` (= helmfile `apply`) diffs each release against the cluster and only upgrades changed charts:
 
 ```bash
-helmfile -f <helmfile> apply
-
-# With a versioned release
-ARTIFACTS_VERSION=26.04.01-rc1 helmfile -f <helmfile> apply
-
-# Or point at a different values directory
-HELMFILE_VALUES_DIR=/path/to/values helmfile -f <helmfile> apply
+make k8s -- upgrade
+make k8s -- upgrade -a 26.04.01-rc1   # pin a versioned release
+make k8s -- upgrade -d /path/to/values  # point at a different values directory
 ```
 
 ### Deploying a Single Chart
 
 ```bash
-helmfile -f <helmfile> -l name=clickhouse-<env> apply
+make k8s -- upgrade -l clickhouse     # → helmfile -l name=clickhouse-<env> apply
 ```
 
 ### Preview Changes
 
 ```bash
-helmfile -f <helmfile> diff
+make k8s -- diff
 ```
 
 ### Render Templates Locally
@@ -229,22 +250,20 @@ helmfile -f <helmfile> diff
 Useful for inspecting the final manifests without deploying:
 
 ```bash
-helmfile -f <helmfile> template
-
-# With verbose output for debugging
-helmfile -f <helmfile> template --debug
+make k8s -- template
+make k8s -- template -- --debug       # verbose output for debugging
 ```
 
-### List Deployed Releases
+### List / Status of Deployed Releases
 
 ```bash
-helm ls -A
+make k8s -- status                    # helm ls -A (+ --tui / --dashboard for detail)
 ```
 
 ### Tear Down
 
 ```bash
-helmfile -f <helmfile> destroy
+make k8s -- delete -l <chart>         # one release (type-to-confirm); omit -l for the whole stack
 ```
 
 ---
@@ -274,8 +293,9 @@ git add provider.yaml resources.yaml
 git commit -m "Add environment config for <env>"
 git push origin main
 
-# 6. First-time install
-ARTIFACTS_VERSION=26.04.01-rc1 helmfile -f helmfile.yaml.gotmpl sync
+# 6. First-time install (from the repo root)
+make k8s -- diff
+make k8s -- install -a 26.04.01-rc1
 ```
 
 ---

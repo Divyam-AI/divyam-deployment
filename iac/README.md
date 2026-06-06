@@ -9,6 +9,12 @@ Tools and scripts to deploy and manage Divyam installation.
 - OpenTofu (v1.11.5)
 - Terragrunt (v0.99.4) via tenv
 
+> [!TIP]
+> From the repo root, `make prereqs` installs/verifies the whole pinned toolchain (OpenTofu,
+> Terragrunt, Helm, Helmfile, plugins, k9s, jq, yq) in one step; `make prereqs-check` verifies only.
+> The manual `tenv` steps below are the underlying detail. The infra workflow then runs through
+> `make iac -- <cmd>` (the entrypoint; forwards to `scripts/iac.sh`).
+
 ## 1. Install Base Dependencies
 
 ```bash
@@ -98,21 +104,19 @@ export ARM_TENANT_ID=<TENANT_ID>
 
 ## Verify the cloud login is setup correctly
 ```bash
-export CLOUD_PROVIDER=azure
-../scripts/check_cloud_credentials.sh
+make iac -- config -c azure -e <env>   # remember cloud/env (once)
+make iac -- creds                       # validates the active cloud credentials
 ```
 
 # Setup Divyam Infrastructure
 ## 1. Creating values file with right configuration for setup
-Copy the `values/defaults.hcl` file to `values/custom-defaults.hcl` and edit the file to your needs.
-Export the below cloud specific variables or can update these values inside the values file itself
+Optionally copy `values/defaults.hcl` → `values/custom-defaults.hcl` and edit to your needs
+(`export VALUES_FILE=values/custom-defaults.hcl`). Then remember the cloud/env and generate the
+config+secrets file (the CLI auto-sources it on every `make iac -- …`):
 ```bash
-export ENV=prod 
-export CLOUD_PROVIDER=azure 
-export ORG_NAME="<your-org-name>"
-export REGION=centralindia
-export ZONE=centralindia-1
-export VALUES_FILE=values/custom-defaults.hcl
+make iac -- config -c azure -e prod          # persists cloud + env to .iac.conf
+make iac -- secrets                           # writes iac/values/secrets.env (REGION/ZONE/ORG_NAME + TF_VAR_*)
+# edit iac/values/secrets.env: set REGION/ZONE/ORG_NAME and the FILL values (creds, registry, webhooks)
 ```
 
 > [!NOTE]
@@ -133,12 +137,9 @@ Foundation modules (path under `0-foundation/`) — what they do and when to pre
 
 Selectively skip components by marking them `create=false` in the values file.
 Make sure `CLOUD_PROVIDER`, `VALUES_FILE` variables are exported and review the plan output before applying.
-```
-cd 0-foundation
-terragrunt init -reconfigure --all --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run plan  --all --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run apply --all --filter "./**/${CLOUD_PROVIDER}"
-cd ..
+```bash
+make iac -- plan  -l 0-foundation     # review first
+make iac -- apply -l 0-foundation
 ```
 
 > [!WARNING]
@@ -151,20 +152,17 @@ Proceed with this step if you need any of: `0-app_gw`, `0-divyam_object_storage`
 Selectively skip components with `create = false` in your values file. Export `CLOUD_PROVIDER` and `VALUES_FILE`, then review the plan before apply.
 
 ```bash
-cd 1-platform
-terragrunt init -reconfigure --all --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run plan  --all --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run apply --all --filter "./**/${CLOUD_PROVIDER}"
-cd ..
+make iac -- plan  -l 1-platform
+make iac -- apply -l 1-platform
 ```
 
-Apply **`1-k8s` before `2-monitoring`** on first deploy (monitoring depends on cluster outputs). Terragrunt `run --all` usually respects dependency order when configured; if not, run k8s then monitoring explicitly:
+`1-k8s` is applied **before** `2-monitoring` automatically — the terragrunt dependency DAG orders the
+sub-units, so a single `apply -l 1-platform` is correct. If you want to do it explicitly (e.g. to
+iterate on just the cluster), target the sub-units:
 
 ```bash
-cd 1-platform
-terragrunt run apply --all --filter "./**/1-k8s/${CLOUD_PROVIDER}"
-terragrunt run apply --all --filter "./**/2-monitoring/**/${CLOUD_PROVIDER}"
-cd ..
+make iac -- apply -l 1-platform.1-k8s
+make iac -- apply -l 1-platform.2-monitoring
 ```
 
 ---
@@ -241,61 +239,36 @@ alerts = {
 
 ### Deploy monitoring with Terraform (after `1-k8s`)
 
+Set the cloud/env once (`make iac -- config -c <cloud> -e <env>`) and put `NOTIFICATION_WEBHOOK_URLS`
+(and `TF_VAR_grafana_api_token` for Azure dashboards) in `iac/values/secrets.env`. Then:
+
 **GCP (cloud-native):**
 
 ```bash
-export CLOUD_PROVIDER=gcp
-export VALUES_FILE=values/<your-env>.hcl
-export NOTIFICATION_WEBHOOK_URLS='https://your-test-webhook...'
-
-cd iac/1-platform
-terragrunt run plan --all --filter "./**/2-monitoring/**/gcp"
-terragrunt run apply --all --filter "./**/2-monitoring/**/gcp"
-
-cd ../2-app
-terragrunt run plan --all \
-  --filter "./**/gcp" \
-  --filter "./**/gcp/**"
-terragrunt run apply --all \
-  --filter "./**/gcp" \
-  --filter "./**/gcp/**"
+make iac -- apply -l 1-platform.2-monitoring     # GMP / cloud monitoring
+make iac -- apply -l 2-app.2-alerts
+make iac -- apply -l 2-app.2-dashboards
 ```
 
 **Azure (cloud-native):**
 
 ```bash
-export CLOUD_PROVIDER=azure
-export VALUES_FILE=values/<your-env>.hcl
-export NOTIFICATION_WEBHOOK_URLS='https://your-test-webhook...'
-export TF_VAR_grafana_api_token='...'   # for 2-dashboards/azure
-
-cd iac/1-platform
-terragrunt run plan --all --filter "./**/2-monitoring/**/azure"
-terragrunt run apply --all --filter "./**/2-monitoring/**/azure"
-
-cd ../2-app
-terragrunt run plan --all \
-  --filter "./**/azure" \
-  --filter "./**/azure/**"
-terragrunt run apply --all \
-  --filter "./**/azure" \
-  --filter "./**/azure/**"
+make iac -- apply -l 1-platform.2-monitoring     # Managed Prometheus / Grafana
+make iac -- apply -l 2-app.2-alerts
+make iac -- apply -l 2-app.2-dashboards
 ```
 
-Use **both** filters for `2-app` on Azure so nested units like `2-alerts/azure/datadog` are included (see [`2-app/2-alerts/README.md`](2-app/2-alerts/README.md)).
+The CLI's filter union catches a cloud's units at any depth, so nested units like `2-alerts/azure/datadog`
+are included automatically — no manual `--filter` (see [`2-app/2-alerts/README.md`](2-app/2-alerts/README.md)).
 
-**Optional Datadog:**
+**Optional Datadog** (`datadog.enabled = true` in your values file; put `TF_VAR_datadog_api_key` /
+`TF_VAR_datadog_app_key` in `iac/values/secrets.env`):
 
 ```bash
-# datadog.enabled = true in VALUES_FILE
-export TF_VAR_datadog_api_key=...
-export TF_VAR_datadog_app_key=...
-
-cd iac/1-platform
-terragrunt run apply --all --filter "./**/2-monitoring/datadog/${CLOUD_PROVIDER}"
-
-cd ../2-app
-terragrunt run apply --all --filter "./**/${CLOUD_PROVIDER}/**"
+make iac -- apply -l 1-platform.2-monitoring     # datadog/<cloud> units self-gate on datadog.enabled
+make iac -- apply -l 2-app.2-alerts
+# cloud-agnostic datadog alert units (2-alerts/datadog) need an explicit filter:
+make iac -- apply -l 2-app.2-alerts -f './**/datadog'
 ```
 
 Alert rules: [`2-app/2-alerts/common/rules/`](2-app/2-alerts/common/rules/) (PromQL or `datadog.query` per destination).
@@ -318,9 +291,8 @@ export TG_USE_LOCAL_BACKEND=1
 export TF_VAR_datadog_api_key=...
 # datadog.site / datadog.registry in VALUES_FILE must match your org (see values file)
 
-cd iac/1-platform/2-monitoring/datadog/custom
-terragrunt init -reconfigure
-terragrunt apply
+# target just the datadog/custom unit with an explicit filter:
+make iac -- apply -l 1-platform.2-monitoring -f './**/datadog/custom'
 ```
 
 **Cloud-native on custom K8s:** this repo’s Terraform creates **alert policies and dashboards** in GCP/Azure only. It does **not** install in-cluster metric exporters for custom clusters. You must export metrics yourself ([GMP non-GKE](https://cloud.google.com/stackdriver/docs/managed-prometheus/setup-unmanaged) or [Azure Prometheus remote_write](https://learn.microsoft.com/en-us/azure/azure-monitor/containers/prometheus-remote-write)), then apply `2-app` with `datadog.enabled = false`. `2-monitoring/native/gcp` on custom K8s is mainly project log-bucket settings — not cluster scraping.
@@ -331,7 +303,8 @@ terragrunt apply
 
 ## 4. Creating Divyam Application Entities: 
 This step is required to setup the secrets, IAM bindings, alerts (`2-app/2-alerts`), dashboards (`2-app/2-dashboards`), and other app-layer modules required for the Divyam application to work.
-Export the below environment variables for the secrets to be created one time for the entire deployment.
+Set the values below **in `iac/values/secrets.env`** (`make iac -- secrets` scaffolds it; fill the
+`FILL` entries) — the CLI auto-sources it. They are created one time for the entire deployment.
 
 | Environment variable | Description |
 | --- | --- |
@@ -346,14 +319,12 @@ Export the below environment variables for the secrets to be created one time fo
 | `TF_VAR_grafana_api_token` | Azure Managed Grafana when applying `2-dashboards/azure` |
 
 > [!NOTE]
-> Export `CLOUD_PROVIDER`, `VALUES_FILE`, and the environment variables in the table below before `plan`/`apply`. Review the plan output before applying.
+> Ensure the variables above are in `iac/values/secrets.env` (and cloud/env via `make iac -- config`).
+> Review the plan output before applying.
 
-```
-cd 2-app
-terragrunt init -reconfigure --all --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run plan  --all --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run apply --all --filter "./**/${CLOUD_PROVIDER}"
-cd ..
+```bash
+make iac -- plan  -l 2-app
+make iac -- apply -l 2-app
 ```
 
 ## 5. Verify the IAC deployment
@@ -361,7 +332,11 @@ The final stage of the IAC deployment will create a `providers.yaml` file in the
 Review the `providers.yaml` file and make sure the values are correct for the environment, cloud provider and storage configuration.
 
 # Troubleshooting
-Make sure `CLOUD_PROVIDER` and `VALUES_FILE` variables are exported.
+
+The normal workflow is `make iac -- <cmd>` (which auto-sources `iac/values/secrets.env`). The escape
+hatches below call `terragrunt` **directly** for low-level operations the CLI doesn't wrap (running a
+single unit, `import`, local-backend debug) — for those, make sure `CLOUD_PROVIDER` and `VALUES_FILE`
+are exported in your shell (or `set -a; source iac/values/secrets.env; set +a`).
 
 ## Clear Terragrunt Cache Folders
 ```
@@ -383,8 +358,8 @@ export TG_USE_LOCAL_BACKEND=1
 ```
 
 ## View Terraform outputs
-```
-terragrunt show --all --filter "./**/${CLOUD_PROVIDER}"
+```bash
+make iac -- show -l <layer>
 ```
 
 ## Import remote state
