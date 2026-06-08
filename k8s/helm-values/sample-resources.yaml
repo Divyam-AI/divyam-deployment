@@ -259,36 +259,46 @@ charts:
   redis-operator:
     values: {}
 
-  divyam-evalm8-postgres:
+  # Per-consumer datastores (operator-managed CRs, co-located in each consumer ns).
+  temporal-postgres:
     values:
       cluster:
-        instances: 3
-        storage:
-          storageClass: premiumSsd
-          size: 20Gi
+        instances: 2
+        storage: { storageClass: premiumSsd, size: 20Gi }
         resources:
           requests: { cpu: "500m", memory: "1Gi" }
           limits:   { cpu: "2",    memory: "4Gi" }
-
-  divyam-evalm8-elasticsearch:
+  temporal-elasticsearch:
     values:
       elasticsearch:
         nodeSet:
           count: 1
           heapSize: "2g"
-          storage:
-            storageClass: premiumSsd
-            size: 30Gi
+          storage: { storageClass: premiumSsd, size: 30Gi }
         resources:
           requests: { cpu: "500m", memory: "3Gi" }
           limits:   { cpu: "2",    memory: "5Gi" }
-
-  divyam-evalm8-redis:
+  lakefs-postgres:
+    values:
+      cluster:
+        instances: 1
+        storage: { storageClass: divyam-default, size: 10Gi }
+  argilla-postgres:
+    values:
+      cluster:
+        instances: 1
+        storage: { storageClass: divyam-default, size: 10Gi }
+  argilla-elasticsearch:
+    values:
+      elasticsearch:
+        nodeSet:
+          count: 1
+          heapSize: "1g"
+          storage: { storageClass: divyam-default, size: 20Gi }
+  argilla-redis:
     values:
       redis:
-        storage:
-          storageClass: divyam-default
-          size: 5Gi
+        storage: { storageClass: divyam-default, size: 5Gi }
 
   temporal:
     values: {}
