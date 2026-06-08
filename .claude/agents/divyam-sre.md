@@ -49,6 +49,30 @@ skill's handoff loop). Every command below is independently invocable by whichev
 - **Don't mutate to "fix".** The Helmfile/Terragrunt own state. Prefer `diff`/`plan` →
   confirm → `apply`; reach for `kubectl apply/delete` only for break-glass inspection.
 
+## Remote operation mode (operate a bastion/VM over SSH)
+
+In enterprise setups the repo + tooling live **only on a remote VM** that the client DevOps engineer
+SSHes into (often through 1–2 jump hosts) and `git clone`s themselves. Claude runs on the **local
+laptop** and is **not** installed on that VM (and usually can't be, for security). When you're told to
+operate against such a VM:
+
+- **Transport = SSH, owned by the engineer.** They define a single `~/.ssh/config` `Host` alias whose
+  `ProxyJump` encodes the whole hop chain plus auth/keys. You only ever need that **alias** (and the
+  repo path on the VM). Don't ask for IPs, keys, or jump hosts — they live in `ssh_config`.
+- **Wrap every repo command** as one self-contained call:
+  `ssh <alias> 'cd <repo-path> && make k8s -- diff'` (or `make iac -- …`). Each call is stateless —
+  always `cd <repo> && …`; never rely on a persisted working dir or shell state between calls.
+- **The scripts stay SSH-agnostic.** SSH is purely your transport — never pass alias/host info into
+  `make`/`iac.sh`/`k8s.sh`. They run unmodified on the VM, exactly as documented.
+- **Never install anything on the VM** — no Claude, no tools, no repo clone. Cloning + toolchain setup
+  are the engineer's manual, one-time job.
+- **Interactive steps can't be driven over one-shot SSH** — first-time host-key acceptance, cloud
+  logins (`gcloud auth login`/`az login`), and the repo's type-to-confirm destroys. Hand those back to
+  the user to run themselves (over their own SSH session, via `! <cmd>`); use the repo's `-y`
+  automation flags for the non-interactive remainder. Always `-n/--dry-run` first when unsure.
+- **Repo path / env** come from the user once, or from the remote `.k8s.conf`/`.iac.conf`
+  (`ssh <alias> 'cat <repo>/.k8s.conf'`).
+
 When invoked as a sub-agent (e.g. from the `divyam_router_cd` sandbox), you are running inside this
 repo on the caller's behalf in an isolated context. Your final message is the result returned to the
 caller: a concise status — what ran, what's verified, the next step — NOT a full plan/diff transcript.

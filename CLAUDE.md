@@ -245,6 +245,12 @@ items, pauses, and verifies them before resuming** (see the `divyam-platform-eng
   **not** in `secrets.env`. A `VALUES_FILE` pointing at a missing file silently forks state; iac.sh now
   fails loudly on it.
 - Interactive cloud/cluster logins are run by the user via `! <cmd>`; never attempt them yourself.
+- **Remote VM operation**: when the repo lives only on a remote bastion/VM (Claude runs on the laptop,
+  not the VM), the `divyam-sre` agent operates it over SSH — wrapping each command as
+  `ssh <alias> 'cd <repo> && make … -- …'`, where `<alias>` is a `~/.ssh/config` `Host` (its
+  `ProxyJump` encodes the 1–2 hop chain + auth). The scripts stay SSH-agnostic; never install anything
+  on the VM; the engineer clones the repo + installs the toolchain manually. See
+  `.claude/agents/divyam-sre.md` → "Remote operation mode".
 - Always `make k8s -- diff` before `upgrade`; `install` (`sync`) only for the first install.
 - Alert-query changes should be re-proven (deploy → simulate via `test/alert-sim/*.yaml` → Zenduty
   check with `scripts/zenduty.py`) before declaring done.
