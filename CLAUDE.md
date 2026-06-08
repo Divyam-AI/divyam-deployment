@@ -54,7 +54,8 @@ iac/
 k8s/
   helmfile.yaml.gotmpl             # deploys the whole stack (namespaces, ordering, DNS wiring)
   helm-values/                     # provider.yaml (from TF), resources.yaml, config.yaml, artifacts.yaml
-  releases/<yy.mm.dd>-artifacts.yaml  # versioned chart versions + image tags (preferred)
+  releases/{stable,nightly}/<id>-artifacts.yaml + latest pointers, NEXT_VERSION, index.yaml ledger
+  releases/VERSIONING.md           # FROZEN naming/bump/lineage contract (channel = stable|nightly)
   sample_values/{gcp,azure}/       # starter resources.yaml; sample-config.yaml
   docs/cicd-overview.md            # forked-repo CI (helmfile diff) / CD (helmfile apply)
   pipeline/                        # Dockerfile + ci_validate.sh / cd_deploy.sh scaffolds
@@ -119,14 +120,16 @@ kubeconfig — `make k8s -- kubeconfig` resolves the cluster from `terragrunt ou
 user's job.)
 
 Values live in `k8s/helm-values/` (or `-d <dir>`). **Merge priority**: `config.yaml` (highest) >
-`resources.yaml` > `artifacts.yaml` (lowest). Image/chart versions resolve via `ARTIFACTS_VERSION`
-(`-a`) → `releases/<VERSION>-artifacts.yaml` (preferred), else a local `artifacts.yaml`, else the latest
-`releases/*-artifacts.yaml`.
+`resources.yaml` > `artifacts.yaml` (lowest). Image/chart versions resolve by **channel + version**:
+`-C <stable|nightly>` (`ARTIFACTS_CHANNEL`) + `-a <id|latest>` (`ARTIFACTS_VERSION`) →
+`releases/<channel>/<id>-artifacts.yaml` (`latest` = the `<channel>/latest` pointer); else a local
+`artifacts.yaml`; else `releases/stable/latest`; legacy flat `releases/<v>-artifacts.yaml` still
+resolve. Full contract + the (future) pipeline obligations: **`k8s/releases/VERSIONING.md`**.
 
 ```bash
 make k8s -- config -d k8s/helm-values -e <env>   # remember once
 make k8s -- diff                                  # ALWAYS diff before apply
-make k8s -- install -a 26.04.01-rc1               # FIRST install only (helmfile sync — installs ALL releases)
+make k8s -- install -C stable                     # FIRST install only — latest stable (helmfile sync, ALL releases)
 make k8s -- upgrade                               # subsequent upgrades (helmfile apply — only changed)
 make k8s -- upgrade -l clickhouse                 # single chart (→ -l name=clickhouse-<env>)
 make k8s -- template -- --debug                   # render manifests locally
@@ -184,6 +187,12 @@ make iac -- creds          # validate cloud auth
 
 ## Skills / plugins to use
 
+**Entry-point agent** (`.claude/agents/divyam-sre.md`): `divyam-sre` is the SRE/platform operator for
+this repo — the single door for deploy/debug/monitor of the divyam-stack, for both standalone use and
+**cross-repo delegation** (the `divyam_router_cd` sandbox spawns it as a sub-agent for heavy iac/k8s
+work). It routes to the skills + commands below. Tools: Bash/Read/Grep/Glob (no Edit — HCL edits go
+through `terrashark` + the human).
+
 Project skills (`.claude/skills/`), three types:
 - **`divyam-platform-engineer`** (persona) — the SRE/DevOps operating mindset & safety rules for this
   repo. Adopt it whenever acting on `iac/` or `k8s/`.
@@ -208,6 +217,8 @@ Global/general skills to pair with them:
 | `/kubeconfig [flags]` | authenticate to the cloud and (re)fetch cluster kubeconfig, then verify |
 | `/deploy-stack [chart]` | helmfile diff → review → install (first) or upgrade (Phase 2, `make k8s`) |
 | `/cluster-status [tui\|dashboard]` | helm releases + pod health overview (read-only) |
+| `/debug-stack [release\|ns]` | diagnose a failed/unhealthy deploy — first failing release + root cause (read-only) |
+| `/monitor [alerts\|dashboards\|backend]` | inspect the observability surface — alert rules/firing, dashboards, backend (read-only) |
 | `/destroy-layer <layer>` | guided, type-to-confirm teardown of an infra layer (`make iac -- destroy`) |
 
 ## Conventions

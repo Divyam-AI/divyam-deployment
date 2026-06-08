@@ -1,0 +1,2 @@
+# Keeps the nightly/ channel dir in git until the pipeline writes nightly artifacts.
+# Nightly files: <base>-nightly.<YYYYMMDD>.<seq>-artifacts.yaml  + a `latest` pointer. See ../VERSIONING.md.

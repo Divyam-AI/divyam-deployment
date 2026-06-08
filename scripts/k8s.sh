@@ -28,7 +28,10 @@
 #   -f, --filter <sel>      Raw helmfile selector override (-> `helmfile -l <sel>`).
 #   -e, --env <name>        Environment. Falls back to $ENV, then .k8s.conf, then provider.yaml.
 #   -d, --values-dir <dir>  Helm values dir (default k8s/helm-values). Falls back to $HELMFILE_VALUES_DIR / .k8s.conf.
-#   -a, --artifacts-version <v>  Set ARTIFACTS_VERSION (else $ARTIFACTS_VERSION / .k8s.conf / helmfile default).
+#   -a, --artifacts-version <v>  Set ARTIFACTS_VERSION — a release id or "latest" (else $ARTIFACTS_VERSION
+#                           / .k8s.conf / helmfile default). With -C, resolves within that channel.
+#   -C, --channel <stable|nightly>  Set ARTIFACTS_CHANNEL -> releases/<channel>/<-a|latest>-artifacts.yaml.
+#                           Omit to use a local artifacts.yaml or stable/latest. See k8s/releases/VERSIONING.md.
 #       --tui                 status: open the helm-tui terminal UI (`helm tui`).
 #       --dashboard           status: open the helm-dashboard web UI (`helm dashboard`).
 #   kubeconfig options (resolved from iac/values/secrets.env + provider.yaml when omitted):
@@ -48,7 +51,10 @@
 #   scripts/k8s.sh kubeconfig                           # auth + fetch kubeconfig (uses secrets.env)
 #   scripts/k8s.sh kubeconfig -c azure --resource-group my-rg --cluster my-aks
 #   scripts/k8s.sh diff
-#   scripts/k8s.sh install -a 26.04.01-rc1              # first install (all releases)
+#   scripts/k8s.sh install -C stable                    # install the latest stable release
+#   scripts/k8s.sh install -C stable -a 1.0.0           # install a specific stable version
+#   scripts/k8s.sh upgrade -C nightly -a latest         # upgrade to the latest nightly
+#   scripts/k8s.sh install -a 26.04.01-rc1              # legacy flat release id (back-compat)
 #   scripts/k8s.sh upgrade -l router                    # upgrade one release
 #   scripts/k8s.sh status --tui                         # release state in the terminal UI
 #   scripts/k8s.sh delete -l clickhouse                 # uninstall one release (type-to-confirm)
@@ -62,7 +68,7 @@ CONF="$REPO_ROOT/.k8s.conf"
 # --- arg parsing (supports -x, --x, and --x=value) -------------------------
 SUBCMD=""; RELEASE=""; FILTER=""; ASSUME_YES=0; DRYRUN=0
 STATUS_TUI=0; STATUS_DASH=0; PASSTHRU=()
-CLI_VDIR=""; CLI_ENV=""; CLI_ARTIFACTS=""
+CLI_VDIR=""; CLI_ENV=""; CLI_ARTIFACTS=""; CLI_CHANNEL=""
 CLI_CLOUD=""; CLUSTER=""; PROJECT=""; REGION_F=""; ZONE_F=""; RESOURCE_GROUP=""; DO_LOGIN=0; NO_TF=0
 usage() { grep '^#' "$0" | grep -vE '^#(!|[[:space:]]*SPDX-)' | sed 's/^# \{0,1\}//'; }
 die() { echo "k8s.sh: $*" >&2; exit 2; }
@@ -79,6 +85,8 @@ while [[ $# -gt 0 ]]; do
     --values-dir=*)  CLI_VDIR="${1#*=}"; shift;;
     -a|--artifacts-version) CLI_ARTIFACTS="${2:?--artifacts-version needs a value}"; shift 2;;
     --artifacts-version=*)  CLI_ARTIFACTS="${1#*=}"; shift;;
+    -C|--channel) CLI_CHANNEL="${2:?--channel needs a value}"; shift 2;;
+    --channel=*)  CLI_CHANNEL="${1#*=}"; shift;;
     --tui)        STATUS_TUI=1; shift;;
     --dashboard)  STATUS_DASH=1; shift;;
     -c|--cloud)   CLI_CLOUD="${2:?--cloud needs a value}"; shift 2;;
@@ -106,7 +114,7 @@ done
 [[ -n "$SUBCMD" ]] || { usage; exit 0; }
 
 # --- config resolution: flag > env var > .k8s.conf > default ---------------
-CONF_VDIR=""; CONF_ENV=""; CONF_ARTIFACTS=""
+CONF_VDIR=""; CONF_ENV=""; CONF_ARTIFACTS=""; CONF_CHANNEL=""
 if [[ -f "$CONF" ]]; then
   # shellcheck disable=SC1090
   source "$CONF"
@@ -114,7 +122,12 @@ fi
 VALUES_DIR="${CLI_VDIR:-${HELMFILE_VALUES_DIR:-${CONF_VDIR:-k8s/helm-values}}}"
 ENV_OVERRIDE="${CLI_ENV:-${ENV:-$CONF_ENV}}"
 ARTIFACTS_VERSION="${CLI_ARTIFACTS:-${ARTIFACTS_VERSION:-$CONF_ARTIFACTS}}"
-BASE="$REPO_ROOT/$VALUES_DIR"
+ARTIFACTS_CHANNEL="${CLI_CHANNEL:-${ARTIFACTS_CHANNEL:-$CONF_CHANNEL}}"
+# Channel/version are passed through `make k8s -- …`; reject `=` (make would eat NAME=VALUE as a var).
+case "${ARTIFACTS_CHANNEL}${ARTIFACTS_VERSION}" in *=*) die "channel/version must be plain tokens (no '=')";; esac
+# Accept an absolute --values-dir (e.g. an out-of-repo dir like the sandbox's sky_workdir values);
+# only prefix the repo root for relative paths. Otherwise $REPO_ROOT/<abs> never exists.
+case "$VALUES_DIR" in /*) BASE="$VALUES_DIR";; *) BASE="$REPO_ROOT/$VALUES_DIR";; esac
 ENV_NAME=""
 
 have() { command -v "$1" >/dev/null 2>&1; }
@@ -159,25 +172,31 @@ hf() {  # <diff|sync|apply|destroy|template> [extra args...]
   require_vdir; resolve_env; build_selector
   local -a cmd=(helmfile -f "$HELMFILE" "${SEL[@]}" "$verb" "$@" "${PASSTHRU[@]}")
   local ctx="env=${ENV_NAME:-<auto>}"; [[ -n "$ARTIFACTS_VERSION" ]] && ctx+=" ARTIFACTS_VERSION=$ARTIFACTS_VERSION"
+  [[ -n "$ARTIFACTS_CHANNEL" ]] && ctx+=" ARTIFACTS_CHANNEL=$ARTIFACTS_CHANNEL"
   echo "+ (cd $VALUES_DIR && ${cmd[*]})   [$ctx]"
   [[ "$DRYRUN" -eq 1 ]] && { echo "  (dry-run: not executed)"; return 0; }
-  ( cd "$BASE" && export HELMFILE_VALUES_DIR="."; \
+  # Export the ABSOLUTE values dir: helmfile resolves `readFile` in helmfile.yaml.gotmpl relative to
+  # the helmfile's own directory (k8s/), not this CWD — so a relative "." can't find provider.yaml
+  # when the values dir lives elsewhere. An absolute path resolves correctly regardless of CWD.
+  ( cd "$BASE" && export HELMFILE_VALUES_DIR="$BASE"; \
     [[ -n "$ARTIFACTS_VERSION" ]] && export ARTIFACTS_VERSION; \
+    [[ -n "$ARTIFACTS_CHANNEL" ]] && export ARTIFACTS_CHANNEL; \
     "${cmd[@]}" )
 }
 
 # --- commands ---------------------------------------------------------------
 cmd_config() {
-  local d="${CLI_VDIR:-$CONF_VDIR}" e="${CLI_ENV:-$CONF_ENV}" a="${CLI_ARTIFACTS:-$CONF_ARTIFACTS}"
-  if [[ -n "$CLI_VDIR" || -n "$CLI_ENV" || -n "$CLI_ARTIFACTS" ]]; then
-    { echo "# k8s.sh remembered config (gitignored). Set via: k8s.sh config -d <dir> -e <env> -a <ver>"
-      echo "CONF_VDIR=$d"; echo "CONF_ENV=$e"; echo "CONF_ARTIFACTS=$a"; } > "$CONF"
+  local d="${CLI_VDIR:-$CONF_VDIR}" e="${CLI_ENV:-$CONF_ENV}" a="${CLI_ARTIFACTS:-$CONF_ARTIFACTS}" c="${CLI_CHANNEL:-$CONF_CHANNEL}"
+  if [[ -n "$CLI_VDIR" || -n "$CLI_ENV" || -n "$CLI_ARTIFACTS" || -n "$CLI_CHANNEL" ]]; then
+    { echo "# k8s.sh remembered config (gitignored). Set via: k8s.sh config -d <dir> -e <env> -a <ver> -C <channel>"
+      echo "CONF_VDIR=$d"; echo "CONF_ENV=$e"; echo "CONF_ARTIFACTS=$a"; echo "CONF_CHANNEL=$c"; } > "$CONF"
     chmod 600 "$CONF"
     echo "saved $CONF"
   fi
   echo "values-dir        = ${d:-k8s/helm-values (default)}"
   echo "env               = ${e:-<auto from provider.yaml>}"
-  echo "artifacts-version = ${a:-<helmfile default>}"
+  echo "artifacts-channel = ${c:-<none: local artifacts.yaml / stable latest>}"
+  echo "artifacts-version = ${a:-<latest in channel / helmfile default>}"
   [[ -f "$CONF" ]] || echo "(nothing persisted yet — run: k8s.sh config -d k8s/helm-values -e prod)"
 }
 

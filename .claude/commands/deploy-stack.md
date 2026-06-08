@@ -12,8 +12,9 @@ Makefile entrypoint. Target release (from args, empty = whole stack): **$ARGUMEN
 3. Preview: run `make k8s -- diff`. If a chart was given in $ARGUMENTS, add `-l <chart>`. **Summarize** the diff.
 4. **STOP and ask the user to confirm.** Never `install`/`sync` on an already-deployed stack — use `upgrade`.
 5. On confirmation, run `make k8s -- install` (first time) or `make k8s -- upgrade` (routine), adding
-   `-l <chart>` if a chart was given and `-a <version>` if the user specified one (else the resolved
-   ARTIFACTS_VERSION applies).
+   `-l <chart>` if a chart was given. Artifacts source: add `-C <stable|nightly>` and/or
+   `-a <version|latest>` if the user specified one (else the resolved channel/version applies — see
+   `divyam-tooling` helm-helmfile.md / `k8s/releases/VERSIONING.md`).
 6. Verify with `make k8s -- status` and flag any unhealthy releases/pods.
 
 For the full provision-then-deploy flow from scratch, use `/setup`.

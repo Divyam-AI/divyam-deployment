@@ -7,6 +7,9 @@ description: >
   selector, filter, or pinned version before running anything. TRIGGER on: "how do I run …", which
   flag/selector/filter to use, `make iac`/`make k8s`/iac.sh/k8s.sh usage, the `--` rule, layer1.layer2,
   `-l name=<chart>`, terragrunt 0.99 `run` syntax, ARTIFACTS_VERSION, get-credentials, pinned tool versions.
+  Also TRIGGER on debugging a failed deploy: a `make k8s -- install/upgrade` (helmfile sync/apply)
+  error, a release stuck/rolled back (`context deadline exceeded`), ExternalSecret/SecretStore not
+  resolving, `provider.yaml`/values-dir not found, or `needs`-ordering questions → `references/debugging.md`.
 ---
 
 # Divyam tooling
@@ -42,6 +45,7 @@ The **Makefile is the entrypoint**. Two workflow commands cover everything; both
 | Terragrunt 0.99 `run` syntax, OpenTofu 1.11.5, the 4-filter cloud union, `layer1.layer2`, state caveats, `prevent_destroy` | `references/terragrunt-tofu.md` | running/reasoning about iac.sh or raw terragrunt |
 | helmfile diff/sync/apply/destroy/template, values layering, `ARTIFACTS_VERSION`, `-l name=<chart>-<env>`, helm-diff/helm-tui/helm-dashboard | `references/helm-helmfile.md` | running/reasoning about k8s.sh or raw helmfile |
 | kubectl verification commands + what's allow-listed vs `ask` | `references/kubectl.md` | verifying the cluster/stack, debugging pods |
+| Deployment-failure playbook: `needs` ordering, atomic timeouts, ExternalSecret/secrets chain, provider.yaml/values-dir resolution, transient fetch errors | `references/debugging.md` | a `make k8s -- install/upgrade` fails or releases don't go healthy |
 | GCP vs Azure: project vs resource-group, auth, `get-credentials`, GKE/AKS, service mapping | `references/clouds.md` | anything cloud-specific, kubeconfig, creds |
 | Pinned tool versions + install | `references/prerequisites.md` | setting up a machine, version mismatch, `make prereqs` |
 

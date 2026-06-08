@@ -23,13 +23,19 @@ platform/env/secrets config.
 - `provider.yaml` — **required**, from Terraform. Carries `environment`, `platform.provider`, DB, ingress, pull-secret config.
 - `resources.yaml` — **required**, per-chart CPU/mem/storage/replicas/nodeSelector; set `enabled: false` to skip a chart.
 - `config.yaml` — optional local overrides (highest priority).
-- `artifacts.yaml` / `releases/<VERSION>-artifacts.yaml` — chart versions + image tags.
+- `artifacts.yaml` / `releases/<channel>/<id>-artifacts.yaml` — chart versions + image tags (+ a scalar
+  `release:` block, which the helmfile `unset`s). Full contract: `k8s/releases/VERSIONING.md`.
 
-## ARTIFACTS_VERSION resolution (which artifacts file wins)
-1. `-a/--artifacts-version <v>` (or `$ARTIFACTS_VERSION`) → `k8s/releases/<v>-artifacts.yaml` (error if missing).
-2. else a local `artifacts.yaml` in the values dir (dev).
-3. else the latest `releases/*-artifacts.yaml` (sorted `yy.mm.dd`).
-Example: `make k8s -- install -a 26.04.01-rc1`.
+## Artifacts channel/version resolution (which artifacts file wins)
+Channels live under `releases/{stable,nightly}/`; each has a `latest` pointer file. Flags: `-C/--channel
+<stable|nightly>` → `ARTIFACTS_CHANNEL`, `-a/--artifacts-version <id|latest>` → `ARTIFACTS_VERSION`.
+1. `ARTIFACTS_CHANNEL` set → `releases/<channel>/<ver|latest>-artifacts.yaml` (`latest` = the
+   `<channel>/latest` pointer, else newest by `sort -V`).
+2. else only `ARTIFACTS_VERSION` set → `releases/<v>-artifacts.yaml` (legacy flat) → `stable/<v>` → `nightly/<v>`.
+3. else local `artifacts.yaml` in the values dir (dev) → `stable/latest` → legacy newest (`sort -V`).
+Examples: `make k8s -- install -C stable` · `-C stable -a 1.0.0` · `-C nightly -a latest` ·
+legacy `-a 26.04.01-rc1` (still resolves). **Gotcha:** channel/version must be plain tokens (no `=`) —
+`make` would otherwise eat `name=value` as a variable; that's why the older flat ids use `-rcN`, not `=`.
 
 ## Release/namespace naming + selection
 - Release name = `<chart>-<env>`; namespace = `<chart-or-group>-<env>-ns`. `<env>` comes from

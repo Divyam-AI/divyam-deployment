@@ -31,9 +31,11 @@ For each layer in order `0-foundation → 1-platform → 2-app`:
 
 **D. Phase 2 — stack**
 9. `make k8s -- kubeconfig` then `kubectl get ns` to confirm reachability.
-10. Ensure `k8s/helm-values/resources.yaml` and an artifacts source (`ARTIFACTS_VERSION`) are set; ask if unsure.
-11. `make k8s -- diff`, summarize. **Checkpoint:** confirm, then `make k8s -- install -a <version>` (first
-    install). If releases already exist (`helm ls -A`), use `make k8s -- upgrade` instead — never re-`install`.
+10. Ensure `k8s/helm-values/resources.yaml` and an artifacts source are set; ask if unsure. The artifacts
+    source is a channel/version (`-C stable|nightly` + `-a <id|latest>`), a local `artifacts.yaml`, or a
+    `releases/<channel>/` entry — see `k8s/releases/VERSIONING.md`.
+11. `make k8s -- diff`, summarize. **Checkpoint:** confirm, then `make k8s -- install -C stable` (first
+    install; or `-a <version>`). If releases already exist (`helm ls -A`), use `make k8s -- upgrade` instead — never re-`install`.
 
 **E. Verify**
 12. `make k8s -- status` and `kubectl get pods -A`; flag anything not Running/Completed and summarize the result.
