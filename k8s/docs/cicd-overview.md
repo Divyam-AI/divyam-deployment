@@ -158,6 +158,10 @@ flowchart TB
 
 ## Reference Auth Commands
 
+In day-to-day use, `make k8s -- kubeconfig` wraps all of this (it resolves the cluster and runs the
+right cloud `get-credentials`), and `make k8s -- diff` / `make k8s -- upgrade` drive the deploy. The
+raw commands below are the under-the-hood reference for pipeline scripts (`pipeline/scripts/`).
+
 Azure:
 
 ```bash

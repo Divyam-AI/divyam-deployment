@@ -190,4 +190,5 @@ Per-rule `notification.*` overrides these module-level defaults:
 2. Add the rule to `common/rules/<group>.json` — prefer the structured `query` IR; use a template
    only when the shape diverges per backend.
 3. Add a simulation scenario in `test/alert-sim/<group>.yaml`.
-4. Re-plan the destination for your profile and prove it with `/alert-loop`.
+4. Re-apply the alerts (`make iac -- apply -l 2-app.2-alerts`) and prove it fires: simulate the
+   scenario in the cluster, then confirm in Zenduty with `scripts/zenduty.py`.
