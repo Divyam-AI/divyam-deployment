@@ -112,6 +112,29 @@ case "$SUBCMD" in help|config|secrets|creds) ;; *)
 ;;
 esac
 
+# Naming validation. The env must be one of a small allowlist (both clouds — for consistent, bounded
+# state keys), and on Azure the derived names must fit the 24-char Storage Account / Key Vault limit.
+# deployment_prefix = "divyam-[<org>-]<env>"; the tightest derived name is the Key Vault
+# "divyam-<org>-<env>-vault" (24 chars) → len(org)+len(env) <= 10 (storage, dashes stripped, allows
+# <= 11). No guard existed before, so a long env/org failed mid-apply (e.g. an invalid 27-char
+# storage account). Fail fast here. Widen ALLOWED_ENVS below to permit more envs.
+ALLOWED_ENVS="dev prod preprod stage sandbox"
+validate_naming() {
+  [[ -z "$ENV_NAME" ]] && return 0   # no env chosen yet (e.g. creds/secrets) — nothing to validate
+  case " $ALLOWED_ENVS " in
+    *" $ENV_NAME "*) ;;
+    *) die "ENV '$ENV_NAME' is not allowed — use one of: $ALLOWED_ENVS (keeps Azure storage/Key Vault names <= 24 chars; widen ALLOWED_ENVS in scripts/iac.sh to change)";;
+  esac
+  local org="${ORG_NAME:-}"
+  if [[ -n "$org" && ! "$org" =~ ^[a-z0-9]+$ ]]; then
+    die "ORG_NAME '$org' must be lowercase letters/digits only (it forms Azure storage-account names, which forbid dashes/uppercase)"
+  fi
+  if [[ "$CLOUD" == "azure" && $(( ${#org} + ${#ENV_NAME} )) -gt 10 ]]; then
+    die "ORG_NAME+ENV too long for Azure: Key Vault 'divyam-${org:+$org-}${ENV_NAME}-vault' exceeds the 24-char limit (len(org)+len(env) must be <= 10; got $(( ${#org} + ${#ENV_NAME} ))). Shorten ORG_NAME or use a shorter env."
+  fi
+}
+if [[ "$SUBCMD" != "help" ]]; then validate_naming; fi
+
 require_cloud() { [[ -n "$CLOUD" ]] || die "no cloud set — pass -c gcp|azure or run: iac.sh config -c <cloud>"; \
   case "$CLOUD" in gcp|azure) ;; *) die "cloud must be gcp|azure (got '$CLOUD')";; esac; }
 require_env()   { [[ -n "$ENV_NAME" ]] || die "no env set — pass -e <name> or run: iac.sh config -e <env>"; }
