@@ -62,9 +62,23 @@ make k8s -- diff && make k8s -- upgrade -l <chart>                       # helmf
 | Phase 2 detail: kubeconfig, values files, artifacts resolution, helmfile ops, single-chart, destroy | `references/phase2-stack.md` |
 | Forked-repo CI/CD: PR-gated `diff`, post-merge `apply` | `references/cicd.md` |
 | When a step fails: already-exists, state, missing layer, filter misses, kubeconfig/auth, image pull | `references/troubleshooting.md` |
+| Adopting a prior/lost-state deployment, imports, cluster-recreate workload-identity rebind | `divyam-tooling/references/recovery-and-imports.md` |
+| Known blockers + fixes (Helm 4, env-name length, NAP NodePools, Kafka RF, App-GW subnet, state-key fork) | `divyam-tooling/references/known-gotchas.md` |
+| Read cloud ground truth without az/gcloud (verify a handoff, count resources, inspect a subnet) | `divyam-tooling/references/ground-truth-rest.md` |
+
+## Human handoffs in this flow (delegate → pause → verify)
+This flow is run *with* a DevOps/SRE/dev team (see `divyam-platform-engineer`). Treat these as
+action items you hand off and then **verify before resuming**, not steps you silently do or assume:
+cloud login (step 0/1 → verify `make iac -- creds`); filling real secrets incl. the Azure GAR
+docker-auth file (step 2 → verify file exists + `jq empty`); approving each layer/stack apply (steps
+4-6, 11); reviewing `provider.yaml` (step 7); kubeconfig if `az`/`gcloud` is interactive (step 8 →
+verify `kubectl get ns`). On AKS, `apply -l 2-app` must include **`0-nap_configs`** (NAP NodePools) or
+all pods stay `Pending` — see known-gotchas. For a large first install, prefer staged: ESO →
+verify ExternalSecrets `SecretSynced` → rest (`/deploy-stack-staged`).
 
 ## Guardrails
 - Never skip the `plan`/`diff` before `apply`/`install`/`upgrade`; never `sync` after first install.
 - `0-foundation` is LOCAL state — never blindly re-apply/destroy; coordinate.
 - Don't proceed to Phase 2 until `provider.yaml` exists and looks right (env, cloud, storage).
-- Cloud login is the user's step — pause and ask them to run it; don't attempt interactive login yourself.
+- Cloud login is the user's step — pause, ask them to run it, then verify; don't attempt interactive login yourself.
+- Phase 2 needs **Helm 3** (Helm 4 breaks helmfile/diff) — see known-gotchas / prerequisites.

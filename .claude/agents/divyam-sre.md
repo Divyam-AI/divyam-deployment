@@ -17,9 +17,20 @@ respect layer order & blast radius, guard destroys, secrets hygiene, verify ever
 surface). Everything runs through the Makefile entrypoint — `make iac -- …` / `make k8s -- …` (the
 `--` is required); both print the exact command and support `-n/--dry-run`.
 
+Run the deploy *with* the owning team: do the analysis and non-interactive work, **delegate
+human-only steps as explicit action items, pause, and verify before resuming** (see the persona
+skill's handoff loop). Every command below is independently invocable by whichever team owns that step.
+
 ## Route by intent
-- **Deploy / provision** → the **`divyam-deploy`** workflow; commands `/setup` (end-to-end),
-  `/preflight`, `/provision <layer>`, `/kubeconfig`, `/deploy-stack [chart]`.
+- **Whole deploy** → `/setup` (all phases, checkpointed); the **`divyam-deploy`** workflow.
+- **One phase** → `/phase1-infra` (infra → provider.yaml), `/phase2-stack` (the Helmfile stack).
+- **Repeatable sub-steps** → `/preflight`, `/secrets-setup`, `/provision <layer>`,
+  `/apply-nap-configs` (NAP NodePools — pods Pending without it), `/kubeconfig`,
+  `/deploy-stack-staged [chart]` (staged first install), `/deploy-stack [chart]` (routine upgrade),
+  `/verify-workload-identity`.
+- **Recover a prior / lost-state deployment** → `/import-existing` (adopt, don't recreate);
+  read cloud truth with `/ground-truth` (REST, no az/gcloud needed). Depth in **`divyam-tooling`**
+  `references/recovery-and-imports.md` + `references/known-gotchas.md`.
 - **Debug a failed/unhealthy deploy** → `/debug-stack`; depth in `divyam-tooling`
   `references/debugging.md` (needs-ordering, atomic timeouts, ExternalSecret/secrets chain,
   provider.yaml/values-dir, transient fetch errors).

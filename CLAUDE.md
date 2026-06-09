@@ -213,13 +213,25 @@ Global/general skills to pair with them:
 |---------|------|
 | `/preflight [cloud] [env]` | verify toolchain + cloud creds + Phase-1→2 handoff (read-only) |
 | `/setup [cloud] [env]` | overarching end-to-end deploy (prereqs → Phase 1 → Phase 2) with checkpoints |
+| `/phase1-infra [cloud] [env]` | Phase 1 only — provision infra `0-foundation → 1-platform → 2-app` to provider.yaml |
+| `/phase2-stack [chart]` | Phase 2 only — kubeconfig → values → diff → first-install/upgrade the Helmfile stack |
+| `/secrets-setup [cloud] [env]` | generate `secrets.env` + assign real FILL values (creds, GAR docker-auth) as action items, then verify |
 | `/provision <layer>` | plan a layer → review → confirm → apply (Phase 1, `make iac`) |
+| `/apply-nap-configs [env]` | apply NAP NodePools (`2-app/0-nap_configs`) so pods can schedule (Azure); verify |
 | `/kubeconfig [flags]` | authenticate to the cloud and (re)fetch cluster kubeconfig, then verify |
+| `/deploy-stack-staged [-C chan]` | first install in stages (ESO → verify Key Vault chain → full stack) |
 | `/deploy-stack [chart]` | helmfile diff → review → install (first) or upgrade (Phase 2, `make k8s`) |
+| `/verify-workload-identity [ns]` | check ExternalSecrets `SecretSynced` + OIDC-issuer match + image pulls (read-only) |
+| `/import-existing [layer.unit]` | adopt pre-existing resources after `already exists` / lost state — import, don't recreate |
+| `/ground-truth [clusters\|subnet …\|inventory\|issuer]` | read real cloud state via REST (no az/gcloud) (read-only) |
 | `/cluster-status [tui\|dashboard]` | helm releases + pod health overview (read-only) |
 | `/debug-stack [release\|ns]` | diagnose a failed/unhealthy deploy — first failing release + root cause (read-only) |
 | `/monitor [alerts\|dashboards\|backend]` | inspect the observability surface — alert rules/firing, dashboards, backend (read-only) |
 | `/destroy-layer <layer>` | guided, type-to-confirm teardown of an infra layer (`make iac -- destroy`) |
+
+Commands are **independently invocable** — a team can run just `/secrets-setup`, `/phase1-infra`,
+`/apply-nap-configs`, etc. The agent **assigns human-only steps (login, secrets, approvals) as action
+items, pauses, and verifies them before resuming** (see the `divyam-platform-engineer` handoff loop).
 
 ## Conventions
 

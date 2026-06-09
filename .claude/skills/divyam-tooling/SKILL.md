@@ -47,7 +47,10 @@ The **Makefile is the entrypoint**. Two workflow commands cover everything; both
 | kubectl verification commands + what's allow-listed vs `ask` | `references/kubectl.md` | verifying the cluster/stack, debugging pods |
 | Deployment-failure playbook: `needs` ordering, atomic timeouts, ExternalSecret/secrets chain, provider.yaml/values-dir resolution, transient fetch errors | `references/debugging.md` | a `make k8s -- install/upgrade` fails or releases don't go healthy |
 | GCP vs Azure: project vs resource-group, auth, `get-credentials`, GKE/AKS, service mapping | `references/clouds.md` | anything cloud-specific, kubeconfig, creds |
-| Pinned tool versions + install | `references/prerequisites.md` | setting up a machine, version mismatch, `make prereqs` |
+| Pinned tool versions + install; **Helm 4 breaks helm-diff/helmfile — use Helm 3** | `references/prerequisites.md` | setting up a machine, version mismatch, `make prereqs`, `plugin "diff" exited with error` |
+| Read cloud ground truth WITHOUT az/gcloud — SP/ADC token → ARM/GCP REST (list clusters, inspect a subnet, OIDC issuer, compare federated creds) | `references/ground-truth-rest.md` | az/gcloud absent, "how many clusters exist", "what's in the app-gw subnet", verifying a console/handoff action |
+| Adopt pre-existing resources & recover state: `already exists` → import; the import dep-mock whitelist trick; purge-protected Key Vault; delete+recreate orphaned UAMIs; rebind federated creds after a cluster recreate | `references/recovery-and-imports.md` | a prior/lost-state deployment, `already exists`, broken workload identity, dual state |
+| Known blockers + fixes: env-name length (Azure 24-char), NAP NodePools missing (`0-nap_configs`), Kafka RF vs broker count, App-GW subnet collision, the state-key filename fork | `references/known-gotchas.md` | a deploy stalls/fails in a way that matches a known trap |
 
 ## Quick map: intent → command
 

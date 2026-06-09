@@ -96,6 +96,22 @@ CLOUD="${CLI_CLOUD:-${ENV_CLOUD:-${CONF_CLOUD:-${CLOUD_PROVIDER:-}}}}"
 ENV_NAME="${CLI_ENV:-${ENV_ENV:-${CONF_ENV:-${ENV:-}}}}"
 [[ "$LOADED_SECRETS" -eq 1 && "$SUBCMD" != "help" ]] && echo "iac.sh: loaded ${SECRETS_FILE#"$REPO_ROOT"/}" >&2
 
+# Guard the silent state-key fork. The remote-state key embeds the VALUES_FILE basename, so a
+# VALUES_FILE pointing at a missing file (classically a stale value baked into secrets.env) resolves
+# to a DIFFERENT, empty state while the resources already exist in the cloud → cascading
+# "already exists". Fail loudly here instead. (CLOUD_PROVIDER/ENV/VALUES_FILE are config and belong in
+# .iac.conf / flags / iac.env — not in the secrets file.)
+case "$SUBCMD" in help|config|secrets|creds) ;; *)
+  if [[ -n "${VALUES_FILE:-}" && ! -f "$IAC_DIR/$VALUES_FILE" ]]; then
+    die "VALUES_FILE='$VALUES_FILE' but iac/$VALUES_FILE does not exist. The Terraform state key embeds
+   this filename, so a wrong/stale VALUES_FILE silently forks state (empty state vs already-created
+   resources). Point VALUES_FILE at an existing values file, or unset it in iac/values/secrets.env
+   (config belongs in .iac.conf / -e / iac.env). If resources already exist, adopt them — see the
+   /import-existing recovery flow."
+  fi
+;;
+esac
+
 require_cloud() { [[ -n "$CLOUD" ]] || die "no cloud set — pass -c gcp|azure or run: iac.sh config -c <cloud>"; \
   case "$CLOUD" in gcp|azure) ;; *) die "cloud must be gcp|azure (got '$CLOUD')";; esac; }
 require_env()   { [[ -n "$ENV_NAME" ]] || die "no env set — pass -e <name> or run: iac.sh config -e <env>"; }
