@@ -238,6 +238,12 @@ items, pauses, and verifies them before resuming** (see the `divyam-platform-eng
 - Don't commit/push unless asked. Never commit `iac/values/secrets.env` (or `.tf-secrets.env`),
   `provider.yaml` secrets, or tokens.
 - Alert rules are source of truth — edit `common/rules/*.json`, never generated per-backend resources.
+- `ENV` must be one of `dev|prod|preprod|stage|sandbox` and `ORG_NAME` lowercase-alphanumeric; on Azure
+  `len(org)+len(env) ≤ 10` (Key Vault/Storage 24-char cap). `scripts/iac.sh` enforces this (even at
+  `config` time); widen `ALLOWED_ENVS` there + in the sandbox `create-sandbox.sh` for a custom env.
+- Config (`CLOUD_PROVIDER`/`ENV`/`VALUES_FILE`) belongs in `.iac.conf` / flags / sandbox `iac.env` —
+  **not** in `secrets.env`. A `VALUES_FILE` pointing at a missing file silently forks state; iac.sh now
+  fails loudly on it.
 - Interactive cloud/cluster logins are run by the user via `! <cmd>`; never attempt them yourself.
 - Always `make k8s -- diff` before `upgrade`; `install` (`sync`) only for the first install.
 - Alert-query changes should be re-proven (deploy → simulate via `test/alert-sim/*.yaml` → Zenduty

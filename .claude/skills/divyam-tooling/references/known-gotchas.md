@@ -16,13 +16,21 @@ fix. Several are cloud-agnostic-by-design but bite differently on Azure vs GCP.
 - **Also:** `kubectl` and `az`/`gcloud` are NOT installed by `make prereqs` (Phase 2 needs them). If
   `az` is absent, pull kubeconfig from TF state (`ground-truth-rest.md`).
 
-## 2. Env-name length → Azure name overflow
-- **Symptom:** storage-account / Key Vault create fails: name `…` can only be ≤ 24 chars / invalid.
-- **Cause:** `deployment_prefix = divyam-[org-]env`; Azure storage accounts and Key Vaults cap at 24
-  chars (dashes stripped for storage). A long `ENV` (e.g. `create-p0-alerts`) overflows
-  `divyamcreatep0alertstfstate` (27).
-- **Fix:** keep `ENV` short (≤ ~9 chars after `divyam-`). Validate env-name length before apply. The
-  sandbox launcher should reject an over-long `--env-name`.
+## 2. Env-/org-name length → Azure name overflow (now validated)
+- **Symptom:** storage-account / Key Vault create fails: name `…` can only be ≤ 24 chars / invalid
+  (e.g. a long `ENV` like `create-p0-alerts` → `divyamcreatep0alertstfstate`, 27 chars).
+- **Cause:** `deployment_prefix = divyam-[<org>-]<env>`; Azure Storage Accounts and Key Vaults cap at
+  24 chars. The tightest derived name is the Key Vault `divyam-<org>-<env>-vault` ⇒ **len(org)+len(env)
+  ≤ 10**; storage accounts (dashes stripped, `…tfstate`/`…storage`) allow ≤ 11.
+- **Now enforced (fail-fast, no more mid-apply failures):**
+  - **env allowlist** — `ENV` must be one of `dev | prod | preprod | stage | sandbox` (both clouds, for
+    bounded & consistent state keys). Enforced in `scripts/iac.sh` (`validate_naming`, runs even at
+    `config` time) and in the sandbox launcher `create-sandbox.sh`. Widen `ALLOWED_ENVS` in **both** to
+    permit more.
+  - **org rule** — `ORG_NAME` must be lowercase alphanumeric, and on **Azure** `len(org)+len(env) ≤ 10`
+    (else iac.sh dies naming the Key Vault that would overflow). GCP isn't length-limited here.
+- **Client teams:** pick an env from the allowlist; if you need a custom env, widen `ALLOWED_ENVS` in
+  `scripts/iac.sh` (and the sandbox `create-sandbox.sh`) and keep `len(org)+len(env) ≤ 10` on Azure.
 
 ## 3. State key embeds the values-file FILENAME (silent state fork)
 - **Symptom:** `apply` tries to create resources that already exist (cascading `already exists`),

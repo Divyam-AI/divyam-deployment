@@ -63,7 +63,7 @@ make k8s -- diff && make k8s -- upgrade -l <chart>                       # helmf
 | Forked-repo CI/CD: PR-gated `diff`, post-merge `apply` | `references/cicd.md` |
 | When a step fails: already-exists, state, missing layer, filter misses, kubeconfig/auth, image pull | `references/troubleshooting.md` |
 | Adopting a prior/lost-state deployment, imports, cluster-recreate workload-identity rebind | `divyam-tooling/references/recovery-and-imports.md` |
-| Known blockers + fixes (Helm 4, env-name length, NAP NodePools, Kafka RF, App-GW subnet, state-key fork) | `divyam-tooling/references/known-gotchas.md` |
+| Known blockers + fixes (Helm 4, env allowlist + org/env name-length, NAP NodePools, Kafka RF, App-GW subnet, state-key fork) | `divyam-tooling/references/known-gotchas.md` |
 | Read cloud ground truth without az/gcloud (verify a handoff, count resources, inspect a subnet) | `divyam-tooling/references/ground-truth-rest.md` |
 
 ## Human handoffs in this flow (delegate → pause → verify)

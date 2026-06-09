@@ -9,8 +9,10 @@ args (cloud, env): **$ARGUMENTS**. Everything runs through `make iac -- …`. Ne
 shared/prod env; stop at every checkpoint.
 
 1. **Resolve cloud+env.** From args → `make iac -- config -c <cloud> -e <env>`; else read `.iac.conf`.
-   If unset, ask. Sanity-check the env name length (Azure storage/Key Vault cap at 24 chars incl. the
-   `divyam-<env>` prefix) — if it would overflow, flag it before proceeding (see known-gotchas).
+   If unset, ask. `iac.sh` now validates naming (so a bad value fails fast, even at `config` time):
+   `ENV` must be one of `dev|prod|preprod|stage|sandbox`, and on Azure `len(org)+len(env) ≤ 10` (the
+   Key Vault / storage 24-char cap). If a client needs a different env, widen `ALLOWED_ENVS` in
+   `scripts/iac.sh` (+ the sandbox `create-sandbox.sh`) — see known-gotchas §2.
 2. **Creds (handoff).** Run `make iac -- creds`. If it fails, hand the user the action item to run
    `! az login` / `! gcloud auth login` (+ `gcloud auth application-default login`) and **pause**.
    On resume, re-run `make iac -- creds` to verify before continuing.
