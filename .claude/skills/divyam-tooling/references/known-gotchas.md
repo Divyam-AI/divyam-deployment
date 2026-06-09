@@ -24,9 +24,11 @@ fix. Several are cloud-agnostic-by-design but bite differently on Azure vs GCP.
   ≤ 10**; storage accounts (dashes stripped, `…tfstate`/`…storage`) allow ≤ 11.
 - **Now enforced (fail-fast, no more mid-apply failures):**
   - **env allowlist** — `ENV` must be one of `dev | prod | preprod | stage | sandbox` (both clouds, for
-    bounded & consistent state keys). Enforced in `scripts/iac.sh` (`validate_naming`, runs even at
-    `config` time) and in the sandbox launcher `create-sandbox.sh`. Widen `ALLOWED_ENVS` in **both** to
-    permit more.
+    bounded & consistent state keys). Enforced in three places: `scripts/iac.sh` (`validate_naming`,
+    runs even at `config` time), the sandbox launcher `create-sandbox.sh`, and a **parse-time guard in
+    `iac/root.hcl`** (`_naming_errors`/`_checked_deployment_prefix`, woven into the backend key so it
+    fires even on a direct `terragrunt` call). Widen the list in **all three** (`ALLOWED_ENVS` /
+    `_allowed_envs`) to permit more.
   - **org rule** — `ORG_NAME` must be lowercase alphanumeric, and on **Azure** `len(org)+len(env) ≤ 10`
     (else iac.sh dies naming the Key Vault that would overflow). GCP isn't length-limited here.
 - **Client teams:** pick an env from the allowlist; if you need a custom env, widen `ALLOWED_ENVS` in
