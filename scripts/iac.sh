@@ -178,11 +178,17 @@ tg() {  # <init|plan|apply|show|destroy> [extra tofu args...]
   require_cloud; require_layer; parse_layer
   export CLOUD_PROVIDER="$CLOUD" ENV="$ENV_NAME"
   local -a flt; mapfile -t flt < <(filter_args)
+  # -y/--yes must reach terragrunt itself, not just the script's own confirm() prompts. terragrunt's
+  # --non-interactive assumes "yes" for all prompts — notably the `run --all` run-queue confirmation
+  # ("Are you sure you want to run … in each unit?"), which otherwise hangs and dies on EOF under
+  # automation/setup (no stdin). For apply/destroy, `run --all` already auto-appends tofu's
+  # -auto-approve (see `terragrunt run --help` → --no-auto-approve), so --non-interactive suffices.
+  local -a ni=(); [[ "$ASSUME_YES" -eq 1 ]] && ni=(--non-interactive)
   local -a cmd
   case "$verb" in
-    init) cmd=(terragrunt init -reconfigure --all "${flt[@]}");;
+    init) cmd=(terragrunt init -reconfigure --all "${ni[@]}" "${flt[@]}");;
     show) cmd=(terragrunt show --all "${flt[@]}");;
-    *)    cmd=(terragrunt run "$verb" --all "${flt[@]}" "$@");;
+    *)    cmd=(terragrunt run "$verb" --all "${ni[@]}" "${flt[@]}" "$@");;
   esac
   echo "+ (cd ${BASE#"$REPO_ROOT"/} && ${cmd[*]})   [CLOUD_PROVIDER=$CLOUD ENV=$ENV_NAME]"
   [[ "$DRYRUN" -eq 1 ]] && { echo "  (dry-run: not executed)"; return 0; }
