@@ -260,51 +260,90 @@ charts:
     values: {}
 
   # Per-consumer datastores (operator-managed CRs, co-located in each consumer ns).
+  # NOTE: HA + backup key paths differ per datastore chart (see each chart's values.yaml).
+  # Backups are gated off here - buckets/creds are terraform-provisioned per env, then
+  # backup.enabled / snapshots.enabled are flipped on with the credential secret refs.
   temporal-postgres:
     values:
       cluster:
-        instances: 2
-        storage: { storageClass: premiumSsd, size: 20Gi }
+        instances: 2                                          # prod: 3
+        storage: { storageClass: divyam-premium-ssd, size: 20Gi }
         resources:
           requests: { cpu: "500m", memory: "1Gi" }
           limits:   { cpu: "2",    memory: "4Gi" }
+        highAvailability:
+          enabled: false                                      # prod: true (with instances >= 3)
+          minSyncReplicas: 1
+          maxSyncReplicas: 1
+      backup:
+        enabled: false                                        # flip on once bucket+creds exist
+        provider: ""                                          # s3 | azure | google
+        destinationPath: ""                                   # e.g. s3://<bucket>/temporal-postgres
+        retentionPolicy: "30d"
+        schedule: "0 0 3 * * *"
   temporal-elasticsearch:
     values:
       elasticsearch:
         nodeSet:
-          count: 1
+          count: 1                                            # prod: >= 2 for multi-node durability
           heapSize: "2g"
-          storage: { storageClass: premiumSsd, size: 30Gi }
+          storage: { storageClass: divyam-premium-ssd, size: 30Gi }
         resources:
           requests: { cpu: "500m", memory: "3Gi" }
           limits:   { cpu: "2",    memory: "5Gi" }
+      snapshots:
+        enabled: false                                        # SLM/repo registration is out-of-band vs ES API
   lakefs-postgres:
     values:
       cluster:
-        instances: 1
+        instances: 1                                          # prod: 3 (lakeFS PG is critical)
         storage: { storageClass: divyam-default, size: 10Gi }
+      highAvailability:
+        podAntiAffinity: true
+        synchronousReplication: { enabled: false, number: 1 } # prod: enabled true at instances >= 2
+      backup:
+        enabled: false
+        destinationPath: ""
+        scheduledBackup: { enabled: false, schedule: "0 0 0 * * *" }
+        retentionPolicy: "30d"
   argilla-postgres:
     values:
       cluster:
-        instances: 1
+        instances: 1                                          # prod: >= 2
         storage: { storageClass: divyam-default, size: 10Gi }
+      highAvailability:
+        enabled: false
+        synchronousReplication: false
+        synchronousReplicas: 1
+      backup:
+        enabled: false
+        destinationPath: ""                                   # s3://... | gs://... | azure container URL
+        schedule: "0 0 2 * * *"
+        retentionPolicy: "30d"
   argilla-elasticsearch:
     values:
       elasticsearch:
+        indexReplicas: 0                                      # 0 for single-node internal, >= 1 in prod
         nodeSet:
-          count: 1
+          count: 1                                            # ES holds PRIMARY records - prod: >= 2
           heapSize: "1g"
           storage: { storageClass: divyam-default, size: 20Gi }
+      snapshots:
+        enabled: false                                        # records live here - enable backups in prod
   argilla-redis:
     values:
       redis:
-        storage: { storageClass: divyam-default, size: 5Gi }
+        storage: { storageClass: divyam-default, size: 5Gi }  # transient job queue, not critical-data
 
   temporal:
     values: {}
 
   lakefs:
-    values: {}
+    values:
+      highAvailability:
+        pdb: { enabled: false }                               # prod: true
+      lakefs:
+        replicaCount: 1                                       # prod: >= 2 (lakeFS server is critical)
 
   argilla:
     values:
@@ -326,6 +365,9 @@ charts:
         resources:
           requests: { cpu: "500m", memory: "1Gi" }
           limits:   { cpu: "1",    memory: "2Gi" }
+      highAvailability:
+        pdb: { enabled: true, minAvailable: 1 }
+        podAntiAffinity: { enabled: true }
 
   evalm8-wfs:
     values:
