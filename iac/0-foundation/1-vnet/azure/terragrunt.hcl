@@ -16,7 +16,7 @@ dependency "resource_scope" {
   mock_outputs = {
     resource_group_name = "mock-rg"
   }
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply"]
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply", "import", "force-unlock"]
 }
 
 terraform {

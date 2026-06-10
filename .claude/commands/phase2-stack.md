@@ -25,6 +25,8 @@ Runs through `make k8s -- …`. Stop before any mutation; never `-y` on shared/p
 6. **Checkpoint → deploy.** On go-ahead: for a first install of the whole stack prefer **staged** via
    `/deploy-stack-staged` (ESO → verify ExternalSecrets → rest). Otherwise
    `make k8s -- install -C <channel> -y` (first) or `make k8s -- upgrade [-l <chart>]` (routine).
+   While it runs, ask the user how to track it: terminal (`! make k8s -- status --tui`, user-run)
+   or web dashboard (background `make k8s -- status --dashboard`, share the URL) — /bringup-status step 5.
 7. **Verify.** `make k8s -- status` + `kubectl get pods -A` (flag non-Running/Completed). Then
    `/verify-workload-identity` to confirm ExternalSecrets are `SecretSynced` and image pulls work.
    Watch for the known traps: pods Pending → NAP NodePools missing (`/apply-nap-configs`); Kafka

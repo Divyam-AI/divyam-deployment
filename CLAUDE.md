@@ -70,6 +70,29 @@ test/alert-sim/                    # human-owned simulation specs: rule -> kubec
   <group>.yaml                     #   one file per rule group, mirrors common/rules/<group>.json
 ```
 
+## Single-command bringup (Phase 1 + Phase 2)
+
+`make bringup -- run -c <cloud> -e <env> -d k8s/helm-values -y` (→ `scripts/bringup.sh`) runs the
+whole sequence — `0-foundation → 1-platform → 2-app → kubeconfig (+ reachability smoke) →
+k8s-install` — by shelling out to the phase CLIs below, pre-seeds that plan as `pending` in a
+per-(cloud,env) ledger (`.bringup-status.<cloud>.<env>`, gitignored), and stamps each step as it
+goes. The ledger writer (`scripts/status-ledger.sh`) is shared: `iac.sh` stamps any
+`apply/destroy -l <layer[.sub]>` (full layers as the canonical bringup steps, sub-layers as their
+own module-level steps, e.g. `1-platform.2-monitoring`) and `k8s.sh` stamps `kubeconfig`/`install`.
+Query progress with **`make status`** (→ `scripts/status.sh`, the standalone READER — renders
+whatever steps the ledger contains; `--porcelain` for `<step>=<state>` lines; exit 0 = all applied,
+1 = failed/partial, 2 = never run; `bringup.sh status` delegates there for back-compat) — external
+tools must use that hook, never the ledger file. **During long runs** (bringup, full-layer apply,
+install): run them in the background and poll the one-shot `make status` (~60s; the
+`/bringup-status` command), relaying the table to the user — and **ask the user up front if they
+want a live watch** (if yes: `! make status -- -w -i 30`, their terminal). Never `-w/--watch` or
+`--tui` from a tool shell (interactive loops, never return). **When `k8s-install` turns `running`**
+(the table hints this too): ask the user — terminal (`make k8s -- status --tui`, user-run) or web
+dashboard (`make k8s -- status --dashboard`, background it; binds `0.0.0.0:8080`, no browser —
+share the URL; sandbox laptops need router-cd `make sshuttle`)? Preview with `-n`.
+The interactive, checkpointed path is `.claude/commands/setup`; the per-phase flows below remain
+the primitives.
+
 ## Phase 1 — provision infrastructure (`iac/`)
 
 All of Phase 1 runs through `make iac -- <cmd>` (the entrypoint; forwards to `scripts/iac.sh`, which
@@ -100,16 +123,21 @@ also runs directly without `--`). Add `-n` to any command to preview the exact `
      irregular units (e.g. the cloud-agnostic `2-alerts/datadog` when `datadog.enabled`).
 5. **State caveats**: **0-foundation uses LOCAL state** — do NOT blindly re-`apply`; coordinate with
    the team on state location. 1-platform/2-app use **remote** state (the bucket/account from
-   `2-terraform_state_blob_storage`). `TG_USE_LOCAL_BACKEND=1` only for debug.
+   `2-terraform_state_blob_storage`). `TG_USE_LOCAL_BACKEND=1` only for debug. Re-bringup of an env
+   whose resources survived (e.g. from a fresh throwaway VM): set `create = false` for the surviving
+   resources in the values file — those units become lookups/no-ops; for one-off leftovers use
+   `make iac -- import`.
 6. **Destroy / re-harden**: `make iac -- destroy -l <layer>` (flips `prevent_destroy`→false, previews,
    type-confirms) and `make iac -- protect -l <layer>` (re-harden, then apply).
 7. **Verify**: `2-app` writes `k8s/helm-values/provider.yaml`. Review env, cloud provider, and storage
    config before Phase 2.
 
 Troubleshooting: clear caches with `find . -type d -name .terragrunt-cache -exec rm -rf {} +`;
-inspect with `make iac -- show -l <layer>`; for "already exists" import the resource or set
-`create = false` and fill in the existing values. API-enablement (`0-apis`) "already exists" errors are
-safe to ignore.
+inspect with `make iac -- show -l <layer>`; for "already exists" import the resource —
+`make iac -- import -l <layer1.layer2> -- '<addr>' '<cloud_id>'` — or set `create = false` and fill
+in the existing values. A stale state lock (VM died mid-apply) waits `IAC_LOCK_TIMEOUT` (120s) then
+prints the fix: `make iac -- unlock -l <layer1.layer2> -- <lock-id>`. API-enablement (`0-apis`)
+"already exists" errors are safe to ignore.
 
 ## Phase 2 — deploy the stack (`k8s/`, Helmfile)
 
@@ -224,6 +252,7 @@ Global/general skills to pair with them:
 | `/verify-workload-identity [ns]` | check ExternalSecrets `SecretSynced` + OIDC-issuer match + image pulls (read-only) |
 | `/import-existing [layer.unit]` | adopt pre-existing resources after `already exists` / lost state — import, don't recreate |
 | `/ground-truth [clusters\|subnet …\|inventory\|issuer]` | read real cloud state via REST (no az/gcloud) (read-only) |
+| `/bringup-status [cloud] [env] [interval]` | bringup/IaC step-ledger progress (`make status`), polled while a long run is in flight (read-only) |
 | `/cluster-status [tui\|dashboard]` | helm releases + pod health overview (read-only) |
 | `/debug-stack [release\|ns]` | diagnose a failed/unhealthy deploy — first failing release + root cause (read-only) |
 | `/monitor [alerts\|dashboards\|backend]` | inspect the observability surface — alert rules/firing, dashboards, backend (read-only) |

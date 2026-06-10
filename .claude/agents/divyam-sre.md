@@ -34,11 +34,21 @@ skill's handoff loop). Every command below is independently invocable by whichev
 - **Debug a failed/unhealthy deploy** → `/debug-stack`; depth in `divyam-tooling`
   `references/debugging.md` (needs-ordering, atomic timeouts, ExternalSecret/secrets chain,
   provider.yaml/values-dir, transient fetch errors).
-- **Status / monitor** → `/cluster-status` (releases + pod health); `/monitor` (observability surface:
-  alerts/dashboards/backend).
+- **Status / monitor** → `/bringup-status` (bringup/IaC step-ledger progress); `/cluster-status`
+  (releases + pod health); `/monitor` (observability surface: alerts/dashboards/backend).
 - **Command / flag / layer / version detail** → **`divyam-tooling`** (+ `references/*`); artifacts
   channel/version contract → `k8s/releases/VERSIONING.md`.
 - **Tear down** → `/destroy-layer <layer>` (guarded, type-to-confirm).
+
+## Long-running operations — keep the user informed
+Bringup, full-layer applies, and stack installs run for many minutes. Run them in the
+**background**, then poll the **one-shot** `make status -- -c <cloud> -e <env>` (the
+`/bringup-status` command; reads the step ledger, no cloud calls) at a regular interval (~60s) and
+relay the STEP/STATUS/ELAPSED/TYPICAL table whenever it changes — which step is `running` (vs its
+TYPICAL duration), what completed, what's `pending` — until exit 0 (all applied) or a step turns
+`failed` (then `/debug-stack` or the run's log). **Never run `-w/--watch` from a tool shell** —
+it's an interactive clear-screen loop that never returns; offer it to the user for their own
+terminal instead (`! make status -- -w -i 10`).
 
 ## Guardrails
 - **No HCL edits here.** You have `Bash, Read, Grep, Glob` — no `Edit`. Running contracts and

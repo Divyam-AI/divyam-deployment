@@ -21,6 +21,17 @@
 #   destroy           Plan-preview + type-to-confirm, then terragrunt run destroy
 #                       (first flips prevent_destroy -> false on the target module)
 #   protect           Set prevent_destroy -> true on the target module, then apply
+#   import            State surgery: adopt an existing cloud resource into ONE unit's state.
+#                       iac.sh import -l <layer1.layer2> -- '<resource_addr>' '<cloud_id>'
+#                     Runs `terragrunt run -- import` inside the unit dir for the current cloud
+#                     (quote the addr — it usually contains [0]). Dependency mock outputs are
+#                     allowed for import, so it works even when sibling units have no state yet.
+#                     Do NOT use `run --all -- import` (terragrunt forbids it) or
+#                     --dependency-fetch-output-from-state (terragrunt 0.99.4 unmarshal bug).
+#   unlock            Force-release a stuck state lock (e.g. a VM died mid-apply and left an
+#                     azurerm blob lease / GCS lock behind):
+#                       iac.sh unlock -l <layer1.layer2> -- <lock-id>
+#                     Runs `terragrunt run -- force-unlock -force <lock-id>` in the unit dir.
 #   help              This help
 #
 # Options:
@@ -32,6 +43,13 @@
 #   -y, --yes                       Skip confirmation prompts (automation).
 #   -n, --dry-run                   Print the terragrunt command(s) that would run; change nothing.
 #   -h, --help                      Help.
+#   --   <args...>                  Everything after -- is passed to the underlying tofu command
+#                                   (required for import/unlock; optional extras for plan/apply,
+#                                   e.g. -- -target=azurerm_subnet.app_gw_subnet[0]).
+#
+# State locking: plan/apply/destroy/import wait up to IAC_LOCK_TIMEOUT (default 120s) for a held
+# state lock (-lock-timeout via TF_CLI_ARGS_*). On a lock failure the exact `unlock` command to
+# force-release it is printed. -l accepts nested units with extra dots (e.g. 2-app.2-alerts.datadog).
 #
 # Examples:
 #   scripts/iac.sh config -c gcp -e dev            # remember these; later commands need no -c/-e
@@ -41,6 +59,8 @@
 #   scripts/iac.sh apply   --layer 1-platform.2-monitoring
 #   scripts/iac.sh destroy -l 0-foundation          # type-to-confirm
 #   scripts/iac.sh protect -l 2-app.0-divyam_secrets
+#   scripts/iac.sh import -l 0-foundation.1-vnet -- 'azurerm_subnet.app_gw_subnet[0]' '/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet>'
+#   scripts/iac.sh unlock -l 1-platform.1-k8s -- 1d2c3b4a-...   # lock ID from the error message
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -50,7 +70,7 @@ CONF="$REPO_ROOT/.iac.conf"
 
 # --- arg parsing (supports -x, --x, and --x=value) -------------------------
 SUBCMD=""; LAYER=""; FILTER=""; ASSUME_YES=0; DRYRUN=0
-CLI_CLOUD=""; CLI_ENV=""
+CLI_CLOUD=""; CLI_ENV=""; EXTRA_ARGS=()
 usage() { grep '^#' "$0" | grep -vE '^#(!|[[:space:]]*SPDX-)' | sed 's/^# \{0,1\}//'; }
 die() { echo "iac.sh: $*" >&2; exit 2; }
 
@@ -72,11 +92,12 @@ while [[ $# -gt 0 ]]; do
     *)           if [[ -z "$SUBCMD" ]]; then SUBCMD="$1"; else die "unexpected arg: $1"; fi; shift;;
   esac
 done
+EXTRA_ARGS=("$@")   # everything after `--` goes to the underlying tofu command
 [[ -n "$SUBCMD" ]] || { usage; exit 0; }
 
 # --- load config + secrets -------------------------------------------------
 # Capture the pre-existing shell env (it outranks the file) before sourcing anything.
-ENV_CLOUD="${CLOUD_PROVIDER:-}"; ENV_ENV="${ENV:-}"
+ENV_CLOUD="${CLOUD_PROVIDER:-}"; ENV_ENV="${ENV:-}"; ENV_VALUES_FILE="${VALUES_FILE:-}"
 # The IaC reads config via terragrunt get_env(); auto-source iac/values/secrets.env so the
 # TF_VAR_* secrets and config vars (REGION/ZONE/ORG_NAME/NOTIFICATION_*/...) are present.
 # Generate it with scripts/gen-tf-env.sh. Lowest precedence for cloud/env.
@@ -85,6 +106,9 @@ if [[ -f "$SECRETS_FILE" ]]; then
   set -a; # shellcheck disable=SC1090
   source "$SECRETS_FILE"; set +a; LOADED_SECRETS=1
 fi
+# Config doesn't belong in secrets.env — shield VALUES_FILE like cloud/env: a value already in the
+# shell env outranks one smuggled in via the secrets file (a stale one silently forks state).
+if [[ -n "$ENV_VALUES_FILE" ]]; then export VALUES_FILE="$ENV_VALUES_FILE"; fi
 # Persisted cloud/env selection from `iac.sh config`.
 CONF_CLOUD=""; CONF_ENV=""
 if [[ -f "$CONF" ]]; then
@@ -135,6 +159,42 @@ validate_naming() {
 }
 if [[ "$SUBCMD" != "help" ]]; then validate_naming; fi
 
+# --- state-lock handling -----------------------------------------------------
+# A VM torn down mid-apply leaves the remote-state lock held (azurerm: blob lease; gcs: lock file),
+# and tofu fails immediately on the next run. Wait a bounded time for the lock instead, threaded
+# via TF_CLI_ARGS_<cmd> so it reaches tofu through terragrunt for every unit. Override with
+# IAC_LOCK_TIMEOUT=<dur> (e.g. 0s to disable); an existing -lock-timeout in TF_CLI_ARGS_* wins.
+LOCK_TIMEOUT="${IAC_LOCK_TIMEOUT:-120s}"
+for _c in plan apply destroy import; do
+  _v="TF_CLI_ARGS_${_c}"
+  if [[ "${!_v:-}" != *-lock-timeout* ]]; then
+    export "$_v"="${!_v:+${!_v} }-lock-timeout=$LOCK_TIMEOUT"
+  fi
+done
+unset _c _v
+
+# Run a terragrunt command streaming output; on a state-lock failure print the escape hatch
+# (the exact `make iac -- unlock` invocation with the lock ID parsed from the error).
+run_tg() {
+  local logf rc=0
+  logf="$(mktemp "${TMPDIR:-/tmp}/iac-tg.XXXXXX")"
+  "$@" 2>&1 | tee "$logf" || rc=$?
+  if (( rc != 0 )) && grep -qiE 'error acquiring the state lock|state blob is already locked|state lock' "$logf"; then
+    local lid
+    lid="$(grep -oiE 'ID:[[:space:]]*[0-9a-f][0-9a-f-]+' "$logf" | head -1 | sed 's/^[Ii][Dd]:[[:space:]]*//')"
+    {
+      echo
+      echo "iac.sh: the state is LOCKED (waited -lock-timeout=$LOCK_TIMEOUT). If the holder is a dead"
+      echo "run (e.g. a torn-down VM), force-release it for the unit that failed:"
+      echo "  make iac -- unlock -l ${LAYER:-<layer1.layer2>} -- ${lid:-<lock-id from the error above>}"
+      echo "(if you targeted a whole layer, point -l at the single FAILING unit, e.g. ${LAYER:-1-platform}.1-k8s)"
+      echo "(verify no other apply is in flight first — releasing a LIVE lock corrupts state)"
+    } >&2
+  fi
+  rm -f "$logf"
+  return $rc
+}
+
 require_cloud() { [[ -n "$CLOUD" ]] || die "no cloud set — pass -c gcp|azure or run: iac.sh config -c <cloud>"; \
   case "$CLOUD" in gcp|azure) ;; *) die "cloud must be gcp|azure (got '$CLOUD')";; esac; }
 require_env()   { [[ -n "$ENV_NAME" ]] || die "no env set — pass -e <name> or run: iac.sh config -e <env>"; }
@@ -149,8 +209,9 @@ LAYER1=""; LAYER2=""; BASE=""
 parse_layer() {
   LAYER1="${LAYER%%.*}"
   if [[ "$LAYER" == *.* ]]; then LAYER2="${LAYER#*.}"; else LAYER2=""; fi
-  BASE="$IAC_DIR/$LAYER1"; [[ -n "$LAYER2" ]] && BASE="$BASE/$LAYER2"
-  [[ -d "$BASE" ]] || die "no such path: iac/$LAYER1${LAYER2:+/$LAYER2} (check layer1[.layer2])"
+  # Further dots descend into nested units (e.g. 2-app.2-alerts.datadog -> 2-app/2-alerts/datadog).
+  BASE="$IAC_DIR/$LAYER1"; [[ -n "$LAYER2" ]] && BASE="$BASE/${LAYER2//.//}"
+  [[ -d "$BASE" ]] || die "no such path: iac/$LAYER1${LAYER2:+/${LAYER2//.//}} (check layer1[.layer2])"
 }
 # Cloud selection: the cloud token sits at an inconsistent depth across the tree
 # (leaf in 0-foundation/1-platform, an ANCESTOR in 2-app/2-alerts) and terragrunt's
@@ -192,7 +253,17 @@ tg() {  # <init|plan|apply|show|destroy> [extra tofu args...]
   esac
   echo "+ (cd ${BASE#"$REPO_ROOT"/} && ${cmd[*]})   [CLOUD_PROVIDER=$CLOUD ENV=$ENV_NAME]"
   [[ "$DRYRUN" -eq 1 ]] && { echo "  (dry-run: not executed)"; return 0; }
-  ( cd "$BASE" && "${cmd[@]}" )
+  ( cd "$BASE" && run_tg "${cmd[@]}" )
+}
+
+# Resolve $LAYER to ONE concrete unit dir (the cloud leaf, or the dir itself when it is a unit).
+# Single-unit commands (import / unlock) must run inside the unit, not via `run --all`.
+unit_dir() {
+  parse_layer
+  if [[ -f "$BASE/$CLOUD/terragrunt.hcl" ]]; then echo "$BASE/$CLOUD"
+  elif [[ -f "$BASE/terragrunt.hcl" ]]; then echo "$BASE"
+  else die "iac/$LAYER1${LAYER2:+/${LAYER2//.//}} is not a single unit — point -l at one unit (dots descend, e.g. 0-foundation.1-vnet or 2-app.2-alerts.datadog)"
+  fi
 }
 
 # --- commands ---------------------------------------------------------------
@@ -252,16 +323,68 @@ cmd_protect() {
   tg apply
 }
 
+# State surgery for ONE unit: terragrunt run -- import <addr> <id>, executed inside the unit dir.
+# `run --all -- import` is hard-disabled by terragrunt, and --dependency-fetch-output-from-state
+# hits a terragrunt 0.99.4 unmarshal bug — so this is THE supported import path. Dependency
+# outputs that are unavailable resolve to mock_outputs ("import" is in every unit's
+# mock_outputs_allowed_terraform_commands), which import never applies to real resources.
+cmd_import() {
+  require_cloud; require_layer
+  (( ${#EXTRA_ARGS[@]} >= 2 )) || die "import needs: -- '<resource_addr>' '<cloud_id>'   (quote the addr — it usually contains [0])"
+  local dir; dir="$(unit_dir)"
+  export CLOUD_PROVIDER="$CLOUD" ENV="$ENV_NAME"
+  local -a ni=(); [[ "$ASSUME_YES" -eq 1 ]] && ni=(--non-interactive)
+  local -a cmd=(terragrunt run "${ni[@]}" -- import "${EXTRA_ARGS[@]}")
+  echo "+ (cd ${dir#"$REPO_ROOT"/} && ${cmd[*]})   [CLOUD_PROVIDER=$CLOUD ENV=$ENV_NAME]"
+  [[ "$DRYRUN" -eq 1 ]] && { echo "  (dry-run: not executed)"; return 0; }
+  ( cd "$dir" && run_tg "${cmd[@]}" )
+}
+
+# Force-release a stale state lock on ONE unit (lock ID comes from the failing run's error,
+# also echoed by run_tg). Confirm first: releasing a lock held by a LIVE apply corrupts state.
+cmd_unlock() {
+  require_cloud; require_layer
+  (( ${#EXTRA_ARGS[@]} >= 1 )) || die "unlock needs: -- <lock-id>   (the ID from the 'state ... locked. ID: <uuid>' error)"
+  local dir; dir="$(unit_dir)"
+  export CLOUD_PROVIDER="$CLOUD" ENV="$ENV_NAME"
+  local -a cmd=(terragrunt run -- force-unlock -force "${EXTRA_ARGS[@]}")
+  echo "+ (cd ${dir#"$REPO_ROOT"/} && ${cmd[*]})   [CLOUD_PROVIDER=$CLOUD ENV=$ENV_NAME]"
+  [[ "$DRYRUN" -eq 1 ]] && { echo "  (dry-run: not executed)"; return 0; }
+  confirm "Force-release state lock ${EXTRA_ARGS[0]} on iac/$LAYER (NO other run may hold it)?" || die "aborted"
+  ( cd "$dir" && run_tg "${cmd[@]}" )
+}
+
+# Keep the bringup status ledger live (see `make status`) on apply/destroy (not dry-runs):
+# a FULL-layer run stamps the canonical bringup step (0-foundation|1-platform|2-app); a sub-layer
+# run stamps its own module-level step (e.g. 1-platform.2-monitoring) so `make status` /
+# scripts/status.sh — which renders whatever steps the ledger contains — shows that granularity too.
+# shellcheck disable=SC1091
+source "$SCRIPTS/status-ledger.sh"
+BRINGUP_STEP=""
+[[ "$DRYRUN" -ne 1 && -n "${LAYER:-}" ]] && BRINGUP_STEP="$LAYER"
+stamped() {  # <state-on-success> <cmd...> — subshell so an inner `die`/exit still lands a stamp
+  local okstate="$1"; shift
+  [[ -n "$BRINGUP_STEP" ]] && ledger_stamp "$REPO_ROOT" "$CLOUD" "$ENV_NAME" "$BRINGUP_STEP" running
+  local rc=0; ( "$@" ) || rc=$?
+  if [[ -n "$BRINGUP_STEP" ]]; then
+    if [[ "$rc" -eq 0 ]]; then ledger_stamp "$REPO_ROOT" "$CLOUD" "$ENV_NAME" "$BRINGUP_STEP" "$okstate"
+    else ledger_stamp "$REPO_ROOT" "$CLOUD" "$ENV_NAME" "$BRINGUP_STEP" failed; fi
+  fi
+  return "$rc"
+}
+
 case "$SUBCMD" in
   config)  cmd_config;;
   secrets) cmd_secrets;;
   creds|creds-check) cmd_creds;;
   init)    tg init;;
-  plan)    tg plan;;
-  apply)   tg apply;;
+  plan)    tg plan "${EXTRA_ARGS[@]}";;
+  apply)   stamped applied tg apply "${EXTRA_ARGS[@]}";;
   show)    tg show;;
-  destroy) cmd_destroy;;
+  destroy) stamped destroyed cmd_destroy;;
   protect) cmd_protect;;
+  import)  cmd_import;;
+  unlock|force-unlock) cmd_unlock;;
   help)    usage;;
   *)       die "unknown command: $SUBCMD (try --help)";;
 esac

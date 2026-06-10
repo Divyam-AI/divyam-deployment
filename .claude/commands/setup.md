@@ -36,6 +36,8 @@ For each layer in order `0-foundation → 1-platform → 2-app`:
     `releases/<channel>/` entry — see `k8s/releases/VERSIONING.md`.
 11. `make k8s -- diff`, summarize. **Checkpoint:** confirm, then `make k8s -- install -C stable` (first
     install; or `-a <version>`). If releases already exist (`helm ls -A`), use `make k8s -- upgrade` instead — never re-`install`.
+    While the install runs, ask the user how to track it: terminal (`! make k8s -- status --tui`,
+    user-run) or web dashboard (background `make k8s -- status --dashboard`, share the URL) — see /bringup-status step 5.
 
 **E. Verify**
 12. `make k8s -- status` and `kubectl get pods -A`; flag anything not Running/Completed and summarize the result.

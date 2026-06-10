@@ -14,7 +14,7 @@ dependency "vnet" {
     subnet_id        = ""
     app_gw_subnet_id = ""
   }
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply"]
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply", "import", "force-unlock"]
 }
 
 # Local state like 1-vnet; NAT depends on VNet and can run before blob storage.

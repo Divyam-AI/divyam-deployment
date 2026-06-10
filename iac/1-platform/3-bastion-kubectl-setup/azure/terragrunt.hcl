@@ -45,7 +45,7 @@ dependency "k8s" {
   mock_outputs = {
     aks_cluster_id = ""
   }
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "import", "force-unlock"]
 }
 
 locals {
