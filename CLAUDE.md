@@ -22,7 +22,7 @@ consumes. The Helmfile phase is run **from the bastion/jumphost VM** created in 
 | Terragrunt | 0.99.4 | via `tenv terragrunt install 0.99.4` |
 | Helm | latest | helm.sh |
 | Helmfile | v1.4.4 | github.com/helmfile/helmfile |
-| Helm Diff plugin | v3.7.x | `helm plugin install https://github.com/databus23/helm-diff --version v3.7.0` |
+| Helm Diff plugin | v3.15.8+ | `helm plugin install https://github.com/databus23/helm-diff --version v3.15.8 --verify=false` (older: <3.9 rejects helmfile's `--dry-run=server`; 3.9.x sends deprecated `--validate`, refused by Helm 4; always pin — unpinned resolves a stale 3.9.14) |
 | K9s | latest | k9scli.io |
 
 Note Terragrunt 0.99 syntax: `terragrunt run plan` / `terragrunt run apply` (with `run`), and
