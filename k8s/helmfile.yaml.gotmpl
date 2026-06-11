@@ -20,6 +20,19 @@ helmDefaults:
 repositories:
   - name: external-secrets
     url: https://charts.external-secrets.io
+  # Upstream repos for the evalm8 operator/umbrella wrapper charts. helmfile adds these
+  # before building local-chart dependencies, so `helm dependency build` resolves them on
+  # a fresh cluster (the vendored chart .tgz are not committed).
+  - name: cloudnative-pg
+    url: https://cloudnative-pg.github.io/charts
+  - name: elastic
+    url: https://helm.elastic.co
+  - name: ot-helm
+    url: https://ot-container-kit.github.io/helm-charts/
+  - name: temporal
+    url: https://go.temporal.io/helm-charts/
+  - name: lakefs
+    url: https://charts.lakefs.io
 
 ###############################################################################
 # 1. Load and Merge Values
