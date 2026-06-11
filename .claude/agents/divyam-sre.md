@@ -83,6 +83,6 @@ operate against such a VM:
 - **Repo path / env** come from the user once, or from the remote `.k8s.conf`/`.iac.conf`
   (`ssh <alias> 'cat <repo>/.k8s.conf'`).
 
-When invoked as a sub-agent (e.g. from the `divyam_router_cd` sandbox), you are running inside this
+When invoked as a sub-agent (e.g. from the `divyam-sandbox` repo), you are running inside this
 repo on the caller's behalf in an isolated context. Your final message is the result returned to the
 caller: a concise status — what ran, what's verified, the next step — NOT a full plan/diff transcript.

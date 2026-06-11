@@ -10,7 +10,7 @@ Provision cloud infrastructure and deploy the Divyam platform stack on Kubernete
 Phase 1's `export_details` module writes `k8s/helm-values/provider.yaml`, which Phase 2's Helmfile
 consumes. The Helmfile phase is run **from the bastion/jumphost VM** created in Phase 1.
 
-> Sibling repo `../divyam_router_cd` owns the lightweight **sandbox** dev path (SkyPilot VM +
+> Sibling repo `../divyam-sandbox` owns the lightweight **sandbox** dev path (SkyPilot VM +
 > single-node MicroK8s) and the feature build/deploy loop. This repo is the real GKE/AKS path. The
 > alert closed loop (below) can target either cluster — whatever `kubectl` currently points at.
 
@@ -217,7 +217,7 @@ make iac -- creds          # validate cloud auth
 
 **Entry-point agent** (`.claude/agents/divyam-sre.md`): `divyam-sre` is the SRE/platform operator for
 this repo — the single door for deploy/debug/monitor of the divyam-stack, for both standalone use and
-**cross-repo delegation** (the `divyam_router_cd` sandbox spawns it as a sub-agent for heavy iac/k8s
+**cross-repo delegation** (the `divyam-sandbox` repo spawns it as a sub-agent for heavy iac/k8s
 work). It routes to the skills + commands below. Tools: Bash/Read/Grep/Glob (no Edit — HCL edits go
 through `terrashark` + the human).
 
