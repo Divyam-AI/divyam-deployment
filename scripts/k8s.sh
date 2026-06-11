@@ -230,9 +230,14 @@ launch_dash() {
   if ! { have helm && helm plugin list 2>/dev/null | grep -qi '^dashboard'; }; then
     die "helm dashboard not installed — run: make prereqs (installs Komodor helm-dashboard)"
   fi
-  echo "+ (helm dashboard)"
+  # Bind-all + no browser: this usually runs on a headless bastion/VM — the human reaches it from
+  # their machine (sandbox: route the subnet with `make sshuttle`, then open the URL below).
+  local port="${HELM_DASHBOARD_PORT:-8080}" ip
+  ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
+  echo "+ (helm dashboard --bind=0.0.0.0 --port=${port} --no-browser)"
+  echo "  open: http://${ip:-<this-host>}:${port}  (from a laptop: route the VM subnet first, e.g. make sshuttle)"
   [[ "$DRYRUN" -eq 1 ]] && { echo "  (dry-run: not executed)"; return 0; }
-  helm dashboard
+  helm dashboard --bind=0.0.0.0 --port="$port" --no-browser
 }
 
 cmd_status() {
@@ -295,9 +300,9 @@ cmd_kubeconfig() {
     fi
     [[ -n "$cluster" ]] && src="terragrunt output"
   fi
-  # Fallback: deployment-prefix convention from ENV/ORG_NAME.
+  # Fallback: deployment-prefix convention from the resolved env (-e flag > $ENV > .k8s.conf) + ORG_NAME.
   if [[ -z "$cluster" ]]; then
-    local org="${ORG_NAME:-}" env="${ENV:-}"
+    local org="${ORG_NAME:-}" env="${ENV_OVERRIDE:-}"
     if [[ -n "$env" ]]; then
       [[ -n "$org" ]] && cluster="divyam-$org-$env-k8s-cluster" || cluster="divyam-$env-k8s-cluster"
       src="convention"
@@ -324,7 +329,11 @@ cmd_kubeconfig() {
     [[ "$DRYRUN" -eq 1 ]] && { echo "  (dry-run: not executed)"; return 0; }
     "${cmd[@]}"
   else
-    [[ -n "$rg" ]] || die "Azure resource group unknown — apply 1-k8s first, or pass --resource-group (= resource_scope.name)"
+    if [[ -z "$rg" ]]; then
+      # Dry-run is a preview — don't fail on unresolved identifiers, show a placeholder instead.
+      [[ "$DRYRUN" -eq 1 ]] && rg="<resource-group>" \
+        || die "Azure resource group unknown — apply 1-k8s first, or pass --resource-group (= resource_scope.name)"
+    fi
     # Auth: SP login when forced, or when no active az session and ARM_* are available.
     if [[ "$DO_LOGIN" -eq 1 ]] || { [[ "$DRYRUN" -ne 1 ]] && ! az account show >/dev/null 2>&1; }; then
       [[ -n "${ARM_CLIENT_ID:-}" && -n "${ARM_CLIENT_SECRET:-}" && -n "${ARM_TENANT_ID:-}" ]] \
@@ -343,15 +352,37 @@ cmd_kubeconfig() {
   echo "kubeconfig updated for '$cluster'. Verify with: kubectl get ns"
 }
 
+# Keep the bringup status ledger live (see `make status` / bringup.sh status) when this command IS
+# a bringup step: `kubeconfig` and `install` (the full-stack sync). upgrade/diff/etc. don't map to
+# a bringup step and are not stamped. Best-effort: skipped when cloud/env can't be resolved.
+# shellcheck disable=SC1091
+source "$REPO_ROOT/scripts/status-ledger.sh"
+ledger_cloud() {
+  local c="${CLI_CLOUD:-}"
+  [[ -z "$c" ]] && c="$(provider_yaml_get '.platform.provider' 2>/dev/null | tr 'A-Z' 'a-z' || true)"
+  [[ -z "$c" ]] && c="${CLOUD_PROVIDER:-}"
+  echo "$c"
+}
+k8s_stamped() {  # <step> <cmd...> — subshell so an inner `die`/exit still lands a failed stamp
+  local step="$1"; shift
+  local c e; c="$(ledger_cloud)"; e="${ENV_OVERRIDE:-}"
+  if [[ "$DRYRUN" -eq 1 || -z "$c" || -z "$e" ]]; then "$@"; return "$?"; fi
+  ledger_stamp "$REPO_ROOT" "$c" "$e" "$step" running
+  local rc=0; ( "$@" ) || rc=$?
+  if [[ "$rc" -eq 0 ]]; then ledger_stamp "$REPO_ROOT" "$c" "$e" "$step" applied
+  else ledger_stamp "$REPO_ROOT" "$c" "$e" "$step" failed; fi
+  return "$rc"
+}
+
 case "$SUBCMD" in
   config)            cmd_config;;
   diff)              hf diff;;
-  install)           cmd_change sync "install (helmfile sync)";;
+  install)           k8s_stamped k8s-install cmd_change sync "install (helmfile sync)";;
   upgrade)           cmd_change apply "upgrade (helmfile apply)";;
   delete|destroy)    cmd_delete;;
   template)          hf template;;
   status|ls)         cmd_status;;
-  kubeconfig|auth)   cmd_kubeconfig;;
+  kubeconfig|auth)   k8s_stamped kubeconfig cmd_kubeconfig;;
   help)              usage;;
   *)                 die "unknown command: $SUBCMD (try --help)";;
 esac

@@ -49,7 +49,7 @@ dependency "app_gw" {
     app_gateway_tls_enabled      = false
     app_gateway_certificate_name = ""
   }
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "import", "force-unlock"]
 }
 
 locals {

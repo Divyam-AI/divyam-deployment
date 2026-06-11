@@ -14,7 +14,7 @@ Drive these phases in order, reporting status after each:
 
 **A. Preflight**
 1. `make prereqs-check` — report toolchain gaps (offer `make prereqs` only if the user agrees).
-2. Resolve cloud+env: if given in args, `make iac -- config -c <cloud> -e <env>`; else read `.iac.conf`. If unset, ask.
+2. Resolve cloud+env: if given in args, `make iac -- config -c <cloud> -e <env>`; else read `.iac.conf`. If unset, ask. `ENV` must be one of `dev|prod|preprod|stage|sandbox` and (Azure) `len(org)+len(env) ≤ 10` — `iac.sh` rejects others at config time (widen `ALLOWED_ENVS` for a custom env; see known-gotchas §2).
 3. **Cloud login is the user's job** — if `make iac -- creds` fails, ask them to run `! az login` /
    `! gcloud auth login` (+ `gcloud auth application-default login`) and pause until done.
 4. Secrets: ensure `iac/values/secrets.env` exists (`make iac -- secrets` if not) and the `FILL` values
@@ -36,6 +36,8 @@ For each layer in order `0-foundation → 1-platform → 2-app`:
     `releases/<channel>/` entry — see `k8s/releases/VERSIONING.md`.
 11. `make k8s -- diff`, summarize. **Checkpoint:** confirm, then `make k8s -- install -C stable` (first
     install; or `-a <version>`). If releases already exist (`helm ls -A`), use `make k8s -- upgrade` instead — never re-`install`.
+    While the install runs, ask the user how to track it: terminal (`! make k8s -- status --tui`,
+    user-run) or web dashboard (background `make k8s -- status --dashboard`, share the URL) — see /bringup-status step 5.
 
 **E. Verify**
 12. `make k8s -- status` and `kubectl get pods -A`; flag anything not Running/Completed and summarize the result.

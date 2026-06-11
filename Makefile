@@ -13,7 +13,7 @@
 
 SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := help
-.PHONY: help iac k8s prereqs prereqs-check
+.PHONY: help iac k8s bringup status prereqs prereqs-check
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | \
@@ -28,6 +28,12 @@ iac: ## Run the Phase-1 CLI, e.g. make iac -- plan -l 1-platform.1-k8s
 
 k8s: ## Run the Phase-2 CLI, e.g. make k8s -- upgrade -l router
 	@$(CURDIR)/scripts/k8s.sh $(filter-out $@,$(MAKECMDGOALS))
+
+bringup: ## End-to-end bringup (all IaC layers + kubeconfig + helm install) / status, e.g. make bringup -- run -c azure -e sandbox -y
+	@$(CURDIR)/scripts/bringup.sh $(filter-out $@,$(MAKECMDGOALS))
+
+status: ## Bringup progress table (scripts/status.sh, reads the step ledger), e.g. make status / make status -- -w -i 30 (watch, refresh 30s)
+	@$(CURDIR)/scripts/status.sh $(filter-out $@,$(MAKECMDGOALS))
 
 prereqs: ## Install/verify the pinned toolchain (tofu, terragrunt, helm, helmfile, plugins, ...)
 	scripts/install-prerequisites.sh

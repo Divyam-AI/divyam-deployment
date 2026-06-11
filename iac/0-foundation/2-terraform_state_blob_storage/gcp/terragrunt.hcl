@@ -14,7 +14,7 @@ dependency "vnet" {
     subnet_ids = {}
   }
 
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "apply"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "apply", "import", "force-unlock"]
 }
 
 # Note: Local state because storing to GCS cannot happen until this bucket is created.

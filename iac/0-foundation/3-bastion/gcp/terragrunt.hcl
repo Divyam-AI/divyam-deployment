@@ -20,13 +20,13 @@ dependency "vnet" {
     app_gw_subnet_name  = "app-gw-subnet"
     app_gw_subnet_prefix = "10.0.8.0/26"
   }
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply"]
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply", "import", "force-unlock"]
 }
 
 dependency "nat" {
   config_path = "../../2-nat/gcp"
   skip_outputs = true
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply"]
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply", "import", "force-unlock"]
 }
 
 # Local state like 1-vnet / 2-nat; bastion depends on VPC.

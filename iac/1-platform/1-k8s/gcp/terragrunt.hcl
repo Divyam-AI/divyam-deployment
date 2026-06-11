@@ -11,7 +11,7 @@ dependency "app_gw" {
     load_balancer_ip = ""
     cloud_armor_policy_id = null
   }
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply"]
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply", "import", "force-unlock"]
 }
 
 terraform {

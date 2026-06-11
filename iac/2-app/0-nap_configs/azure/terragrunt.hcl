@@ -19,6 +19,10 @@ generate "provider_nap" {
   contents  = <<-EOT
 terraform {
   required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = ">= 3.0.0"
+    }
     kubernetes = {
       source  = "hashicorp/kubernetes"
       version = ">= 2.0.0"
@@ -42,7 +46,7 @@ dependency "k8s" {
       cluster_ca_certificate = ""
     }
   }
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "import", "force-unlock"]
 }
 
 locals {

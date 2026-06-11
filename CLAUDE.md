@@ -22,7 +22,7 @@ consumes. The Helmfile phase is run **from the bastion/jumphost VM** created in 
 | Terragrunt | 0.99.4 | via `tenv terragrunt install 0.99.4` |
 | Helm | latest | helm.sh |
 | Helmfile | v1.4.4 | github.com/helmfile/helmfile |
-| Helm Diff plugin | v3.7.x | `helm plugin install https://github.com/databus23/helm-diff --version v3.7.0` |
+| Helm Diff plugin | v3.15.8+ | `helm plugin install https://github.com/databus23/helm-diff --version v3.15.8 --verify=false` (older: <3.9 rejects helmfile's `--dry-run=server`; 3.9.x sends deprecated `--validate`, refused by Helm 4; always pin — unpinned resolves a stale 3.9.14) |
 | K9s | latest | k9scli.io |
 
 Note Terragrunt 0.99 syntax: `terragrunt run plan` / `terragrunt run apply` (with `run`), and
@@ -70,6 +70,29 @@ test/alert-sim/                    # human-owned simulation specs: rule -> kubec
   <group>.yaml                     #   one file per rule group, mirrors common/rules/<group>.json
 ```
 
+## Single-command bringup (Phase 1 + Phase 2)
+
+`make bringup -- run -c <cloud> -e <env> -d k8s/helm-values -y` (→ `scripts/bringup.sh`) runs the
+whole sequence — `0-foundation → 1-platform → 2-app → kubeconfig (+ reachability smoke) →
+k8s-install` — by shelling out to the phase CLIs below, pre-seeds that plan as `pending` in a
+per-(cloud,env) ledger (`.bringup-status.<cloud>.<env>`, gitignored), and stamps each step as it
+goes. The ledger writer (`scripts/status-ledger.sh`) is shared: `iac.sh` stamps any
+`apply/destroy -l <layer[.sub]>` (full layers as the canonical bringup steps, sub-layers as their
+own module-level steps, e.g. `1-platform.2-monitoring`) and `k8s.sh` stamps `kubeconfig`/`install`.
+Query progress with **`make status`** (→ `scripts/status.sh`, the standalone READER — renders
+whatever steps the ledger contains; `--porcelain` for `<step>=<state>` lines; exit 0 = all applied,
+1 = failed/partial, 2 = never run; `bringup.sh status` delegates there for back-compat) — external
+tools must use that hook, never the ledger file. **During long runs** (bringup, full-layer apply,
+install): run them in the background and poll the one-shot `make status` (~60s; the
+`/bringup-status` command), relaying the table to the user — and **ask the user up front if they
+want a live watch** (if yes: `! make status -- -w -i 30`, their terminal). Never `-w/--watch` or
+`--tui` from a tool shell (interactive loops, never return). **When `k8s-install` turns `running`**
+(the table hints this too): ask the user — terminal (`make k8s -- status --tui`, user-run) or web
+dashboard (`make k8s -- status --dashboard`, background it; binds `0.0.0.0:8080`, no browser —
+share the URL; sandbox laptops need router-cd `make sshuttle`)? Preview with `-n`.
+The interactive, checkpointed path is `.claude/commands/setup`; the per-phase flows below remain
+the primitives.
+
 ## Phase 1 — provision infrastructure (`iac/`)
 
 All of Phase 1 runs through `make iac -- <cmd>` (the entrypoint; forwards to `scripts/iac.sh`, which
@@ -100,16 +123,21 @@ also runs directly without `--`). Add `-n` to any command to preview the exact `
      irregular units (e.g. the cloud-agnostic `2-alerts/datadog` when `datadog.enabled`).
 5. **State caveats**: **0-foundation uses LOCAL state** — do NOT blindly re-`apply`; coordinate with
    the team on state location. 1-platform/2-app use **remote** state (the bucket/account from
-   `2-terraform_state_blob_storage`). `TG_USE_LOCAL_BACKEND=1` only for debug.
+   `2-terraform_state_blob_storage`). `TG_USE_LOCAL_BACKEND=1` only for debug. Re-bringup of an env
+   whose resources survived (e.g. from a fresh throwaway VM): set `create = false` for the surviving
+   resources in the values file — those units become lookups/no-ops; for one-off leftovers use
+   `make iac -- import`.
 6. **Destroy / re-harden**: `make iac -- destroy -l <layer>` (flips `prevent_destroy`→false, previews,
    type-confirms) and `make iac -- protect -l <layer>` (re-harden, then apply).
 7. **Verify**: `2-app` writes `k8s/helm-values/provider.yaml`. Review env, cloud provider, and storage
    config before Phase 2.
 
 Troubleshooting: clear caches with `find . -type d -name .terragrunt-cache -exec rm -rf {} +`;
-inspect with `make iac -- show -l <layer>`; for "already exists" import the resource or set
-`create = false` and fill in the existing values. API-enablement (`0-apis`) "already exists" errors are
-safe to ignore.
+inspect with `make iac -- show -l <layer>`; for "already exists" import the resource —
+`make iac -- import -l <layer1.layer2> -- '<addr>' '<cloud_id>'` — or set `create = false` and fill
+in the existing values. A stale state lock (VM died mid-apply) waits `IAC_LOCK_TIMEOUT` (120s) then
+prints the fix: `make iac -- unlock -l <layer1.layer2> -- <lock-id>`. API-enablement (`0-apis`)
+"already exists" errors are safe to ignore.
 
 ## Phase 2 — deploy the stack (`k8s/`, Helmfile)
 
@@ -213,20 +241,45 @@ Global/general skills to pair with them:
 |---------|------|
 | `/preflight [cloud] [env]` | verify toolchain + cloud creds + Phase-1→2 handoff (read-only) |
 | `/setup [cloud] [env]` | overarching end-to-end deploy (prereqs → Phase 1 → Phase 2) with checkpoints |
+| `/phase1-infra [cloud] [env]` | Phase 1 only — provision infra `0-foundation → 1-platform → 2-app` to provider.yaml |
+| `/phase2-stack [chart]` | Phase 2 only — kubeconfig → values → diff → first-install/upgrade the Helmfile stack |
+| `/secrets-setup [cloud] [env]` | generate `secrets.env` + assign real FILL values (creds, GAR docker-auth) as action items, then verify |
 | `/provision <layer>` | plan a layer → review → confirm → apply (Phase 1, `make iac`) |
+| `/apply-nap-configs [env]` | apply NAP NodePools (`2-app/0-nap_configs`) so pods can schedule (Azure); verify |
 | `/kubeconfig [flags]` | authenticate to the cloud and (re)fetch cluster kubeconfig, then verify |
+| `/deploy-stack-staged [-C chan]` | first install in stages (ESO → verify Key Vault chain → full stack) |
 | `/deploy-stack [chart]` | helmfile diff → review → install (first) or upgrade (Phase 2, `make k8s`) |
+| `/verify-workload-identity [ns]` | check ExternalSecrets `SecretSynced` + OIDC-issuer match + image pulls (read-only) |
+| `/import-existing [layer.unit]` | adopt pre-existing resources after `already exists` / lost state — import, don't recreate |
+| `/ground-truth [clusters\|subnet …\|inventory\|issuer]` | read real cloud state via REST (no az/gcloud) (read-only) |
+| `/bringup-status [cloud] [env] [interval]` | bringup/IaC step-ledger progress (`make status`), polled while a long run is in flight (read-only) |
 | `/cluster-status [tui\|dashboard]` | helm releases + pod health overview (read-only) |
 | `/debug-stack [release\|ns]` | diagnose a failed/unhealthy deploy — first failing release + root cause (read-only) |
 | `/monitor [alerts\|dashboards\|backend]` | inspect the observability surface — alert rules/firing, dashboards, backend (read-only) |
 | `/destroy-layer <layer>` | guided, type-to-confirm teardown of an infra layer (`make iac -- destroy`) |
+
+Commands are **independently invocable** — a team can run just `/secrets-setup`, `/phase1-infra`,
+`/apply-nap-configs`, etc. The agent **assigns human-only steps (login, secrets, approvals) as action
+items, pauses, and verifies them before resuming** (see the `divyam-platform-engineer` handoff loop).
 
 ## Conventions
 
 - Don't commit/push unless asked. Never commit `iac/values/secrets.env` (or `.tf-secrets.env`),
   `provider.yaml` secrets, or tokens.
 - Alert rules are source of truth — edit `common/rules/*.json`, never generated per-backend resources.
+- `ENV` must be one of `dev|prod|preprod|stage|sandbox` and `ORG_NAME` lowercase-alphanumeric; on Azure
+  `len(org)+len(env) ≤ 10` (Key Vault/Storage 24-char cap). `scripts/iac.sh` enforces this (even at
+  `config` time); widen `ALLOWED_ENVS` there + in the sandbox `create-sandbox.sh` for a custom env.
+- Config (`CLOUD_PROVIDER`/`ENV`/`VALUES_FILE`) belongs in `.iac.conf` / flags / sandbox `iac.env` —
+  **not** in `secrets.env`. A `VALUES_FILE` pointing at a missing file silently forks state; iac.sh now
+  fails loudly on it.
 - Interactive cloud/cluster logins are run by the user via `! <cmd>`; never attempt them yourself.
+- **Remote VM operation**: when the repo lives only on a remote bastion/VM (Claude runs on the laptop,
+  not the VM), the `divyam-sre` agent operates it over SSH — wrapping each command as
+  `ssh <alias> 'cd <repo> && make … -- …'`, where `<alias>` is a `~/.ssh/config` `Host` (its
+  `ProxyJump` encodes the 1–2 hop chain + auth). The scripts stay SSH-agnostic; never install anything
+  on the VM; the engineer clones the repo + installs the toolchain manually. See
+  `.claude/agents/divyam-sre.md` → "Remote operation mode".
 - Always `make k8s -- diff` before `upgrade`; `install` (`sync`) only for the first install.
 - Alert-query changes should be re-proven (deploy → simulate via `test/alert-sim/*.yaml` → Zenduty
   check with `scripts/zenduty.py`) before declaring done.
