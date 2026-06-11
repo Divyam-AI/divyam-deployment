@@ -107,30 +107,6 @@ resource "google_container_cluster" "gke_cluster" {
     }
   }
 
-  dynamic "logging_config" {
-    for_each = (each.value.enable_workload_logs != null || each.value.enable_cluster_logs != null) ? [1] : []
-    content {
-      enable_components = (
-        each.value.enable_workload_logs && each.value.enable_cluster_logs ? [
-          "SYSTEM_COMPONENTS",
-          "APISERVER",
-          "CONTROLLER_MANAGER",
-          "SCHEDULER",
-          "WORKLOADS"
-        ] :
-        each.value.enable_cluster_logs ? [
-          "SYSTEM_COMPONENTS",
-          "APISERVER",
-          "CONTROLLER_MANAGER",
-          "SCHEDULER"
-        ] :
-        each.value.enable_workload_logs ? [
-          "WORKLOADS"
-        ] : []
-      )
-    }
-  }
-
   binary_authorization {
     evaluation_mode = each.value.binauthz_evaluation_mode
   }
@@ -138,18 +114,12 @@ resource "google_container_cluster" "gke_cluster" {
   lifecycle {
     ignore_changes = [
       release_channel,
-      dns_config[0].additive_vpc_scope_dns_domain
+      dns_config[0].additive_vpc_scope_dns_domain,
+      # Managed by 1-platform/2-monitoring/native/gcp after cluster creation.
+      logging_config,
+      monitoring_config,
     ]
   }
-}
-
-# Project _Default log bucket retention (GKE, load balancer, and other project logs). 1–3650 days.
-resource "google_logging_project_bucket_config" "default_bucket" {
-  count        = var.enabled && var.manage_project_log_bucket ? 1 : 0
-  project      = var.project_id
-  location     = "global"
-  bucket_id    = "_Default"
-  retention_days = min(3650, max(1, var.logs_retention_days))
 }
 
 # Additional node pools (e.g. GPU). Only for standard (non-Autopilot) clusters.

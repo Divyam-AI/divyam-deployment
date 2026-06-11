@@ -14,6 +14,7 @@ helmDefaults:
     - "--normalize-manifests"
     - "--three-way-merge"
     - "--context 5"
+    - "--dry-run=server"
 
 
 repositories:
@@ -38,6 +39,7 @@ repositories:
   Optional keys in provider.yaml (merged into listed charts when present):
     - monitoring         (top-level; merged with per-chart values.monitoring; chart wins on overlap)
     - ingress            (top-level; merged with per-chart values.ingress; chart wins on overlap)
+    - secrets            (top-level; merged with per-chart values.secrets; chart wins on overlap)
 */}}
 {{- $providerVals := readFile (printf "%s/provider.yaml" $valuesDir) | fromYaml }}
 {{- $resources := readFile (printf "%s/resources.yaml" $valuesDir) | fromYaml }}
@@ -49,33 +51,56 @@ repositories:
   {{- $configVals = readFile (printf "%s/config.yaml" $valuesDir) | fromYaml }}
 {{- end }}
 
-{{/* Resolve artifacts file: explicit version > local artifacts.yaml > latest release */}}
+{{/* Resolve the artifacts file by channel/version. Precedence (see k8s/releases/VERSIONING.md):
+     (1) ARTIFACTS_CHANNEL set -> releases/<channel>/<ver|latest>-artifacts.yaml
+         ("latest" = the releases/<channel>/latest pointer, else newest by `sort -V`)
+     (2) only ARTIFACTS_VERSION set -> releases/<v> (legacy flat) | releases/stable/<v> | releases/nightly/<v>
+     (3) neither -> local <valuesDir>/artifacts.yaml | releases/stable/latest | legacy newest (`sort -V`) */}}
+{{- $channel := env "ARTIFACTS_CHANNEL" }}
 {{- $artifactsVersion := env "ARTIFACTS_VERSION" }}
 {{- $artifactsFile := "" }}
 
-{{- if $artifactsVersion }}
-  {{- $artifactsFile = printf "releases/%s-artifacts.yaml" $artifactsVersion }}
+{{- if $channel }}
+  {{- $cdir := printf "releases/%s" $channel }}
+  {{- $ver := $artifactsVersion }}
+  {{- if or (not $ver) (eq $ver "latest") }}
+    {{- $ver = exec "sh" (list "-c" (printf "if [ -f '%s/latest' ]; then tr -d '[:space:]' < '%s/latest'; else ls -1 '%s'/*-artifacts.yaml 2>/dev/null | sed 's#.*/##; s/-artifacts.yaml$//' | sort -V | tail -1; fi" $cdir $cdir $cdir)) | trim }}
+    {{- if eq $ver "" }}
+      {{- fail (printf "ERROR: no artifacts in channel '%s' (releases/%s/ empty?). Has the pipeline populated it?" $channel $channel) }}
+    {{- end }}
+  {{- end }}
+  {{- $artifactsFile = printf "%s/%s-artifacts.yaml" $cdir $ver }}
   {{- $exists := exec "sh" (list "-c" (printf "test -f '%s' && echo true || echo false" $artifactsFile)) | trim }}
   {{- if ne $exists "true" }}
-    {{- fail (printf "ERROR: Artifacts file not found at '%s'. Check that ARTIFACTS_VERSION '%s' is correct." $artifactsFile $artifactsVersion) }}
+    {{- fail (printf "ERROR: artifacts file not found at '%s' (channel=%s version=%s)." $artifactsFile $channel $ver) }}
+  {{- end }}
+{{- else if $artifactsVersion }}
+  {{- range $cand := (list (printf "releases/%s-artifacts.yaml" $artifactsVersion) (printf "releases/stable/%s-artifacts.yaml" $artifactsVersion) (printf "releases/nightly/%s-artifacts.yaml" $artifactsVersion)) }}
+    {{- if and (eq $artifactsFile "") (eq (exec "sh" (list "-c" (printf "test -f '%s' && echo true || echo false" $cand)) | trim) "true") }}
+      {{- $artifactsFile = $cand }}
+    {{- end }}
+  {{- end }}
+  {{- if eq $artifactsFile "" }}
+    {{- fail (printf "ERROR: ARTIFACTS_VERSION '%s' not found in releases/, releases/stable/, or releases/nightly/." $artifactsVersion) }}
   {{- end }}
 {{- else }}
   {{- $localExists := exec "sh" (list "-c" (printf "test -f '%s/artifacts.yaml' && echo true || echo false" $valuesDir)) | trim }}
   {{- if eq $localExists "true" }}
     {{- $artifactsFile = printf "%s/artifacts.yaml" $valuesDir }}
   {{- else }}
-    {{- $latest := exec "sh" (list "-c" "ls -1 releases/*-artifacts.yaml 2>/dev/null | sort | tail -1") | trim }}
-    {{- if eq $latest "" }}
-      {{- fail (printf "ERROR: No artifacts found. Set ARTIFACTS_VERSION, place artifacts.yaml in '%s', or add release files to 'releases/'." $valuesDir) }}
+    {{- $auto := exec "sh" (list "-c" "if [ -f releases/stable/latest ]; then v=$(tr -d '[:space:]' < releases/stable/latest); echo releases/stable/${v}-artifacts.yaml; else ls -1 releases/stable/*-artifacts.yaml releases/*-artifacts.yaml 2>/dev/null | sort -V | tail -1; fi") | trim }}
+    {{- if eq $auto "" }}
+      {{- fail (printf "ERROR: No artifacts found. Set ARTIFACTS_CHANNEL/ARTIFACTS_VERSION, place artifacts.yaml in '%s', or populate releases/." $valuesDir) }}
     {{- end }}
-    {{- $artifactsFile = $latest }}
-    {{- $_ := exec "sh" (list "-c" (printf "echo '[INFO] No ARTIFACTS_VERSION set. Auto-selected latest artifacts: %s' >&2" $latest)) }}
+    {{- $artifactsFile = $auto }}
+    {{- $_ := exec "sh" (list "-c" (printf "echo '[INFO] No ARTIFACTS_CHANNEL/VERSION set. Auto-selected artifacts: %s' >&2" $artifactsFile)) }}
   {{- end }}
 {{- end }}
 
 {{- $artifacts := readFile $artifactsFile | fromYaml }}
 {{- $base := $artifacts.chartBasePath | required "ERROR: 'chartBasePath' must be set in the artifacts file" }}
 {{- $_ := unset $artifacts "chartBasePath" }}
+{{- $_ := unset $artifacts "release" }}
 
 {{- $settings := merge ($resources.settings | default dict) (dict "use_spot_nodes" false) }}
 {{- $global := merge ($providerVals | default dict) }}
@@ -196,6 +221,26 @@ repositories:
   "temporal"                      true
   "lakefs"                        true
   "argilla"                       true
+-}}
+
+{{/*
+  Charts whose values.yaml defines a top-level `secrets` key — merged from
+  provider.yaml `secrets` (when present) with per-chart resources values
+  (chart wins on overlap). If provider.yaml omits `secrets`, only chart values apply.
+  Add chart names here as "chart-name" true — membership is explicit, not name-based.
+*/}}
+{{- $chartsWithProviderSecrets := dict
+  "clickhouse"                    true
+  "mysql"                         true
+  "superset-postgres"             true
+  "superset"                      true
+  "divyam-db-upgrades"            true
+  "divyam-evaluator"              true
+  "divyam-route-selector"         true
+  "divyam-router-controller"      true
+  "divyam-selector-training"      true
+  "divyam-control-plane-exporter" true
+  "divyam-e2e-test-runner"        true
 -}}
 
 ###############################################################################
@@ -408,7 +453,7 @@ releases:
 
     {{- $chartVals := $cfg.values | default dict }}
     {{- $omitProviderKeys := false }}
-    {{- if or (hasKey $chartsWithProviderIngress $name) (hasKey $chartsWithProviderMonitoring $name) }}
+    {{- if or (hasKey $chartsWithProviderIngress $name) (hasKey $chartsWithProviderMonitoring $name) (hasKey $chartsWithProviderSecrets $name) }}
     {{- $omitProviderKeys = true }}
     {{- end }}
     {{- if $omitProviderKeys }}
@@ -418,6 +463,9 @@ releases:
     {{- end }}
     {{- if hasKey $chartsWithProviderMonitoring $name }}
     {{- $valsBody = omit $valsBody "monitoring" }}
+    {{- end }}
+    {{- if hasKey $chartsWithProviderSecrets $name }}
+    {{- $valsBody = omit $valsBody "secrets" }}
     {{- end }}
     {{- if $valsBody }}
     - {{ toYaml $valsBody | nindent 6 }}
@@ -434,6 +482,12 @@ releases:
     {{- $mergedMonitoring := merge (index $values.global "monitoring" | default dict) (index $chartVals "monitoring" | default dict) }}
     - monitoring:
       {{ $mergedMonitoring | toYaml | nindent 8 }}
+    {{- end }}
+
+    {{- if and (hasKey $chartsWithProviderSecrets $name) (index $values.global "secrets") }}
+    {{- $mergedSecrets := merge (index $values.global "secrets" | default dict) (index $chartVals "secrets" | default dict) }}
+    - secrets:
+      {{ $mergedSecrets | toYaml | nindent 8 }}
     {{- end }}
 
     {{- if and (eq $name "divyam-persistent-storage") ($settings.storage_class) }}

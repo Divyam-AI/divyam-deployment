@@ -1,0 +1,43 @@
+{
+  "// note": "Bash rules match by command prefix. helmfile commands run as 'helmfile -f <hf> <verb>' (flag before verb), so per-verb prefixes can't match them — helmfile therefore prompts by default, and the slash commands/agents require explicit confirmation before sync/apply/destroy. Compound 'cd X && terragrunt ...' also won't match a terragrunt prefix and will prompt.",
+  "permissions": {
+    "allow": [
+      "Bash(tenv:*)",
+      "Bash(terragrunt init:*)",
+      "Bash(terragrunt run plan:*)",
+      "Bash(terragrunt show:*)",
+      "Bash(terragrunt validate:*)",
+      "Bash(kubectl get:*)",
+      "Bash(kubectl describe:*)",
+      "Bash(kubectl logs:*)",
+      "Bash(kubectl rollout status:*)",
+      "Bash(kubectl config:*)",
+      "Bash(helm ls:*)",
+      "Bash(helm version:*)",
+      "Bash(helm plugin list:*)",
+      "Bash(k9s:*)",
+      "Bash(gcloud container clusters get-credentials:*)",
+      "Bash(az aks get-credentials:*)",
+      "Bash(jq:*)",
+      "Bash(yq:*)",
+      "Bash(python3 scripts/*.py:*)",
+      "Bash(make:*)",
+      "Bash(sandbox/scripts/*.sh:*)"
+    ],
+    "ask": [
+      "Bash(terragrunt run apply:*)",
+      "Bash(terragrunt run destroy:*)",
+      "Bash(terragrunt import:*)",
+      "Bash(scripts/migration.sh:*)",
+      "Bash(kubectl delete:*)",
+      "Bash(kubectl apply:*)"
+    ],
+    "deny": [
+      "Read(./.tf-secrets.env)",
+      "Read(./**/*.tfvars)"
+    ]
+  },
+  "env": {
+    "TF_INPUT": "0"
+  }
+}

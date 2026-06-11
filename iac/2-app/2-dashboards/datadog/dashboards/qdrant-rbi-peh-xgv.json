@@ -1,0 +1,1679 @@
+{
+  "id": "rbi-peh-xgv",
+  "title": "Qdrant",
+  "description": "Industry-standard monitoring dashboard for Qdrant vector database cluster in qdrant-prod-ns namespace on divyam-prod-k8s-cluster. Covers cluster health, collections, Qdrant memory allocator, Kubernetes resource utilization, network I/O, and container health. Designed for proactive degradation detection.",
+  "author_handle": "rbharathkumar0409@gmail.com",
+  "author_name": "Bharath Kumar",
+  "layout_type": "ordered",
+  "url": "/dashboard/rbi-peh-xgv/qdrant",
+  "template_variables": [
+    {
+      "name": "kube_namespace",
+      "prefix": "kube_namespace",
+      "available_values": [
+        "qdrant-prod-ns"
+      ],
+      "default": "qdrant-prod-ns"
+    },
+    {
+      "name": "kube_stateful_set",
+      "prefix": "kube_stateful_set",
+      "available_values": [
+        "qdrant-prod-sts"
+      ],
+      "default": "qdrant-prod-sts"
+    },
+    {
+      "name": "host",
+      "prefix": "host",
+      "available_values": [],
+      "default": "*"
+    }
+  ],
+  "widgets": [
+    {
+      "id": 1329383577041982,
+      "definition": {
+        "title": "Qdrant Overview",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 2411454535038801,
+            "definition": {
+              "type": "note",
+              "content": "## Qdrant Vector Database\n\n**Cluster:** divyam-prod-k8s-cluster\n**Namespace:** qdrant-prod-ns\n**StatefulSet:** qdrant-prod-sts (3 replicas)\n**Image:** qdrant:v1.13.4\n\n**Degradation signals:**\n- Recovery mode active\n- Pending ops increasing\n- Memory trending up\n- CPU throttling\n- Container restarts",
+              "background_color": "white",
+              "font_size": "14",
+              "text_align": "left",
+              "vertical_align": "top",
+              "show_tick": false,
+              "tick_pos": "50%",
+              "tick_edge": "left",
+              "has_padding": true
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 2,
+              "height": 4
+            }
+          },
+          {
+            "id": 3236190839835362,
+            "definition": {
+              "title": "Recovery Mode",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "conditional_formats": [
+                    {
+                      "comparator": ">",
+                      "palette": "white_on_red",
+                      "value": 0
+                    },
+                    {
+                      "comparator": "<=",
+                      "palette": "white_on_green",
+                      "value": 0
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "last",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "max:qdrant_prod_ns.app_status_recovery_mode{$kube_namespace,$kube_stateful_set,$host}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 2,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 5852210422285021,
+            "definition": {
+              "title": "Collections",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "last",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:qdrant_prod_ns.collections_total{$kube_namespace,$kube_stateful_set,$host}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 4,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 3913981318852207,
+            "definition": {
+              "title": "Total Vectors",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "last",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:qdrant_prod_ns.collections_vector_total{$kube_namespace,$kube_stateful_set,$host}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 4415016029211957,
+            "definition": {
+              "title": "Cluster Peers",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "last",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:qdrant_prod_ns.cluster_peers_total{$kube_namespace,$kube_stateful_set,$host}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 8,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 8011344409249142,
+            "definition": {
+              "title": "Pending Ops",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "conditional_formats": [
+                    {
+                      "comparator": ">",
+                      "palette": "white_on_red",
+                      "value": 10
+                    },
+                    {
+                      "comparator": ">",
+                      "palette": "white_on_yellow",
+                      "value": 0
+                    },
+                    {
+                      "comparator": "<=",
+                      "palette": "white_on_green",
+                      "value": 0
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "last",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:qdrant_prod_ns.cluster_pending_operations_total{$kube_namespace,$kube_stateful_set,$host}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 10,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 1258510155938198,
+            "definition": {
+              "title": "Running Containers",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "last",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:kubernetes.containers.running{$kube_namespace,$kube_stateful_set,$host}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 2,
+              "y": 2,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 5892431051087654,
+            "definition": {
+              "title": "Container Restarts",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "conditional_formats": [
+                    {
+                      "comparator": ">",
+                      "palette": "white_on_red",
+                      "value": 5
+                    },
+                    {
+                      "comparator": ">",
+                      "palette": "white_on_yellow",
+                      "value": 0
+                    },
+                    {
+                      "comparator": "<=",
+                      "palette": "white_on_green",
+                      "value": 0
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "last",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:kubernetes.containers.restarts{$kube_namespace,$kube_stateful_set,$host}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 4,
+              "y": 2,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 8629835871878643,
+            "definition": {
+              "title": "Cluster Enabled",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "conditional_formats": [
+                    {
+                      "comparator": ">=",
+                      "palette": "white_on_green",
+                      "value": 1
+                    },
+                    {
+                      "comparator": "<",
+                      "palette": "white_on_red",
+                      "value": 1
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "last",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "max:qdrant_prod_ns.cluster_enabled{$kube_namespace,$kube_stateful_set,$host}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 6,
+              "y": 2,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 5961010118320557,
+            "definition": {
+              "title": "Voter Nodes",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "last",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:qdrant_prod_ns.cluster_voter{$kube_namespace,$kube_stateful_set,$host}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 8,
+              "y": 2,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 1910940943872009,
+            "definition": {
+              "title": "Avg Resident Memory",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "last",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:qdrant_prod_ns.memory_resident_bytes{$kube_namespace,$kube_stateful_set,$host}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 2
+            },
+            "layout": {
+              "x": 10,
+              "y": 2,
+              "width": 2,
+              "height": 2
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 0,
+        "width": 12,
+        "height": 5
+      }
+    },
+    {
+      "id": 782398773304831,
+      "definition": {
+        "title": "Cluster Health (Raft Consensus)",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 4952010051243979,
+            "definition": {
+              "title": "Cluster Peers Over Time",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:qdrant_prod_ns.cluster_peers_total{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 1203397117255289,
+            "definition": {
+              "title": "Pending Operations Over Time",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:qdrant_prod_ns.cluster_pending_operations_total{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "warm"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              },
+              "markers": [
+                {
+                  "label": "High Pending Ops",
+                  "value": "y > 10",
+                  "display_type": "error dashed"
+                }
+              ]
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 4416422586742001,
+            "definition": {
+              "title": "Cluster Commit Index",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:qdrant_prod_ns.cluster_commit.count{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": false
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 7096406210727729,
+            "definition": {
+              "title": "Cluster Term (Raft Leader Elections)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:qdrant_prod_ns.cluster_term.count{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "purple"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": false
+              }
+            },
+            "layout": {
+              "x": 4,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 3323335586992496,
+            "definition": {
+              "title": "Voter Status by Peer",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:qdrant_prod_ns.cluster_voter{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "cool"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "max": "2"
+              }
+            },
+            "layout": {
+              "x": 8,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 5,
+        "width": 12,
+        "height": 7
+      }
+    },
+    {
+      "id": 5978394858015060,
+      "definition": {
+        "title": "Collections & Vectors",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 4308417075892783,
+            "definition": {
+              "title": "Total Collections Over Time",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:qdrant_prod_ns.collections_total{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 6567878151051475,
+            "definition": {
+              "title": "Total Vectors Over Time",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:qdrant_prod_ns.collections_vector_total{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "cool"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 12,
+        "width": 12,
+        "height": 4
+      }
+    },
+    {
+      "id": 6354303576265201,
+      "definition": {
+        "title": "Qdrant Memory Allocator",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 3576431170540827,
+            "definition": {
+              "type": "note",
+              "content": "Qdrant jemalloc memory allocator internals. **Active** = in-use pages. **Allocated** = app-allocated bytes. **Resident** = physical memory. **Retained** = virtual mappings held. **Metadata** = allocator overhead.\n\nWatch for resident memory steadily increasing without stabilization -- may indicate unbounded growth or memory leak.",
+              "background_color": "yellow",
+              "font_size": "12",
+              "text_align": "left",
+              "vertical_align": "center",
+              "show_tick": false,
+              "has_padding": true
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 1
+            }
+          },
+          {
+            "id": 8595883706615166,
+            "definition": {
+              "title": "Memory Overview (All Types)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Active",
+                      "formula": "active"
+                    },
+                    {
+                      "alias": "Allocated",
+                      "formula": "allocated"
+                    },
+                    {
+                      "alias": "Resident",
+                      "formula": "resident"
+                    },
+                    {
+                      "alias": "Retained",
+                      "formula": "retained"
+                    },
+                    {
+                      "alias": "Metadata",
+                      "formula": "metadata"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "active",
+                      "query": "avg:qdrant_prod_ns.memory_active_bytes{$kube_namespace,$kube_stateful_set,$host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "allocated",
+                      "query": "avg:qdrant_prod_ns.memory_allocated_bytes{$kube_namespace,$kube_stateful_set,$host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "resident",
+                      "query": "avg:qdrant_prod_ns.memory_resident_bytes{$kube_namespace,$kube_stateful_set,$host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "retained",
+                      "query": "avg:qdrant_prod_ns.memory_retained_bytes{$kube_namespace,$kube_stateful_set,$host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "metadata",
+                      "query": "avg:qdrant_prod_ns.memory_metadata_bytes{$kube_namespace,$kube_stateful_set,$host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 1,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 8327455259744352,
+            "definition": {
+              "title": "Memory Active by Pod",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:qdrant_prod_ns.memory_active_bytes{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "cool"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 6,
+              "y": 1,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 140823117748044,
+            "definition": {
+              "title": "Memory Resident by Pod",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:qdrant_prod_ns.memory_resident_bytes{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "orange"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 4,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 4340868930065972,
+            "definition": {
+              "title": "Memory Retained by Pod",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:qdrant_prod_ns.memory_retained_bytes{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "purple"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 4,
+              "y": 4,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 7890022337275037,
+            "definition": {
+              "title": "Memory Metadata by Pod",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:qdrant_prod_ns.memory_metadata_bytes{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "warm"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 8,
+              "y": 4,
+              "width": 4,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 16,
+        "width": 12,
+        "height": 8
+      }
+    },
+    {
+      "id": 979428196069597,
+      "definition": {
+        "title": "Kubernetes - CPU Utilization",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 991798063120744,
+            "definition": {
+              "title": "CPU Usage vs Limits & Requests",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Usage",
+                      "formula": "usage"
+                    },
+                    {
+                      "alias": "Limits",
+                      "formula": "limits"
+                    },
+                    {
+                      "alias": "Requests",
+                      "formula": "req"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "usage",
+                      "query": "avg:kubernetes.cpu.usage.total{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "limits",
+                      "query": "avg:kubernetes.cpu.limits{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "req",
+                      "query": "avg:kubernetes.cpu.requests{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 628874295179684,
+            "definition": {
+              "title": "CPU Throttle Rate (%)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Throttle %",
+                      "formula": "(throttled / total) * 100"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "throttled",
+                      "query": "avg:kubernetes.cpu.cfs.throttled.periods{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "total",
+                      "query": "avg:kubernetes.cpu.cfs.periods{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "warm"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "max": "100"
+              },
+              "markers": [
+                {
+                  "label": "High Throttling",
+                  "value": "y > 25",
+                  "display_type": "warning dashed"
+                }
+              ]
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 204185245739921,
+            "definition": {
+              "title": "CPU Load Average (10s)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kubernetes.cpu.load.10s.avg{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 5375034444215422,
+            "definition": {
+              "title": "CPU Throttled Time (seconds)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kubernetes.cpu.cfs.throttled.seconds{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "warm"
+                  },
+                  "display_type": "bars"
+                }
+              ]
+            },
+            "layout": {
+              "x": 6,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 24,
+        "width": 12,
+        "height": 7
+      }
+    },
+    {
+      "id": 1411808794940219,
+      "definition": {
+        "title": "Kubernetes - Memory Utilization",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 4447864268340533,
+            "definition": {
+              "title": "Memory Usage vs Limits & Requests",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Usage",
+                      "formula": "usage"
+                    },
+                    {
+                      "alias": "Limits",
+                      "formula": "limits"
+                    },
+                    {
+                      "alias": "Requests",
+                      "formula": "req"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "usage",
+                      "query": "avg:kubernetes.memory.usage{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "limits",
+                      "query": "avg:kubernetes.memory.limits{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "req",
+                      "query": "avg:kubernetes.memory.requests{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 8982167099838694,
+            "definition": {
+              "title": "Memory Usage % of Limit",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Usage %",
+                      "formula": "query1 * 100"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kubernetes.memory.usage_pct{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "warm"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "max": "100"
+              },
+              "markers": [
+                {
+                  "label": "Critical",
+                  "value": "y > 90",
+                  "display_type": "error dashed"
+                },
+                {
+                  "label": "Warning",
+                  "value": "y > 75",
+                  "display_type": "warning dashed"
+                }
+              ]
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 1864821495583407,
+            "definition": {
+              "title": "Memory Working Set by Pod",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kubernetes.memory.working_set{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "cool"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 528782431667679,
+            "definition": {
+              "title": "Memory RSS by Pod",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kubernetes.memory.rss{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 4,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 3397923691524814,
+            "definition": {
+              "title": "Memory Cache by Pod",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kubernetes.memory.cache{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "purple"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 8,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 31,
+        "width": 12,
+        "height": 7
+      }
+    },
+    {
+      "id": 6447854793503382,
+      "definition": {
+        "title": "Network I/O & Container Health",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 6827590025814195,
+            "definition": {
+              "title": "Network Throughput (RX / TX)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "RX Bytes/s",
+                      "formula": "rx"
+                    },
+                    {
+                      "alias": "TX Bytes/s",
+                      "formula": "tx"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "rx",
+                      "query": "avg:kubernetes.network.rx_bytes{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "tx",
+                      "query": "avg:kubernetes.network.tx_bytes{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic"
+                  },
+                  "display_type": "area"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 8468997605890056,
+            "definition": {
+              "title": "Network Errors & Drops",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "RX Errors",
+                      "formula": "rx_err"
+                    },
+                    {
+                      "alias": "TX Errors",
+                      "formula": "tx_err"
+                    },
+                    {
+                      "alias": "RX Dropped",
+                      "formula": "rx_drop"
+                    },
+                    {
+                      "alias": "TX Dropped",
+                      "formula": "tx_drop"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "rx_err",
+                      "query": "sum:kubernetes.network.rx_errors{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "tx_err",
+                      "query": "sum:kubernetes.network.tx_errors{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "rx_drop",
+                      "query": "sum:kubernetes.network.rx_dropped{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "tx_drop",
+                      "query": "sum:kubernetes.network.tx_dropped{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "warm"
+                  },
+                  "display_type": "bars"
+                }
+              ]
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 1405954016859696,
+            "definition": {
+              "title": "Container Restarts Over Time",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kubernetes.containers.restarts{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "warm"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "markers": [
+                {
+                  "label": "Excessive Restarts",
+                  "value": "y > 5",
+                  "display_type": "error dashed"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 2279111799747953,
+            "definition": {
+              "title": "Container States (Running / Waiting / Terminated)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Running",
+                      "formula": "running"
+                    },
+                    {
+                      "alias": "Waiting",
+                      "formula": "waiting"
+                    },
+                    {
+                      "alias": "Last Terminated",
+                      "formula": "terminated"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "running",
+                      "query": "sum:kubernetes.containers.running{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "waiting",
+                      "query": "sum:kubernetes.containers.state.waiting{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "terminated",
+                      "query": "sum:kubernetes.containers.last_state.terminated{$kube_namespace,$kube_stateful_set,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic"
+                  },
+                  "display_type": "bars"
+                }
+              ]
+            },
+            "layout": {
+              "x": 6,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 38,
+        "width": 12,
+        "height": 7
+      }
+    }
+  ],
+  "notify_list": [],
+  "created_at": "2026-04-23T19:34:24.695116+00:00",
+  "modified_at": "2026-04-24T04:28:07.078376+00:00",
+  "reflow_type": "fixed",
+  "tags": [
+    "ai:created_with_ai"
+  ],
+  "restricted_roles": []
+}

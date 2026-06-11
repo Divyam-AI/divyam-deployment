@@ -9,6 +9,12 @@ Tools and scripts to deploy and manage Divyam installation.
 - OpenTofu (v1.11.5)
 - Terragrunt (v0.99.4) via tenv
 
+> [!TIP]
+> From the repo root, `make prereqs` installs/verifies the whole pinned toolchain (OpenTofu,
+> Terragrunt, Helm, Helmfile, plugins, k9s, jq, yq) in one step; `make prereqs-check` verifies only.
+> The manual `tenv` steps below are the underlying detail. The infra workflow then runs through
+> `make iac -- <cmd>` (the entrypoint; forwards to `scripts/iac.sh`).
+
 ## 1. Install Base Dependencies
 
 ```bash
@@ -98,21 +104,19 @@ export ARM_TENANT_ID=<TENANT_ID>
 
 ## Verify the cloud login is setup correctly
 ```bash
-export CLOUD_PROVIDER=azure
-../scripts/check_cloud_credentials.sh
+make iac -- config -c azure -e <env>   # remember cloud/env (once)
+make iac -- creds                       # validates the active cloud credentials
 ```
 
 # Setup Divyam Infrastructure
 ## 1. Creating values file with right configuration for setup
-Copy the `values/defaults.hcl` file to `values/custom-defaults.hcl` and edit the file to your needs.
-Export the below cloud specific variables or can update these values inside the values file itself
+Optionally copy `values/defaults.hcl` → `values/custom-defaults.hcl` and edit to your needs
+(`export VALUES_FILE=values/custom-defaults.hcl`). Then remember the cloud/env and generate the
+config+secrets file (the CLI auto-sources it on every `make iac -- …`):
 ```bash
-export ENV=prod 
-export CLOUD_PROVIDER=azure 
-export ORG_NAME="<your-org-name>"
-export REGION=centralindia
-export ZONE=centralindia-1
-export VALUES_FILE=values/custom-defaults.hcl
+make iac -- config -c azure -e prod          # persists cloud + env to .iac.conf
+make iac -- secrets                           # writes iac/values/secrets.env (REGION/ZONE/ORG_NAME + TF_VAR_*)
+# edit iac/values/secrets.env: set REGION/ZONE/ORG_NAME and the FILL values (creds, registry, webhooks)
 ```
 
 > [!NOTE]
@@ -133,33 +137,174 @@ Foundation modules (path under `0-foundation/`) — what they do and when to pre
 
 Selectively skip components by marking them `create=false` in the values file.
 Make sure `CLOUD_PROVIDER`, `VALUES_FILE` variables are exported and review the plan output before applying.
-```
-cd 0-foundation
-terragrunt init -reconfigure --all --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run plan  --all --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run apply --all --filter "./**/${CLOUD_PROVIDER}"
-cd ..
+```bash
+make iac -- plan  -l 0-foundation     # review first
+make iac -- apply -l 0-foundation
 ```
 
 > [!WARNING]
 > Terraform state is saved **locally** for the foundation layer; if it is created once, do not re-run apply blindly — coordinate with your team on state location.
 
-## 3. Creating Platform Components: 
-Proceed with this step, if we need to create any one of the following:
-app_gw, divyam_object_storage, k8s cluster, alerts, bastion-kubectl-setup
-Selectively skip components by marking them `create=false` in the values file.
-Make sure `CLOUD_PROVIDER`, `VALUES_FILE` variables are exported and review the plan output before applying.
-```
-cd 1-platform
-terragrunt init -reconfigure --all --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run plan  --all --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run apply --all --filter "./**/${CLOUD_PROVIDER}"
-cd ..
+## 3. Creating Platform Components
+
+Proceed with this step if you need any of: `0-app_gw`, `0-divyam_object_storage`, `1-k8s`, `2-monitoring`, `3-bastion-kubectl-setup`.
+
+Selectively skip components with `create = false` in your values file. Export `CLOUD_PROVIDER` and `VALUES_FILE`, then review the plan before apply.
+
+```bash
+make iac -- plan  -l 1-platform
+make iac -- apply -l 1-platform
 ```
 
+`1-k8s` is applied **before** `2-monitoring` automatically — the terragrunt dependency DAG orders the
+sub-units, so a single `apply -l 1-platform` is correct. If you want to do it explicitly (e.g. to
+iterate on just the cluster), target the sub-units:
+
+```bash
+make iac -- apply -l 1-platform.1-k8s
+make iac -- apply -l 1-platform.2-monitoring
+```
+
+---
+
+## Monitoring and observability
+
+Platform observability: **`1-platform/2-monitoring`** (with **`1-k8s`** for managed clusters). Alerts and dashboards: **`2-app/2-alerts`**, **`2-app/2-dashboards`**.
+
+Module layout, dependencies, and custom-K8s rationale: [`1-platform/2-monitoring/README.md`](1-platform/2-monitoring/README.md). Alert schema: [`2-app/2-alerts/README.md`](2-app/2-alerts/README.md).
+
+### Provider profiles (`values/*.hcl`)
+
+| Profile | `datadog.enabled` | `k8s` | Platform agent | App alerts/dashboards |
+|--------|-------------------|-------|----------------|------------------------|
+| **Cloud-native (default)** | `false` | `create = true` (GKE/AKS) | `2-monitoring/native/{gcp\|azure}` | `2-alerts/*/prometheus`, `2-dashboards/{gcp\|azure}` |
+| **Datadog on GKE/AKS** | `true` | `create = true` | `2-monitoring/datadog/{gcp\|azure}` | `2-alerts/**/datadog`, `2-dashboards/datadog` |
+| **Datadog on custom K8s** | `true` | `create = false` | `2-monitoring/datadog/custom` + `KUBECONFIG` | same as Datadog row |
+| **Cloud-native + custom K8s** | `false` | `create = false` | metrics exported to cloud (your setup) | `2-alerts` with example values; see below |
+
+Configure in your values file (see `values/defaults.hcl`):
+
+```hcl
+k8s = {
+  create = true
+  observability = {
+    enable_logs    = true
+    enable_metrics = true
+    logs_retention_days = 30
+  }
+}
+
+datadog = {
+  enabled  = false   # true = optional Datadog path
+  site     = "ap1.datadoghq.com"
+  env      = "dev"   # Agent tag only; monitors use env_name unless monitor_env is set
+  # custom_cluster_name = "custom-k8s"  # when k8s.create = false; matches alert rules {{cluster_name}}
+  exclude_namespaces = ["default", "kube-system"]
+}
+
+monitoring = {
+  native = {
+    # Azure only — create new AMW or reuse existing
+    create_amw = true
+    azure_monitor_workspace_name = null  # required when create_amw = false
+    azure_monitor_workspace_id   = null
+    grafana_endpoint             = null  # optional BYO Grafana URL for dashboard upload
+  }
+}
+
+alerts = {
+  create  = true
+  enabled = true
+  webhook_urls = compact(split(",", get_env("NOTIFICATION_WEBHOOK_URLS", "")))
+}
+```
+
+#### Azure `create_amw`
+
+| `monitoring.native.create_amw` | Workspace name/id in values | Behavior |
+|-------------------------------|------------------------------|----------|
+| `true` | ignored | Terraform creates AMW, Prometheus DCR (when AKS exists), Managed Grafana |
+| `false` | **required** | Reuses existing AMW |
+| `false` | missing | Plan/apply fails with a clear error |
+
+### Environment variables
+
+| Variable | When required |
+|----------|----------------|
+| `TF_VAR_datadog_api_key` | `datadog.enabled = true` (agent + optional Datadog alerts) |
+| `TF_VAR_datadog_app_key` | Datadog monitors (`2-alerts/**/datadog`) |
+| `KUBECONFIG` | Custom K8s: path to kubeconfig when applying `datadog/custom` |
+| `TF_VAR_grafana_api_token` | Azure Managed Grafana dashboards (`2-dashboards/azure`) |
+| `NOTIFICATION_WEBHOOK_URLS` | Comma-separated pager/Zenduty URLs for CRITICAL alerts |
+
+### Deploy monitoring with Terraform (after `1-k8s`)
+
+Set the cloud/env once (`make iac -- config -c <cloud> -e <env>`) and put `NOTIFICATION_WEBHOOK_URLS`
+(and `TF_VAR_grafana_api_token` for Azure dashboards) in `iac/values/secrets.env`. Then:
+
+**GCP (cloud-native):**
+
+```bash
+make iac -- apply -l 1-platform.2-monitoring     # GMP / cloud monitoring
+make iac -- apply -l 2-app.2-alerts
+make iac -- apply -l 2-app.2-dashboards
+```
+
+**Azure (cloud-native):**
+
+```bash
+make iac -- apply -l 1-platform.2-monitoring     # Managed Prometheus / Grafana
+make iac -- apply -l 2-app.2-alerts
+make iac -- apply -l 2-app.2-dashboards
+```
+
+The CLI's filter union catches a cloud's units at any depth, so nested units like `2-alerts/azure/datadog`
+are included automatically — no manual `--filter` (see [`2-app/2-alerts/README.md`](2-app/2-alerts/README.md)).
+
+**Optional Datadog** (`datadog.enabled = true` in your values file; put `TF_VAR_datadog_api_key` /
+`TF_VAR_datadog_app_key` in `iac/values/secrets.env`):
+
+```bash
+make iac -- apply -l 1-platform.2-monitoring     # datadog/<cloud> units self-gate on datadog.enabled
+make iac -- apply -l 2-app.2-alerts
+# cloud-agnostic datadog alert units (2-alerts/datadog) need an explicit filter:
+make iac -- apply -l 2-app.2-alerts -f './**/datadog'
+```
+
+Alert rules: [`2-app/2-alerts/common/rules/`](2-app/2-alerts/common/rules/) (PromQL or `datadog.query` per destination).
+
+### Custom Kubernetes
+
+For any cluster **not** provisioned by `1-k8s` (`k8s.create = false`):
+
+1. Copy an example values file:
+   - Datadog: [`values/example-custom-k8s-datadog.hcl`](values/example-custom-k8s-datadog.hcl)
+   - Cloud-native GCP / Azure: [`example-custom-k8s-gcp-native.hcl`](values/example-custom-k8s-gcp-native.hcl), [`example-custom-k8s-azure-native.hcl`](values/example-custom-k8s-azure-native.hcl)
+2. Set `datadog.custom_cluster_name` (or `k8s.name`) to match `{{cluster_name}}` in [`2-app/2-alerts/common/rules`](2-app/2-alerts/common/rules).
+3. **Datadog agent:** export `KUBECONFIG`, apply [`1-platform/2-monitoring/datadog/custom`](1-platform/2-monitoring/datadog/custom) (see [why a separate unit](1-platform/2-monitoring/README.md#custom-kubernetes-datadog)).
+4. **Datadog monitors/dashboards:** `TF_VAR_datadog_app_key`, then `2-app/2-alerts/**/datadog` and `2-app/2-dashboards/datadog`.
+
+```bash
+export VALUES_FILE=values/example-custom-k8s-datadog.hcl
+export KUBECONFIG=/path/to/kubeconfig
+export TG_USE_LOCAL_BACKEND=1
+export TF_VAR_datadog_api_key=...
+# datadog.site / datadog.registry in VALUES_FILE must match your org (see values file)
+
+# target just the datadog/custom unit with an explicit filter:
+make iac -- apply -l 1-platform.2-monitoring -f './**/datadog/custom'
+```
+
+**Cloud-native on custom K8s:** this repo’s Terraform creates **alert policies and dashboards** in GCP/Azure only. It does **not** install in-cluster metric exporters for custom clusters. You must export metrics yourself ([GMP non-GKE](https://cloud.google.com/stackdriver/docs/managed-prometheus/setup-unmanaged) or [Azure Prometheus remote_write](https://learn.microsoft.com/en-us/azure/azure-monitor/containers/prometheus-remote-write)), then apply `2-app` with `datadog.enabled = false`. `2-monitoring/native/gcp` on custom K8s is mainly project log-bucket settings — not cluster scraping.
+
+**Upgrading:** [`scripts/migration.sh`](scripts/migration.sh) before first `2-monitoring` apply on existing envs.
+
+---
+
 ## 4. Creating Divyam Application Entities: 
-This step is required to setup the secrets and IAM bindings required for divyam application to work.
-Export the below environment variables for the secrets to be created one time for the entire deployment.
+This step is required to setup the secrets, IAM bindings, alerts (`2-app/2-alerts`), dashboards (`2-app/2-dashboards`), and other app-layer modules required for the Divyam application to work.
+Set the values below **in `iac/values/secrets.env`** (`make iac -- secrets` scaffolds it; fill the
+`FILL` entries) — the CLI auto-sources it. They are created one time for the entire deployment.
 
 | Environment variable | Description |
 | --- | --- |
@@ -168,17 +313,18 @@ Export the below environment variables for the secrets to be created one time fo
 | `TF_VAR_divyam_deployment_id` | Unique identifier for this installation; Divyam uses it to recognize your environment. |
 | `TF_VAR_divyam_deployment_api_key` | Secret key the deployment uses to authenticate to with Divyam. |
 | `TF_VAR_divyam_artifactory_docker_auth` | Set this to the **path** of the credential file the Divyam team gives you, So Kubernetes authenticate to Divyam’s private container registry and pull application images |
-| `TF_VAR_datadog_api_key` | Datadog API key used only when `datadog.enabled = true` in the values file. |
+| `TF_VAR_datadog_api_key` | Datadog API key when `datadog.enabled = true` ([`1-platform/2-monitoring/datadog`](1-platform/2-monitoring/datadog)) |
+| `TF_VAR_datadog_app_key` | Datadog Application key for Terraform monitors (`2-app/2-alerts/**/datadog`) |
+| `NOTIFICATION_WEBHOOK_URLS` | Comma-separated pager/Zenduty URLs for CRITICAL alerts |
+| `TF_VAR_grafana_api_token` | Azure Managed Grafana when applying `2-dashboards/azure` |
 
 > [!NOTE]
-> Export `CLOUD_PROVIDER`, `VALUES_FILE`, and the environment variables in the table below before `plan`/`apply`. Review the plan output before applying.
+> Ensure the variables above are in `iac/values/secrets.env` (and cloud/env via `make iac -- config`).
+> Review the plan output before applying.
 
-```
-cd 2-app
-terragrunt init -reconfigure --all --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run plan  --all --filter "./**/${CLOUD_PROVIDER}"
-terragrunt run apply --all --filter "./**/${CLOUD_PROVIDER}"
-cd ..
+```bash
+make iac -- plan  -l 2-app
+make iac -- apply -l 2-app
 ```
 
 ## 5. Verify the IAC deployment
@@ -186,7 +332,11 @@ The final stage of the IAC deployment will create a `providers.yaml` file in the
 Review the `providers.yaml` file and make sure the values are correct for the environment, cloud provider and storage configuration.
 
 # Troubleshooting
-Make sure `CLOUD_PROVIDER` and `VALUES_FILE` variables are exported.
+
+The normal workflow is `make iac -- <cmd>` (which auto-sources `iac/values/secrets.env`). The escape
+hatches below call `terragrunt` **directly** for low-level operations the CLI doesn't wrap (running a
+single unit, `import`, local-backend debug) — for those, make sure `CLOUD_PROVIDER` and `VALUES_FILE`
+are exported in your shell (or `set -a; source iac/values/secrets.env; set +a`).
 
 ## Clear Terragrunt Cache Folders
 ```
@@ -208,8 +358,8 @@ export TG_USE_LOCAL_BACKEND=1
 ```
 
 ## View Terraform outputs
-```
-terragrunt show --all --filter "./**/${CLOUD_PROVIDER}"
+```bash
+make iac -- show -l <layer>
 ```
 
 ## Import remote state

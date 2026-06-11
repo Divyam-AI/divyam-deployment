@@ -1,0 +1,1977 @@
+{
+  "id": "cmn-r96-w9u",
+  "title": "Kafka Connect",
+  "description": "Industry-standard monitoring dashboard for Kafka Connect workers in kafka-prod-ns (Strimzi-managed, AKS cluster: divyam-prod-k8s-cluster). Covers connector consumer/producer JMX metrics, JVM health, Kubernetes resource utilization, and Strimzi operator reconciliation health.",
+  "author_handle": "rbharathkumar0409@gmail.com",
+  "author_name": "Bharath Kumar",
+  "layout_type": "ordered",
+  "url": "/dashboard/cmn-r96-w9u/kafka-connect",
+  "template_variables": [
+    {
+      "name": "client_id",
+      "prefix": "client-id",
+      "available_values": [
+        "connector-consumer-kafka-prod-azure-sink-0",
+        "kafka-prod-connect-configs",
+        "kafka-prod-connect-offsets",
+        "kafka-prod-connect-statuses"
+      ],
+      "default": "*"
+    },
+    {
+      "name": "host",
+      "prefix": "host",
+      "available_values": [],
+      "default": "*"
+    }
+  ],
+  "widgets": [
+    {
+      "id": 3634414263611242,
+      "definition": {
+        "title": "Overview - Key Health Indicators",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 4235672756347258,
+            "definition": {
+              "type": "note",
+              "content": "**Kafka Connect Health - kafka-prod-ns**\n\nKey degradation signals to watch:\n- **Consumer throughput drops** -> source-side issues or rebalancing\n- **Producer errors/retries rising** -> sink connectivity or backpressure\n- **High JVM heap** -> memory pressure, risk of OOM\n- **Container restarts** -> OOM kills or liveness probe failures\n- **CPU throttling** -> under-provisioned resources\n- **Strimzi reconciliation failures** -> operator management issues",
+              "background_color": "blue",
+              "font_size": "14",
+              "text_align": "left",
+              "vertical_align": "top",
+              "show_tick": false,
+              "tick_pos": "50%",
+              "tick_edge": "left",
+              "has_padding": true
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 2,
+              "height": 4
+            }
+          },
+          {
+            "id": 5268244294161333,
+            "definition": {
+              "title": "Running Containers",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "last",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:kubernetes.containers.running{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 2,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 6265811993733753,
+            "definition": {
+              "title": "Consumer Throughput (bytes/s)",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "avg",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:kafka.consumer.bytes_in{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 2
+            },
+            "layout": {
+              "x": 4,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 6778695287939711,
+            "definition": {
+              "title": "Producer Send Rate",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "avg",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:kafka.producer.record_send_rate{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 2
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 6012760286591471,
+            "definition": {
+              "title": "Producer Error Rate",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "avg",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:kafka.producer.record_error_rate{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 2
+            },
+            "layout": {
+              "x": 8,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 5136918859780596,
+            "definition": {
+              "title": "JVM Heap Used (Avg)",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "avg",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:jvm.heap_memory{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 2
+            },
+            "layout": {
+              "x": 10,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 6806969879827999,
+            "definition": {
+              "title": "Container Restarts",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "last",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:kubernetes.containers.restarts{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 2,
+              "y": 2,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 8621454442542873,
+            "definition": {
+              "title": "Producer Latency Avg (ms)",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "avg",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kafka.producer.request_latency_avg{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 2
+            },
+            "layout": {
+              "x": 4,
+              "y": 2,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 83595169238358,
+            "definition": {
+              "title": "Producer Retry Rate",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "avg",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:kafka.producer.record_retry_rate{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 2
+            },
+            "layout": {
+              "x": 6,
+              "y": 2,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 704762736462948,
+            "definition": {
+              "title": "Consumer Messages In",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "avg",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:kafka.consumer.messages_in{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 2
+            },
+            "layout": {
+              "x": 8,
+              "y": 2,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 1843560965494043,
+            "definition": {
+              "title": "JVM CPU Load",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "avg",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:jvm.cpu_load.process{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 3
+            },
+            "layout": {
+              "x": 10,
+              "y": 2,
+              "width": 2,
+              "height": 2
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 0,
+        "width": 12,
+        "height": 5
+      }
+    },
+    {
+      "id": 3110216364120683,
+      "definition": {
+        "title": "Consumer Performance",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 3879602557920128,
+            "definition": {
+              "title": "Consumer Bytes In by Connector",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kafka.consumer.bytes_in{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host} by {client-id}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 3737119836981251,
+            "definition": {
+              "title": "Consumer Messages In by Connector",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kafka.consumer.messages_in{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host} by {client-id}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 8576528342143656,
+            "definition": {
+              "title": "Consumer Fetch Rate by Connector",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kafka.consumer.fetch_rate{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host} by {client-id}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 2019956532556576,
+            "definition": {
+              "title": "Consumer Fetch Size (Avg / Max)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Avg Fetch Size",
+                      "formula": "query1"
+                    },
+                    {
+                      "alias": "Max Fetch Size",
+                      "formula": "query2"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kafka.consumer.fetch_size_avg{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host} by {client-id}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "query2",
+                      "query": "avg:kafka.consumer.fetch_size_max{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host} by {client-id}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 1972248902460948,
+            "definition": {
+              "title": "Consumer Records per Request (Avg)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kafka.consumer.records_per_request_avg{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host} by {client-id}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 6,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 8587427293230518,
+            "definition": {
+              "title": "Consumer Bytes In by Topic",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kafka.consumer.bytes_in{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host} by {topic}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "area"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 6,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 5,
+        "width": 12,
+        "height": 10
+      }
+    },
+    {
+      "id": 8150936050485003,
+      "definition": {
+        "title": "Producer Performance",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 2180195576459526,
+            "definition": {
+              "title": "Producer Bytes Out by Connector",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kafka.producer.bytes_out{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host} by {client-id}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 6908177637279582,
+            "definition": {
+              "title": "Producer Request Latency (Avg / Max)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Avg Latency",
+                      "formula": "query1"
+                    },
+                    {
+                      "alias": "Max Latency",
+                      "formula": "query2"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kafka.producer.request_latency_avg{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host} by {client-id}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "query2",
+                      "query": "max:kafka.producer.request_latency_max{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host} by {client-id}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 4,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 6297856983067944,
+            "definition": {
+              "title": "Producer Record Send Rate",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kafka.producer.record_send_rate{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host} by {client-id}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 8,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 7141544658003810,
+            "definition": {
+              "title": "Producer Error and Retry Rates",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Error Rate",
+                      "formula": "query1"
+                    },
+                    {
+                      "alias": "Retry Rate",
+                      "formula": "query2"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:kafka.producer.record_error_rate{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host} by {client-id}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "query2",
+                      "query": "sum:kafka.producer.record_retry_rate{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host} by {client-id}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 8735908909084588,
+            "definition": {
+              "title": "Producer Throttle Time (Avg / Max)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Avg Throttle",
+                      "formula": "query1"
+                    },
+                    {
+                      "alias": "Max Throttle",
+                      "formula": "query2"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kafka.producer.throttle_time_avg{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host} by {client-id}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "query2",
+                      "query": "max:kafka.producer.throttle_time_max{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host} by {client-id}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "orange",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 4,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 5682185663433983,
+            "definition": {
+              "title": "Producer Requests In Flight",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kafka.producer.requests_in_flight{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host} by {client-id}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 8,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 960106607668014,
+            "definition": {
+              "title": "Producer Buffer Usage (Total / Available)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Total Buffer",
+                      "formula": "query1"
+                    },
+                    {
+                      "alias": "Available Buffer",
+                      "formula": "query2"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kafka.producer.buffer_bytes_total{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host} by {client-id}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "query2",
+                      "query": "avg:kafka.producer.available_buffer_bytes{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host} by {client-id}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 6,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 8464005239168273,
+            "definition": {
+              "title": "Producer Record Queue Time (Avg / Max)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Avg Queue Time",
+                      "formula": "query1"
+                    },
+                    {
+                      "alias": "Max Queue Time",
+                      "formula": "query2"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kafka.producer.record_queue_time_avg{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host} by {client-id}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "query2",
+                      "query": "max:kafka.producer.record_queue_time_max{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host} by {client-id}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 4,
+              "y": 6,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 6009342852150046,
+            "definition": {
+              "title": "Producer Batch Size (Avg / Max)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Avg Batch Size",
+                      "formula": "query1"
+                    },
+                    {
+                      "alias": "Max Batch Size",
+                      "formula": "query2"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kafka.producer.batch_size_avg{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host} by {client-id}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "query2",
+                      "query": "max:kafka.producer.batch_size_max{kube_namespace:kafka-prod-ns,kube_app_name:kafka-connect,$client_id,$host} by {client-id}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 8,
+              "y": 6,
+              "width": 4,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 15,
+        "width": 12,
+        "height": 10
+      }
+    },
+    {
+      "id": 706315315577067,
+      "definition": {
+        "title": "JVM Health (Connect Workers)",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 1294481149773667,
+            "definition": {
+              "title": "JVM Heap Memory (Used / Committed / Max)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Used",
+                      "formula": "query1"
+                    },
+                    {
+                      "alias": "Committed",
+                      "formula": "query2"
+                    },
+                    {
+                      "alias": "Max",
+                      "formula": "query3"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:jvm.heap_memory{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "query2",
+                      "query": "avg:jvm.heap_memory_committed{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "query3",
+                      "query": "avg:jvm.heap_memory_max{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 6320361499314484,
+            "definition": {
+              "title": "JVM Non-Heap Memory (Used / Committed)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Used",
+                      "formula": "query1"
+                    },
+                    {
+                      "alias": "Committed",
+                      "formula": "query2"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:jvm.non_heap_memory{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "query2",
+                      "query": "avg:jvm.non_heap_memory_committed{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "cool",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 4,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 4572541657504114,
+            "definition": {
+              "title": "JVM Thread Count",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:jvm.thread_count{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "purple",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 8,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 7552758762309362,
+            "definition": {
+              "title": "JVM GC Memory Pools (Old Gen / Eden / Survivor)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Old Gen",
+                      "formula": "query1"
+                    },
+                    {
+                      "alias": "Eden",
+                      "formula": "query2"
+                    },
+                    {
+                      "alias": "Survivor",
+                      "formula": "query3"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:jvm.gc.old_gen_size{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "query2",
+                      "query": "avg:jvm.gc.eden_size{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "query3",
+                      "query": "avg:jvm.gc.survivor_size{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "area"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 3910587113067650,
+            "definition": {
+              "title": "JVM CPU Load (Process / System)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Process CPU",
+                      "formula": "query1"
+                    },
+                    {
+                      "alias": "System CPU",
+                      "formula": "query2"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:jvm.cpu_load.process{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "query2",
+                      "query": "avg:jvm.cpu_load.system{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 4,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 2753191594243891,
+            "definition": {
+              "title": "JVM Open File Descriptors",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:jvm.os.open_file_descriptors{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 8,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 25,
+        "width": 12,
+        "height": 7
+      }
+    },
+    {
+      "id": 7140152820538533,
+      "definition": {
+        "title": "Kubernetes Resource Utilization",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 6679533675911359,
+            "definition": {
+              "title": "CPU: Usage vs Limits vs Requests",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Usage",
+                      "formula": "query1"
+                    },
+                    {
+                      "alias": "Limits",
+                      "formula": "query2"
+                    },
+                    {
+                      "alias": "Requests",
+                      "formula": "query3"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kubernetes.cpu.usage.total{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "query2",
+                      "query": "avg:kubernetes.cpu.limits{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "query3",
+                      "query": "avg:kubernetes.cpu.requests{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 6010114467819039,
+            "definition": {
+              "title": "Memory: Working Set vs Limits vs Requests",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Working Set",
+                      "formula": "query1"
+                    },
+                    {
+                      "alias": "Limits",
+                      "formula": "query2"
+                    },
+                    {
+                      "alias": "Requests",
+                      "formula": "query3"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kubernetes.memory.working_set{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "query2",
+                      "query": "avg:kubernetes.memory.limits{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "query3",
+                      "query": "avg:kubernetes.memory.requests{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 4604221140355417,
+            "definition": {
+              "title": "CPU Throttling (Throttled / Total CFS Periods)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Throttled Periods",
+                      "formula": "query1"
+                    },
+                    {
+                      "alias": "Total Periods",
+                      "formula": "query2"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kubernetes.cpu.cfs.throttled.periods{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "query2",
+                      "query": "avg:kubernetes.cpu.cfs.periods{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 8381100815836817,
+            "definition": {
+              "title": "Container Restarts",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "max:kubernetes.containers.restarts{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 4,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 4681934799290350,
+            "definition": {
+              "title": "Memory Usage %",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1 * 100"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kubernetes.memory.usage_pct{kube_namespace:kafka-prod-ns,kube_container_name:kafka-prod-connect,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "orange",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "max": "100"
+              }
+            },
+            "layout": {
+              "x": 8,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 32,
+        "width": 12,
+        "height": 7
+      }
+    },
+    {
+      "id": 1512729089938548,
+      "definition": {
+        "title": "Strimzi Operator Health",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 1763011142026485,
+            "definition": {
+              "title": "Reconciliations Rate by Kind",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:kafka_prod_ns.strimzi_reconciliations.count{kube_namespace:kafka-prod-ns} by {kind}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 3412898051792771,
+            "definition": {
+              "title": "Reconciliation Success vs Total vs Locked",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Total",
+                      "formula": "query1"
+                    },
+                    {
+                      "alias": "Successful",
+                      "formula": "query2"
+                    },
+                    {
+                      "alias": "Locked",
+                      "formula": "query3"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:kafka_prod_ns.strimzi_reconciliations.count{kube_namespace:kafka-prod-ns}.as_rate()"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "query2",
+                      "query": "sum:kafka_prod_ns.strimzi_reconciliations_successful.count{kube_namespace:kafka-prod-ns}.as_rate()"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "query3",
+                      "query": "sum:kafka_prod_ns.strimzi_reconciliations_locked.count{kube_namespace:kafka-prod-ns}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 4,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 8551446866364663,
+            "definition": {
+              "title": "Reconciliation Duration (Max) by Kind",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kafka_prod_ns.strimzi_reconciliations_duration_seconds_max{kube_namespace:kafka-prod-ns} by {kind}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 8,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 2026748890527077,
+            "definition": {
+              "title": "Strimzi Resource State",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kafka_prod_ns.strimzi_resource_state{kube_namespace:kafka-prod-ns} by {kind}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 5415827350050115,
+            "definition": {
+              "title": "Strimzi Resources Count",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:kafka_prod_ns.strimzi_resources{kube_namespace:kafka-prod-ns} by {kind}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 4,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 7489836521988049,
+            "definition": {
+              "title": "Certificate Expiration Timestamp",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "min:kafka_prod_ns.strimzi_certificate_expiration_timestamp_ms{kube_namespace:kafka-prod-ns}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": false
+              }
+            },
+            "layout": {
+              "x": 8,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 39,
+        "width": 12,
+        "height": 7
+      }
+    }
+  ],
+  "notify_list": [],
+  "created_at": "2026-04-23T20:02:35.492337+00:00",
+  "modified_at": "2026-04-24T04:27:37.653041+00:00",
+  "reflow_type": "fixed",
+  "tags": [
+    "ai:created_with_ai"
+  ],
+  "restricted_roles": []
+}

@@ -1,0 +1,10 @@
+# Append-only release ledger — the durable lineage of every nightly + each promotion.
+# Maintained by the release pipeline (see VERSIONING.md). NOT read by the helmfile; for traceability
+# and tooling only. One row per artifact, appended in creation order. Never edit/reorder past rows.
+releases:
+  - version: "1.0.0"
+    channel: stable
+    base: "1.0.0"
+    created: "2026-06-07T00:00:00Z"
+    source_sha: genesis
+    # genesis stable: hand-seeded, no nightly predecessor (no promoted_from).

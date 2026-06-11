@@ -1,0 +1,1432 @@
+{
+  "id": "e66-vxb-qei",
+  "title": "Router Controller",
+  "description": "Industry-standard monitoring dashboard for the Router Controller production deployment (router-controller-prod-deploy) in router-controller-prod-ns on divyam-prod-k8s-cluster. Tracks API key DB lookup latency, in-flight request concurrency, resource utilization, and pod health for early degradation detection.",
+  "author_handle": "rbharathkumar0409@gmail.com",
+  "author_name": "Bharath Kumar",
+  "layout_type": "ordered",
+  "url": "/dashboard/e66-vxb-qei/router-controller",
+  "template_variables": [
+    {
+      "name": "kube_namespace",
+      "prefix": "kube_namespace",
+      "available_values": [
+        "router-controller-prod-ns"
+      ],
+      "default": "router-controller-prod-ns"
+    },
+    {
+      "name": "kube_deployment",
+      "prefix": "kube_deployment",
+      "available_values": [
+        "router-controller-prod-deploy"
+      ],
+      "default": "router-controller-prod-deploy"
+    },
+    {
+      "name": "kube_cluster_name",
+      "prefix": "kube_cluster_name",
+      "available_values": [
+        "divyam-prod-k8s-cluster"
+      ],
+      "default": "divyam-prod-k8s-cluster"
+    },
+    {
+      "name": "endpoint",
+      "prefix": "endpoint",
+      "available_values": [],
+      "default": "*"
+    }
+  ],
+  "widgets": [
+    {
+      "id": 7715741023444291,
+      "definition": {
+        "title": "Overview - Key Performance Indicators",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 7191917738459986,
+            "definition": {
+              "type": "note",
+              "content": "**Router Controller Prod Monitoring**\n\nMonitoring API key lookup latency, in-flight concurrency, and infrastructure health for `router-controller-prod-deploy` in `router-controller-prod-ns`.\n\nUse this dashboard to detect API degradations, resource saturation, and pod instability early.",
+              "background_color": "blue",
+              "font_size": "14",
+              "text_align": "left",
+              "vertical_align": "top",
+              "show_tick": false,
+              "tick_pos": "50%",
+              "tick_edge": "left",
+              "has_padding": true
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 4,
+              "height": 2
+            }
+          },
+          {
+            "id": 905552930411616,
+            "definition": {
+              "title": "In-Flight Requests",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "conditional_formats": [
+                    {
+                      "comparator": ">=",
+                      "palette": "white_on_red",
+                      "value": 50
+                    },
+                    {
+                      "comparator": ">=",
+                      "palette": "white_on_yellow",
+                      "value": 20
+                    },
+                    {
+                      "comparator": "<",
+                      "palette": "white_on_green",
+                      "value": 20
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "last",
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:router_controller_prod_ns.divyam_in_flight_requests{$kube_namespace,$kube_deployment,$endpoint}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 1
+            },
+            "layout": {
+              "x": 4,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 7647151274830371,
+            "definition": {
+              "title": "API Key Lookup Rate (req/s)",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "last",
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:router_controller_prod_ns.divyam_get_api_key_info_from_db_latency_seconds.count{$kube_namespace,$kube_deployment,$endpoint}.as_rate()"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 2
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 4763319163130758,
+            "definition": {
+              "title": "Avg API Key Lookup Latency (s)",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "conditional_formats": [
+                    {
+                      "comparator": ">=",
+                      "palette": "white_on_red",
+                      "value": 1
+                    },
+                    {
+                      "comparator": ">=",
+                      "palette": "white_on_yellow",
+                      "value": 0.5
+                    },
+                    {
+                      "comparator": "<",
+                      "palette": "white_on_green",
+                      "value": 0.5
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a / b"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "last",
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:router_controller_prod_ns.divyam_get_api_key_info_from_db_latency_seconds.sum{$kube_namespace,$kube_deployment,$endpoint}.as_rate()"
+                    },
+                    {
+                      "aggregator": "last",
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "sum:router_controller_prod_ns.divyam_get_api_key_info_from_db_latency_seconds.count{$kube_namespace,$kube_deployment,$endpoint}.as_rate()"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 4
+            },
+            "layout": {
+              "x": 8,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 2106940990662826,
+            "definition": {
+              "title": "Running Pods",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "conditional_formats": [
+                    {
+                      "comparator": ">=",
+                      "palette": "white_on_green",
+                      "value": 3
+                    },
+                    {
+                      "comparator": ">=",
+                      "palette": "white_on_yellow",
+                      "value": 2
+                    },
+                    {
+                      "comparator": "<",
+                      "palette": "white_on_red",
+                      "value": 2
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "last",
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:kubernetes_state.pod.status_phase{$kube_namespace,$kube_deployment,pod_phase:running,$endpoint}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 10,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 0,
+        "width": 12,
+        "height": 3
+      }
+    },
+    {
+      "id": 3407330574666363,
+      "definition": {
+        "title": "API Performance - Latency, Throughput & Concurrency",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 232301869555242,
+            "definition": {
+              "title": "In-Flight Requests by Pod",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:router_controller_prod_ns.divyam_in_flight_requests{$kube_namespace,$kube_deployment,$endpoint} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              },
+              "markers": [
+                {
+                  "label": "High Concurrency",
+                  "value": "y = 50",
+                  "display_type": "error dashed"
+                },
+                {
+                  "label": "Elevated",
+                  "value": "y = 20",
+                  "display_type": "warning dashed"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 2415017768827423,
+            "definition": {
+              "title": "API Key DB Lookup - Request Rate (req/s)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:router_controller_prod_ns.divyam_get_api_key_info_from_db_latency_seconds.count{$kube_namespace,$kube_deployment,$endpoint}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "cool",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 7141774679843368,
+            "definition": {
+              "title": "Avg API Key DB Lookup Latency (seconds)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "a / b"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:router_controller_prod_ns.divyam_get_api_key_info_from_db_latency_seconds.sum{$kube_namespace,$kube_deployment,$endpoint}.as_rate()"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "sum:router_controller_prod_ns.divyam_get_api_key_info_from_db_latency_seconds.count{$kube_namespace,$kube_deployment,$endpoint}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              },
+              "markers": [
+                {
+                  "label": "SLO Breach (>1s)",
+                  "value": "y = 1",
+                  "display_type": "error dashed"
+                },
+                {
+                  "label": "Degraded (>500ms)",
+                  "value": "y = 0.5",
+                  "display_type": "warning dashed"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 5362541727325974,
+            "definition": {
+              "title": "Latency Distribution - Histogram Buckets (cumulative req/s)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:router_controller_prod_ns.divyam_get_api_key_info_from_db_latency_seconds.bucket{$kube_namespace,$kube_deployment,$endpoint} by {upper_bound}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 3,
+        "width": 12,
+        "height": 7
+      }
+    },
+    {
+      "id": 7164008994010093,
+      "definition": {
+        "title": "Infrastructure - Resource Utilization & Saturation",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 6718568428903907,
+            "definition": {
+              "title": "CPU: Usage vs Requests vs Limits",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "CPU Usage",
+                      "formula": "usage"
+                    },
+                    {
+                      "alias": "CPU Requests",
+                      "formula": "requests_q"
+                    },
+                    {
+                      "alias": "CPU Limits",
+                      "formula": "limits_q"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "usage",
+                      "query": "avg:kubernetes.cpu.usage.total{$kube_namespace,$kube_deployment,$endpoint} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "requests_q",
+                      "query": "avg:kubernetes.cpu.requests{$kube_namespace,$kube_deployment,$endpoint} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "limits_q",
+                      "query": "avg:kubernetes.cpu.limits{$kube_namespace,$kube_deployment,$endpoint} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 7723020318097042,
+            "definition": {
+              "title": "Memory: Usage vs Requests vs Limits",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Memory Usage",
+                      "formula": "usage"
+                    },
+                    {
+                      "alias": "Memory Requests",
+                      "formula": "req"
+                    },
+                    {
+                      "alias": "Memory Limits",
+                      "formula": "lim"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "usage",
+                      "query": "avg:kubernetes.memory.usage{$kube_namespace,$kube_deployment,$endpoint} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "req",
+                      "query": "avg:kubernetes.memory.requests{$kube_namespace,$kube_deployment,$endpoint} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "lim",
+                      "query": "avg:kubernetes.memory.limits{$kube_namespace,$kube_deployment,$endpoint} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 2228180367174809,
+            "definition": {
+              "title": "Network I/O (Bytes/s)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "RX (Received)",
+                      "formula": "rx"
+                    },
+                    {
+                      "alias": "TX (Sent)",
+                      "formula": "tx"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "rx",
+                      "query": "avg:kubernetes.network.rx_bytes{$kube_namespace,$kube_deployment,$endpoint} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "tx",
+                      "query": "avg:kubernetes.network.tx_bytes{$kube_namespace,$kube_deployment,$endpoint} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "cool",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "area"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 7200964225432514,
+            "definition": {
+              "title": "CPU Throttling (Throttled Periods)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kubernetes.cpu.cfs.throttled.periods{$kube_namespace,$kube_deployment,$endpoint} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 10,
+        "width": 12,
+        "height": 7
+      }
+    },
+    {
+      "id": 1867727727902049,
+      "definition": {
+        "title": "Pod Health & Stability Indicators",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 5591098956764444,
+            "definition": {
+              "type": "note",
+              "content": "**Degradation Indicators**\n\nWatch for these signals:\n- **CPU throttling > 0** - Pods hitting CPU limits\n- **Memory near limits** - Risk of OOM kills\n- **Rising in-flight requests** - Possible saturation\n- **Increasing latency** - DB or service degradation\n- **Thread/FD exhaustion** - Resource leak indicators",
+              "background_color": "yellow",
+              "font_size": "14",
+              "text_align": "left",
+              "vertical_align": "top",
+              "show_tick": false,
+              "tick_pos": "50%",
+              "tick_edge": "left",
+              "has_padding": true
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 3,
+              "height": 3
+            }
+          },
+          {
+            "id": 5185202632424927,
+            "definition": {
+              "title": "Container Restarts (Cumulative)",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:kubernetes.containers.restarts{$kube_namespace,$kube_deployment,$endpoint} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 3,
+              "y": 0,
+              "width": 3,
+              "height": 3
+            }
+          },
+          {
+            "id": 69982801213171,
+            "definition": {
+              "title": "Open File Descriptors",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:container.pid.open_files{$kube_namespace,$kube_deployment,$endpoint} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 3,
+              "height": 3
+            }
+          },
+          {
+            "id": 4734103812757246,
+            "definition": {
+              "title": "Thread Count",
+              "show_legend": true,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:container.pid.thread_count{$kube_namespace,$kube_deployment,$endpoint} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "purple",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 9,
+              "y": 0,
+              "width": 3,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 34,
+        "width": 12,
+        "height": 4,
+        "is_column_break": true
+      }
+    },
+    {
+      "id": 3261101443719206,
+      "definition": {
+        "title": "API Traffic, Latency & Error Monitoring",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 6115744229673335,
+            "definition": {
+              "title": "Total Request Rate (req/s)",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "name": "a",
+                      "data_source": "metrics",
+                      "query": "sum:router_controller_prod_ns.divyam_requests.count{$kube_namespace,$kube_deployment,$endpoint}.as_rate()",
+                      "aggregator": "last"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 2
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 3,
+              "height": 2
+            }
+          },
+          {
+            "id": 7870547738330337,
+            "definition": {
+              "title": "Avg Response Latency (s)",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "name": "a",
+                      "data_source": "metrics",
+                      "query": "sum:router_controller_prod_ns.divyam_response_latency_seconds.sum{$kube_namespace,$kube_deployment,$endpoint}.as_rate()",
+                      "aggregator": "last"
+                    },
+                    {
+                      "name": "b",
+                      "data_source": "metrics",
+                      "query": "sum:router_controller_prod_ns.divyam_response_latency_seconds.count{$kube_namespace,$kube_deployment,$endpoint}.as_rate()",
+                      "aggregator": "last"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a / b"
+                    }
+                  ],
+                  "conditional_formats": [
+                    {
+                      "comparator": ">=",
+                      "value": 5,
+                      "palette": "white_on_red"
+                    },
+                    {
+                      "comparator": ">=",
+                      "value": 2,
+                      "palette": "white_on_yellow"
+                    },
+                    {
+                      "comparator": "<",
+                      "value": 2,
+                      "palette": "white_on_green"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 3
+            },
+            "layout": {
+              "x": 3,
+              "y": 0,
+              "width": 3,
+              "height": 2
+            }
+          },
+          {
+            "id": 43014389250648,
+            "definition": {
+              "title": "Router Overhead Latency (s)",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "name": "a",
+                      "data_source": "metrics",
+                      "query": "sum:router_controller_prod_ns.divyam_overhead_latency_seconds.sum{$kube_namespace,$kube_deployment,$endpoint}.as_rate()",
+                      "aggregator": "last"
+                    },
+                    {
+                      "name": "b",
+                      "data_source": "metrics",
+                      "query": "sum:router_controller_prod_ns.divyam_overhead_latency_seconds.count{$kube_namespace,$kube_deployment,$endpoint}.as_rate()",
+                      "aggregator": "last"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a / b"
+                    }
+                  ],
+                  "conditional_formats": [
+                    {
+                      "comparator": ">=",
+                      "value": 1,
+                      "palette": "white_on_red"
+                    },
+                    {
+                      "comparator": ">=",
+                      "value": 0.5,
+                      "palette": "white_on_yellow"
+                    },
+                    {
+                      "comparator": "<",
+                      "value": 0.5,
+                      "palette": "white_on_green"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 4
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 3,
+              "height": 2
+            }
+          },
+          {
+            "id": 6502843927647720,
+            "definition": {
+              "title": "Unique Endpoints Hit",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "name": "a",
+                      "data_source": "metrics",
+                      "query": "count:router_controller_prod_ns.divyam_requests.count{$kube_namespace,$kube_deployment,$endpoint} by {endpoint}",
+                      "aggregator": "last"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 9,
+              "y": 0,
+              "width": 3,
+              "height": 2
+            }
+          },
+          {
+            "id": 5834845582397307,
+            "definition": {
+              "title": "Request Rate by Endpoint",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "name": "a",
+                      "data_source": "metrics",
+                      "query": "sum:router_controller_prod_ns.divyam_requests.count{$kube_namespace,$kube_deployment,$endpoint} by {endpoint}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 2,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 4678606511364298,
+            "definition": {
+              "title": "Request Rate by Status Code",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "name": "a",
+                      "data_source": "metrics",
+                      "query": "sum:router_controller_prod_ns.divyam_requests.count{$kube_namespace,$kube_deployment,$endpoint} by {status}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "semantic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 2,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 4867077887136504,
+            "definition": {
+              "title": "Avg Response Latency by Endpoint (seconds)",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "name": "a",
+                      "data_source": "metrics",
+                      "query": "sum:router_controller_prod_ns.divyam_response_latency_seconds.sum{$kube_namespace,$kube_deployment,$endpoint} by {endpoint}.as_rate()"
+                    },
+                    {
+                      "name": "b",
+                      "data_source": "metrics",
+                      "query": "sum:router_controller_prod_ns.divyam_response_latency_seconds.count{$kube_namespace,$kube_deployment,$endpoint} by {endpoint}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a / b"
+                    }
+                  ],
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              },
+              "markers": [
+                {
+                  "label": "SLO Breach (>5s)",
+                  "value": "y = 5",
+                  "display_type": "error dashed"
+                },
+                {
+                  "label": "Degraded (>2s)",
+                  "value": "y = 2",
+                  "display_type": "warning dashed"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 5,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 3922259483510553,
+            "definition": {
+              "title": "Router Overhead Latency (seconds)",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "name": "a",
+                      "data_source": "metrics",
+                      "query": "sum:router_controller_prod_ns.divyam_overhead_latency_seconds.sum{$kube_namespace,$kube_deployment,$endpoint}.as_rate()"
+                    },
+                    {
+                      "name": "b",
+                      "data_source": "metrics",
+                      "query": "sum:router_controller_prod_ns.divyam_overhead_latency_seconds.count{$kube_namespace,$kube_deployment,$endpoint}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a / b"
+                    }
+                  ],
+                  "style": {
+                    "palette": "cool",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 5,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 38,
+        "width": 12,
+        "height": 9
+      }
+    },
+    {
+      "id": 4055366218827790,
+      "definition": {
+        "title": "Model Routing & Service Account Activity",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 733192221116437,
+            "definition": {
+              "title": "Model Routing - Requests by Provider & Model",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "name": "a",
+                      "data_source": "metrics",
+                      "query": "sum:router_controller_prod_ns.divyam_requests_model_calls_stats.count{$kube_namespace,$kube_deployment,$endpoint} by {selected_model_provider,selected_model}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 2694592096378295,
+            "definition": {
+              "title": "Requests by Organization",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "name": "a",
+                      "data_source": "metrics",
+                      "query": "sum:router_controller_prod_ns.divyam_requests.count{$kube_namespace,$kube_deployment,$endpoint} by {org_name}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "cool",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 6421429011467396,
+            "definition": {
+              "title": "Requests by Service Account (user_name)",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "name": "a",
+                      "data_source": "metrics",
+                      "query": "sum:router_controller_prod_ns.divyam_requests.count{$kube_namespace,$kube_deployment,$endpoint} by {user_name}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 3223887030945745,
+            "definition": {
+              "title": "Model Routing by Traffic Bucket",
+              "show_legend": false,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "name": "a",
+                      "data_source": "metrics",
+                      "query": "sum:router_controller_prod_ns.divyam_requests_model_calls_stats.count{$kube_namespace,$kube_deployment,$endpoint} by {traffic_bucket}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 47,
+        "width": 12,
+        "height": 7
+      }
+    }
+  ],
+  "notify_list": [],
+  "created_at": "2026-04-23T19:39:44.341518+00:00",
+  "modified_at": "2026-04-24T05:46:53.189273+00:00",
+  "reflow_type": "fixed",
+  "tags": [
+    "ai:created_with_ai"
+  ],
+  "restricted_roles": []
+}

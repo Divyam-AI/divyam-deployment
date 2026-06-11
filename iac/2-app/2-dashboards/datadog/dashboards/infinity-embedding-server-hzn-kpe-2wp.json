@@ -1,0 +1,1483 @@
+{
+  "id": "hzn-kpe-2wp",
+  "title": "Infinity Embedding Server",
+  "description": "Industry-standard monitoring dashboard for the Infinity embedding inference server (infinity-prod-deploy) on AKS GPU spot nodes in divyam-prod-k8s-cluster. Covers the RED method (Rate, Errors, Duration), resource utilization, and Python runtime health for degradation detection.",
+  "author_handle": "rbharathkumar0409@gmail.com",
+  "author_name": "Bharath Kumar",
+  "layout_type": "ordered",
+  "url": "/dashboard/hzn-kpe-2wp/infinity-embedding-server",
+  "template_variables": [
+    {
+      "name": "handler",
+      "prefix": "handler",
+      "available_values": [
+        "/embeddings",
+        "/health",
+        "/metrics"
+      ],
+      "defaults": [
+        "/embeddings",
+        "/health",
+        "/metrics"
+      ]
+    },
+    {
+      "name": "host",
+      "prefix": "host",
+      "available_values": [
+        "aks-gpu-spot-glnw5-divyam-prod-k8s-cluster",
+        "aks-gpu-spot-sc72l-divyam-prod-k8s-cluster"
+      ],
+      "defaults": [
+        "aks-gpu-spot-glnw5-divyam-prod-k8s-cluster",
+        "aks-gpu-spot-sc72l-divyam-prod-k8s-cluster"
+      ]
+    },
+    {
+      "name": "method",
+      "prefix": "method",
+      "available_values": [
+        "get",
+        "post"
+      ],
+      "defaults": [
+        "get",
+        "post"
+      ]
+    }
+  ],
+  "widgets": [
+    {
+      "id": 8748661028888002,
+      "definition": {
+        "title": "Overview",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 8154273677861523,
+            "definition": {
+              "type": "note",
+              "content": "## Infinity Embedding Server\n\n**Deployment:** `infinity-prod-deploy`\n**Namespace:** `infinity-prod-ns`\n**Cluster:** `divyam-prod-k8s-cluster`\n**Image:** `michaelf34/infinity:0.0.76-trt-onnx`\n**GPU:** NVIDIA (spot instances)\n**Handlers:** `/embeddings`, `/health`, `/metrics`\n\n---\n*Use template variables above to filter by handler, host, or method.*",
+              "background_color": "white",
+              "font_size": "14",
+              "text_align": "left",
+              "vertical_align": "top",
+              "show_tick": false,
+              "tick_pos": "50%",
+              "tick_edge": "left",
+              "has_padding": true
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 2,
+              "height": 4
+            }
+          },
+          {
+            "id": 692236138166812,
+            "definition": {
+              "title": "Request Rate (req/s)",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "conditional_formats": [
+                    {
+                      "comparator": ">",
+                      "palette": "white_on_green",
+                      "value": 0
+                    },
+                    {
+                      "comparator": "<=",
+                      "palette": "white_on_red",
+                      "value": 0
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "avg",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:infinity_prod.http_requests.count{kube_namespace:infinity-prod-ns,$handler,$host,$method}.as_rate()"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 2
+            },
+            "layout": {
+              "x": 2,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 3683838694423844,
+            "definition": {
+              "title": "Avg Latency (s)",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "conditional_formats": [
+                    {
+                      "comparator": ">=",
+                      "palette": "white_on_red",
+                      "value": 1
+                    },
+                    {
+                      "comparator": ">=",
+                      "palette": "white_on_yellow",
+                      "value": 0.5
+                    },
+                    {
+                      "comparator": "<",
+                      "palette": "white_on_green",
+                      "value": 0.5
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a / b"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "avg",
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:infinity_prod.http_request_duration_seconds.sum{kube_namespace:infinity-prod-ns,$handler,$host,$method}.as_rate()"
+                    },
+                    {
+                      "aggregator": "avg",
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "sum:infinity_prod.http_request_duration_seconds.count{kube_namespace:infinity-prod-ns,$handler,$host,$method}.as_rate()"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 4
+            },
+            "layout": {
+              "x": 4,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 4769357197343252,
+            "definition": {
+              "title": "Resident Memory",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "avg",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:infinity_prod.process_resident_memory_bytes{kube_namespace:infinity-prod-ns,$host}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 2
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 3897552032422018,
+            "definition": {
+              "title": "CPU Rate (cores)",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "avg",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:infinity_prod.process_cpu_seconds.count{kube_namespace:infinity-prod-ns,$host}.as_rate()"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 3
+            },
+            "layout": {
+              "x": 8,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 8557997062484437,
+            "definition": {
+              "title": "FD Utilization %",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "conditional_formats": [
+                    {
+                      "comparator": ">=",
+                      "palette": "white_on_red",
+                      "value": 90
+                    },
+                    {
+                      "comparator": ">=",
+                      "palette": "white_on_yellow",
+                      "value": 70
+                    },
+                    {
+                      "comparator": "<",
+                      "palette": "white_on_green",
+                      "value": 70
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "(a / b) * 100"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "avg",
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:infinity_prod.process_open_fds{kube_namespace:infinity-prod-ns,$host}"
+                    },
+                    {
+                      "aggregator": "avg",
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "avg:infinity_prod.process_max_fds{kube_namespace:infinity-prod-ns,$host}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": false,
+              "custom_unit": "%",
+              "precision": 1
+            },
+            "layout": {
+              "x": 10,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 1324567696929922,
+            "definition": {
+              "title": "Request Rate Over Time",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Request Rate",
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:infinity_prod.http_requests.count{kube_namespace:infinity-prod-ns,$handler,$host,$method}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 2,
+              "y": 2,
+              "width": 10,
+              "height": 2
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 0,
+        "width": 12,
+        "height": 5
+      }
+    },
+    {
+      "id": 648858977737273,
+      "definition": {
+        "title": "HTTP Traffic",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 2445180848399432,
+            "definition": {
+              "title": "Request Rate by Handler",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:infinity_prod.http_requests.count{kube_namespace:infinity-prod-ns,$handler,$host,$method} by {handler}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 4991989867048782,
+            "definition": {
+              "title": "Request Rate by Method",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:infinity_prod.http_requests.count{kube_namespace:infinity-prod-ns,$handler,$host,$method} by {method}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ]
+            },
+            "layout": {
+              "x": 4,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 8167439107930332,
+            "definition": {
+              "title": "Request Rate by Status Code",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:infinity_prod.http_requests.count{kube_namespace:infinity-prod-ns,$handler,$host,$method} by {status}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ]
+            },
+            "layout": {
+              "x": 8,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 1512567526179950,
+            "definition": {
+              "title": "Request Rate by Host",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:infinity_prod.http_requests.count{kube_namespace:infinity-prod-ns,$handler,$host,$method} by {host}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 736229596614080,
+            "definition": {
+              "title": "Top Handlers by Request Volume",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "toplist",
+              "requests": [
+                {
+                  "queries": [
+                    {
+                      "aggregator": "avg",
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:infinity_prod.http_requests.count{kube_namespace:infinity-prod-ns,$handler,$host,$method} by {handler}.as_rate()"
+                    }
+                  ],
+                  "response_format": "scalar",
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "sort": {
+                    "count": 10,
+                    "order_by": [
+                      {
+                        "type": "formula",
+                        "index": 0,
+                        "order": "desc"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "layout": {
+              "x": 6,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 5,
+        "width": 12,
+        "height": 7
+      }
+    },
+    {
+      "id": 8310486078910343,
+      "definition": {
+        "title": "Latency and Performance",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 3519257805272044,
+            "definition": {
+              "title": "Avg Request Duration by Handler (s)",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "a / b"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:infinity_prod.http_request_duration_seconds.sum{kube_namespace:infinity-prod-ns,$handler,$host,$method} by {handler}.as_rate()"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "sum:infinity_prod.http_request_duration_seconds.count{kube_namespace:infinity-prod-ns,$handler,$host,$method} by {handler}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "markers": [
+                {
+                  "label": "Warning: 500ms",
+                  "value": "y = 0.5",
+                  "display_type": "warning dashed"
+                },
+                {
+                  "label": "Critical: 1s",
+                  "value": "y = 1",
+                  "display_type": "error dashed"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 8030645820092157,
+            "definition": {
+              "title": "Avg Request Duration by Host (s)",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "a / b"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:infinity_prod.http_request_duration_seconds.sum{kube_namespace:infinity-prod-ns,$handler,$host,$method} by {host}.as_rate()"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "sum:infinity_prod.http_request_duration_seconds.count{kube_namespace:infinity-prod-ns,$handler,$host,$method} by {host}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "markers": [
+                {
+                  "label": "Warning: 500ms",
+                  "value": "y = 0.5",
+                  "display_type": "warning dashed"
+                },
+                {
+                  "label": "Critical: 1s",
+                  "value": "y = 1",
+                  "display_type": "error dashed"
+                }
+              ]
+            },
+            "layout": {
+              "x": 4,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 4842275326394838,
+            "definition": {
+              "title": "High-Res Duration by Handler (s)",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "a / b"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:infinity_prod.http_request_duration_highr_seconds.sum{kube_namespace:infinity-prod-ns,$handler,$host,$method} by {handler}.as_rate()"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "sum:infinity_prod.http_request_duration_highr_seconds.count{kube_namespace:infinity-prod-ns,$handler,$host,$method} by {handler}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 8,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 2123851769751457,
+            "definition": {
+              "title": "Latency: Current vs 1 Day Ago (Degradation Detection)",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Current",
+                      "formula": "a / b"
+                    },
+                    {
+                      "alias": "1 Day Ago",
+                      "formula": "timeshift(a, -86400) / timeshift(b, -86400)"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:infinity_prod.http_request_duration_seconds.sum{kube_namespace:infinity-prod-ns,$handler,$host,$method}.as_rate()"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "sum:infinity_prod.http_request_duration_seconds.count{kube_namespace:infinity-prod-ns,$handler,$host,$method}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 5693625017350440,
+            "definition": {
+              "title": "Request Rate: Current vs 1 Day Ago",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Current",
+                      "formula": "query1"
+                    },
+                    {
+                      "alias": "1 Day Ago",
+                      "formula": "timeshift(query1, -86400)"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:infinity_prod.http_requests.count{kube_namespace:infinity-prod-ns,$handler,$host,$method}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 6,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 12,
+        "width": 12,
+        "height": 7
+      }
+    },
+    {
+      "id": 8872580713400674,
+      "definition": {
+        "title": "Throughput and Payload Size",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 6791616289542815,
+            "definition": {
+              "title": "Avg Request Size by Handler (bytes)",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "a / b"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:infinity_prod.http_request_size_bytes.sum{kube_namespace:infinity-prod-ns,$handler,$host,$method} by {handler}.as_rate()"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "sum:infinity_prod.http_request_size_bytes.count{kube_namespace:infinity-prod-ns,$handler,$host,$method} by {handler}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "cool",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 8867153172174847,
+            "definition": {
+              "title": "Avg Response Size by Handler (bytes)",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "a / b"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:infinity_prod.http_response_size_bytes.sum{kube_namespace:infinity-prod-ns,$handler,$host,$method} by {handler}.as_rate()"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "sum:infinity_prod.http_response_size_bytes.count{kube_namespace:infinity-prod-ns,$handler,$host,$method} by {handler}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "purple",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 19,
+        "width": 12,
+        "height": 4
+      }
+    },
+    {
+      "id": 1966017843480194,
+      "definition": {
+        "title": "Resource Utilization",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 2427468455460819,
+            "definition": {
+              "title": "Resident Memory by Host",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:infinity_prod.process_resident_memory_bytes{kube_namespace:infinity-prod-ns,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 2638310475178635,
+            "definition": {
+              "title": "Virtual Memory by Host",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "avg:infinity_prod.process_virtual_memory_bytes{kube_namespace:infinity-prod-ns,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 4,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 659287475592452,
+            "definition": {
+              "title": "CPU Usage by Host (cores)",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:infinity_prod.process_cpu_seconds.count{kube_namespace:infinity-prod-ns,$host} by {host}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "orange",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 8,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 46845183651997,
+            "definition": {
+              "title": "File Descriptors (Open vs Max)",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Open FDs",
+                      "formula": "open_fds"
+                    },
+                    {
+                      "alias": "Max FDs",
+                      "formula": "max_fds"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "open_fds",
+                      "query": "avg:infinity_prod.process_open_fds{kube_namespace:infinity-prod-ns,$host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "max_fds",
+                      "query": "avg:infinity_prod.process_max_fds{kube_namespace:infinity-prod-ns,$host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 8980602669712982,
+            "definition": {
+              "title": "FD Utilization % by Host",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "(open_fds / max_fds) * 100"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "open_fds",
+                      "query": "avg:infinity_prod.process_open_fds{kube_namespace:infinity-prod-ns,$host} by {host}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "max_fds",
+                      "query": "avg:infinity_prod.process_max_fds{kube_namespace:infinity-prod-ns,$host} by {host}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "markers": [
+                {
+                  "label": "Warning: 70%",
+                  "value": "y = 70",
+                  "display_type": "warning dashed"
+                },
+                {
+                  "label": "Critical: 90%",
+                  "value": "y = 90",
+                  "display_type": "error dashed"
+                }
+              ]
+            },
+            "layout": {
+              "x": 6,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 23,
+        "width": 12,
+        "height": 7
+      }
+    },
+    {
+      "id": 5597004687473221,
+      "definition": {
+        "title": "Python Runtime Health",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 5471014194500937,
+            "definition": {
+              "title": "GC Collection Rate by Host",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:infinity_prod.python_gc_collections.count{kube_namespace:infinity-prod-ns,$host} by {host}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 4961834298153938,
+            "definition": {
+              "title": "GC Objects Collected Rate by Host",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:infinity_prod.python_gc_objects_collected.count{kube_namespace:infinity-prod-ns,$host} by {host}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ]
+            },
+            "layout": {
+              "x": 4,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 4660630478414665,
+            "definition": {
+              "title": "Uncollectable Objects Rate (Memory Leak Indicator)",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "query1",
+                      "query": "sum:infinity_prod.python_gc_objects_uncollectable.count{kube_namespace:infinity-prod-ns,$host} by {host}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "markers": [
+                {
+                  "label": "Expected: 0",
+                  "value": "y = 0",
+                  "display_type": "ok dashed"
+                }
+              ]
+            },
+            "layout": {
+              "x": 8,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 30,
+        "width": 12,
+        "height": 4
+      }
+    }
+  ],
+  "notify_list": [],
+  "created_at": "2026-04-24T05:34:59.927385+00:00",
+  "modified_at": "2026-04-24T05:35:46.353282+00:00",
+  "reflow_type": "fixed",
+  "tags": [
+    "ai:created_with_ai"
+  ],
+  "restricted_roles": []
+}

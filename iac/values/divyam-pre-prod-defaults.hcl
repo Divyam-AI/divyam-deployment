@@ -228,8 +228,24 @@ locals {
     # Upgrade cadence: Azure = automatic_channel_upgrade (stable|rapid|patch|node-image), GCP = release_channel (REGULAR|RAPID|STABLE). Set per cloud.
     release_channel = local.cloud_provider == "azure" ? "stable" : "REGULAR"
 
-    # When true, enables 1-platform/2-bastion-kubectl-setup (run setup-kubectl on bastion after cluster exists). Bastion must have been created with bastion.configure_kubectl so the script exists.
+    # When true, enables 1-platform/3-bastion-kubectl-setup (run setup-kubectl on bastion after cluster exists). Bastion must have been created with bastion.configure_kubectl so the script exists.
     setup_kubectl_on_bastion = false
+  }
+
+  monitoring = {
+    create   = true
+    provider = "cloud_native"
+    native = {
+      enable_logs    = true
+      enable_metrics = true
+      logs_retention_days = 30
+      manage_project_log_bucket = true
+      create_amw = true
+    }
+  }
+
+  datadog = {
+    enabled = false
   }
 
   iam_bindings = {
@@ -237,20 +253,15 @@ locals {
   }
 
   alerts = {
-    create         = true
-    enabled        = true
-    exclude_list   = []
+    create       = true
+    enabled      = true
+    exclude_list = []
 
-    notification_channels = {
-      pager_enabled      = true
-      pager_webhook_url  = get_env("NOTIFICATION_PAGER_WEBHOOK_URL", "")
-      gchat_enabled      = true
-      gchat_space_id     = get_env("NOTIFICATION_GCHAT_SPACE_ID", "")
-      email_enabled      = true
-      email_alert_email  = get_env("NOTIFICATION_EMAIL_ALERT_EMAIL", "")
-      slack_enabled      = true
-      slack_webhook_url  = get_env("NOTIFICATION_SLACK_WEBHOOK_URL", "")
-    }
+    # Pager / Zenduty-style webhook URLs. Every CRITICAL alert fires to every URL.
+    webhook_urls = compact(split(",", get_env("NOTIFICATION_WEBHOOK_URLS", "")))
+
+    webhook_custom_payload_enabled = true
+    webhook_custom_payload         = null
   }
 
 #################### Application ##########################

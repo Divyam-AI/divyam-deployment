@@ -1,0 +1,1970 @@
+{
+  "id": "zfv-ew7-3hb",
+  "title": "Route Selector",
+  "description": "Industry-standard monitoring dashboard for the route-selector service in route-selector-prod-ns namespace on divyam-prod-k8s-cluster. Follows RED (Rate, Errors, Duration) and USE (Utilization, Saturation, Errors) methodologies for API and infrastructure health monitoring.",
+  "author_handle": "rbharathkumar0409@gmail.com",
+  "author_name": "Bharath Kumar",
+  "layout_type": "ordered",
+  "url": "/dashboard/zfv-ew7-3hb/route-selector",
+  "template_variables": [
+    {
+      "name": "endpoint",
+      "prefix": "endpoint",
+      "available_values": [
+        "/metrics",
+        "/status"
+      ],
+      "default": "*"
+    },
+    {
+      "name": "method",
+      "prefix": "method",
+      "available_values": [],
+      "default": "*"
+    },
+    {
+      "name": "status",
+      "prefix": "status",
+      "available_values": [],
+      "default": "*"
+    },
+    {
+      "name": "service_account_id",
+      "prefix": "service_account_id",
+      "available_values": [
+        "fbpflxvnxitzzpuv"
+      ],
+      "default": "*"
+    },
+    {
+      "name": "model_selector_id",
+      "prefix": "model_selector_id",
+      "available_values": [
+        "1"
+      ],
+      "default": "*"
+    },
+    {
+      "name": "model_name",
+      "prefix": "model_name",
+      "available_values": [
+        "irt"
+      ],
+      "default": "*"
+    }
+  ],
+  "widgets": [
+    {
+      "id": 1440435947818087,
+      "definition": {
+        "title": "Service Health Overview",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 1176166021689547,
+            "definition": {
+              "type": "note",
+              "content": "## Route Selector - Production\n\n**Cluster:** divyam-prod-k8s-cluster\n**Namespace:** route-selector-prod-ns\n**Deployment:** route-selector-prod-deploy\n**Service:** route-selector-prod-svc\n\nKey indicators for service health. Watch for rising latency, dropping request rates, or increasing restarts.",
+              "background_color": "white",
+              "font_size": "14",
+              "text_align": "left",
+              "vertical_align": "top",
+              "show_tick": false,
+              "tick_pos": "50%",
+              "tick_edge": "left",
+              "has_padding": true
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 175251657581965,
+            "definition": {
+              "title": "Request Rate (req/s)",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "avg",
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:route_selector_prod.divyam_selector_requests.count{kube_namespace:route-selector-prod-ns,kube_deployment:route-selector-prod-deploy,$endpoint,$method,$status}.as_rate()"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 2
+            },
+            "layout": {
+              "x": 2,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 8783905143617914,
+            "definition": {
+              "title": "Avg Latency (ms)",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "conditional_formats": [
+                    {
+                      "comparator": ">",
+                      "palette": "white_on_red",
+                      "value": 500
+                    },
+                    {
+                      "comparator": ">",
+                      "palette": "white_on_yellow",
+                      "value": 200
+                    },
+                    {
+                      "comparator": "<=",
+                      "palette": "white_on_green",
+                      "value": 200
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "(a / b) * 1000"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "avg",
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:route_selector_prod.divyam_selector_response_latency_seconds.sum{kube_namespace:route-selector-prod-ns,kube_deployment:route-selector-prod-deploy,$endpoint,$method,$status}"
+                    },
+                    {
+                      "aggregator": "avg",
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "sum:route_selector_prod.divyam_selector_response_latency_seconds.count{kube_namespace:route-selector-prod-ns,kube_deployment:route-selector-prod-deploy,$endpoint,$method,$status}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 2
+            },
+            "layout": {
+              "x": 4,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 4038140992429696,
+            "definition": {
+              "title": "Running Pods",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "last",
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:kubernetes_state.container.running{kube_namespace:route-selector-prod-ns,kube_deployment:route-selector-prod-deploy}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 6370420607801973,
+            "definition": {
+              "title": "Container Restarts",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "conditional_formats": [
+                    {
+                      "comparator": ">",
+                      "palette": "white_on_red",
+                      "value": 5
+                    },
+                    {
+                      "comparator": ">",
+                      "palette": "white_on_yellow",
+                      "value": 0
+                    },
+                    {
+                      "comparator": "<=",
+                      "palette": "white_on_green",
+                      "value": 0
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "last",
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:kubernetes_state.container.restarts{kube_namespace:route-selector-prod-ns,kube_deployment:route-selector-prod-deploy}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 8,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 7046991812594659,
+            "definition": {
+              "title": "OOM Events",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "last",
+                  "conditional_formats": [
+                    {
+                      "comparator": ">",
+                      "palette": "white_on_red",
+                      "value": 0
+                    },
+                    {
+                      "comparator": "<=",
+                      "palette": "white_on_green",
+                      "value": 0
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "aggregator": "sum",
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:container.memory.oom_events{kube_namespace:route-selector-prod-ns,kube_container_name:route-selector}"
+                    }
+                  ],
+                  "response_format": "scalar"
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 10,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 0,
+        "width": 12,
+        "height": 3
+      }
+    },
+    {
+      "id": 1791821811291694,
+      "definition": {
+        "title": "API Performance - RED Metrics (Rate / Errors / Duration)",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 491374977695347,
+            "definition": {
+              "type": "note",
+              "content": "**RED Method Monitoring**\n\n- **Rate**: Request throughput per second\n- **Errors**: Non-2xx status codes\n- **Duration**: Response latency (avg + histogram distribution)\n\nWatch for: Latency spikes preceding error surges, request rate drops indicating upstream issues, widening latency distribution signaling degradation.",
+              "background_color": "blue",
+              "font_size": "14",
+              "text_align": "left",
+              "vertical_align": "top",
+              "show_tick": false,
+              "tick_pos": "50%",
+              "tick_edge": "left",
+              "has_padding": true
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 3,
+              "height": 3
+            }
+          },
+          {
+            "id": 4535123505956842,
+            "definition": {
+              "title": "Request Rate by Endpoint (req/s)",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:route_selector_prod.divyam_selector_requests.count{kube_namespace:route-selector-prod-ns,kube_deployment:route-selector-prod-deploy,$endpoint,$method,$status} by {endpoint}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              }
+            },
+            "layout": {
+              "x": 3,
+              "y": 0,
+              "width": 9,
+              "height": 3
+            }
+          },
+          {
+            "id": 6482811854054454,
+            "definition": {
+              "title": "Average Response Latency (ms)",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Avg Latency (ms)",
+                      "formula": "(a / b) * 1000"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:route_selector_prod.divyam_selector_response_latency_seconds.sum{kube_namespace:route-selector-prod-ns,kube_deployment:route-selector-prod-deploy,$endpoint,$method,$status}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "sum:route_selector_prod.divyam_selector_response_latency_seconds.count{kube_namespace:route-selector-prod-ns,kube_deployment:route-selector-prod-deploy,$endpoint,$method,$status}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "orange",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              },
+              "markers": [
+                {
+                  "label": "Warning: 200ms",
+                  "value": "y = 200",
+                  "display_type": "warning dashed"
+                },
+                {
+                  "label": "Critical: 500ms",
+                  "value": "y = 500",
+                  "display_type": "error dashed"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 2189532877779287,
+            "definition": {
+              "title": "Request Rate by Status Code (req/s)",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:route_selector_prod.divyam_selector_requests.count{kube_namespace:route-selector-prod-ns,kube_deployment:route-selector-prod-deploy,$endpoint,$method} by {status}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "semantic"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 6797583180958902,
+            "definition": {
+              "title": "Average Latency by Endpoint (ms)",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "(a / b) * 1000"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:route_selector_prod.divyam_selector_response_latency_seconds.sum{kube_namespace:route-selector-prod-ns,kube_deployment:route-selector-prod-deploy,$endpoint,$method,$status} by {endpoint}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "sum:route_selector_prod.divyam_selector_response_latency_seconds.count{kube_namespace:route-selector-prod-ns,kube_deployment:route-selector-prod-deploy,$endpoint,$method,$status} by {endpoint}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 6,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 764038330968990,
+            "definition": {
+              "title": "Latency Distribution by Bucket (cumulative req/s)",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:route_selector_prod.divyam_selector_response_latency_seconds.bucket{kube_namespace:route-selector-prod-ns,kube_deployment:route-selector-prod-deploy,$endpoint,$method,$status} by {upper_bound}.as_rate()"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "cool",
+                    "line_type": "solid",
+                    "line_width": "thin"
+                  },
+                  "display_type": "area"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 6,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 3,
+        "width": 12,
+        "height": 10
+      }
+    },
+    {
+      "id": 5927496867346572,
+      "definition": {
+        "title": "Resource Utilization - CPU, Memory, and Saturation Signals",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 1134245127407470,
+            "definition": {
+              "type": "note",
+              "content": "**USE Method - Resource Monitoring**\n\n- **CPU**: Usage vs limits; throttling = saturation\n- **Memory**: Working set vs limits; RSS growth may signal leaks\n- **Saturation**: Throttle %, FD/thread count climbing\n\nWatch for: CPU throttling >5%, memory nearing limits, sustained high utilization indicating scaling needs.",
+              "background_color": "purple",
+              "font_size": "14",
+              "text_align": "left",
+              "vertical_align": "top",
+              "show_tick": false,
+              "tick_pos": "50%",
+              "tick_edge": "left",
+              "has_padding": true
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 3,
+              "height": 3
+            }
+          },
+          {
+            "id": 6527178819024378,
+            "definition": {
+              "title": "CPU Usage vs Limits",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "CPU Usage (cores)",
+                      "formula": "a / 1000000000"
+                    },
+                    {
+                      "alias": "CPU Limit (cores)",
+                      "formula": "b"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kubernetes.cpu.usage.total{kube_namespace:route-selector-prod-ns,kube_container_name:route-selector} by {pod_name}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "avg:kubernetes.cpu.limits{kube_namespace:route-selector-prod-ns,kube_container_name:route-selector}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              }
+            },
+            "layout": {
+              "x": 3,
+              "y": 0,
+              "width": 9,
+              "height": 3
+            }
+          },
+          {
+            "id": 607391805086744,
+            "definition": {
+              "title": "Memory: Working Set vs RSS vs Limits",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Working Set",
+                      "formula": "a"
+                    },
+                    {
+                      "alias": "RSS",
+                      "formula": "c"
+                    },
+                    {
+                      "alias": "Memory Limit",
+                      "formula": "b"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kubernetes.memory.working_set{kube_namespace:route-selector-prod-ns,kube_container_name:route-selector} by {pod_name}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "avg:kubernetes.memory.limits{kube_namespace:route-selector-prod-ns,kube_container_name:route-selector}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "c",
+                      "query": "avg:kubernetes.memory.rss{kube_namespace:route-selector-prod-ns,kube_container_name:route-selector} by {pod_name}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 6767331254711642,
+            "definition": {
+              "title": "CPU Throttling (Throttled / Total Periods %)",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Throttle %",
+                      "formula": "(a / b) * 100"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:kubernetes.cpu.cfs.throttled.periods{kube_namespace:route-selector-prod-ns,kube_container_name:route-selector} by {pod_name}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "sum:kubernetes.cpu.cfs.periods{kube_namespace:route-selector-prod-ns,kube_container_name:route-selector} by {pod_name}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              },
+              "markers": [
+                {
+                  "label": "Warning: 5%",
+                  "value": "y = 5",
+                  "display_type": "warning dashed"
+                },
+                {
+                  "label": "Critical: 25%",
+                  "value": "y = 25",
+                  "display_type": "error dashed"
+                }
+              ]
+            },
+            "layout": {
+              "x": 6,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 2053630293891671,
+            "definition": {
+              "title": "Memory Utilization (% of Limit)",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Memory Utilization %",
+                      "formula": "a * 100"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kubernetes.memory.usage_pct{kube_namespace:route-selector-prod-ns,kube_container_name:route-selector} by {pod_name}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "purple",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0",
+                "max": "100"
+              },
+              "markers": [
+                {
+                  "label": "Warning: 80%",
+                  "value": "y = 80",
+                  "display_type": "warning dashed"
+                },
+                {
+                  "label": "Critical: 95%",
+                  "value": "y = 95",
+                  "display_type": "error dashed"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 6,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 7398507128396176,
+            "definition": {
+              "title": "Open File Descriptors and Thread Count",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Open FDs",
+                      "formula": "a"
+                    },
+                    {
+                      "alias": "Thread Count",
+                      "formula": "b"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:container.pid.open_files{kube_namespace:route-selector-prod-ns,kube_container_name:route-selector} by {pod_name}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "avg:container.pid.thread_count{kube_namespace:route-selector-prod-ns,kube_container_name:route-selector} by {pod_name}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 6,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 13,
+        "width": 12,
+        "height": 10
+      }
+    },
+    {
+      "id": 7824883815688672,
+      "definition": {
+        "title": "Network, Deployment, and Pod Health",
+        "show_title": true,
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 64561754465144,
+            "definition": {
+              "title": "Network Throughput (bytes/s)",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "RX (inbound)",
+                      "formula": "a"
+                    },
+                    {
+                      "alias": "TX (outbound)",
+                      "formula": "b * -1"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kubernetes.network.rx_bytes{kube_namespace:route-selector-prod-ns,kube_deployment:route-selector-prod-deploy} by {pod_name}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "avg:kubernetes.network.tx_bytes{kube_namespace:route-selector-prod-ns,kube_deployment:route-selector-prod-deploy} by {pod_name}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "area"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 2541117078088336,
+            "definition": {
+              "title": "Network Errors and Drops",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "RX Errors",
+                      "formula": "a"
+                    },
+                    {
+                      "alias": "TX Errors",
+                      "formula": "b"
+                    },
+                    {
+                      "alias": "RX Dropped",
+                      "formula": "c"
+                    },
+                    {
+                      "alias": "TX Dropped",
+                      "formula": "d"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:kubernetes.network.rx_errors{kube_namespace:route-selector-prod-ns,kube_deployment:route-selector-prod-deploy}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "sum:kubernetes.network.tx_errors{kube_namespace:route-selector-prod-ns,kube_deployment:route-selector-prod-deploy}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "c",
+                      "query": "sum:kubernetes.network.rx_dropped{kube_namespace:route-selector-prod-ns,kube_deployment:route-selector-prod-deploy}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "d",
+                      "query": "sum:kubernetes.network.tx_dropped{kube_namespace:route-selector-prod-ns,kube_deployment:route-selector-prod-deploy}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              }
+            },
+            "layout": {
+              "x": 4,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 1993605152407905,
+            "definition": {
+              "title": "Deployment Replicas: Desired vs Available vs Ready",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Desired",
+                      "formula": "a"
+                    },
+                    {
+                      "alias": "Available",
+                      "formula": "b"
+                    },
+                    {
+                      "alias": "Ready",
+                      "formula": "c"
+                    },
+                    {
+                      "alias": "Unavailable",
+                      "formula": "d"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kubernetes_state.deployment.replicas_desired{kube_namespace:route-selector-prod-ns,kube_deployment:route-selector-prod-deploy}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "avg:kubernetes_state.deployment.replicas_available{kube_namespace:route-selector-prod-ns,kube_deployment:route-selector-prod-deploy}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "c",
+                      "query": "avg:kubernetes_state.deployment.replicas_ready{kube_namespace:route-selector-prod-ns,kube_deployment:route-selector-prod-deploy}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "d",
+                      "query": "avg:kubernetes_state.deployment.replicas_unavailable{kube_namespace:route-selector-prod-ns,kube_deployment:route-selector-prod-deploy}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              }
+            },
+            "layout": {
+              "x": 8,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 3272545450701681,
+            "definition": {
+              "title": "Container Restarts Over Time",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "max:kubernetes_state.container.restarts{kube_namespace:route-selector-prod-ns,kube_deployment:route-selector-prod-deploy} by {pod_name}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 397987881490827,
+            "definition": {
+              "title": "Disk I/O (bytes/s)",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Read",
+                      "formula": "a"
+                    },
+                    {
+                      "alias": "Write",
+                      "formula": "b"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:container.io.read{kube_namespace:route-selector-prod-ns,kube_container_name:route-selector} by {pod_name}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "b",
+                      "query": "avg:container.io.write{kube_namespace:route-selector-prod-ns,kube_container_name:route-selector} by {pod_name}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "cool",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "area"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              }
+            },
+            "layout": {
+              "x": 4,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 4619932644042955,
+            "definition": {
+              "title": "Container Uptime (seconds)",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:container.uptime{kube_namespace:route-selector-prod-ns,kube_container_name:route-selector} by {pod_name}"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "style": {
+                    "palette": "green",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              }
+            },
+            "layout": {
+              "x": 8,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 46,
+        "width": 12,
+        "height": 7,
+        "is_column_break": true
+      }
+    },
+    {
+      "id": 1083081157718206,
+      "definition": {
+        "title": "Model Selection and Service Account Monitoring",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 7018292481547254,
+            "definition": {
+              "type": "note",
+              "content": "**Model Selection Monitoring**\n\nTrack model selection requests and latency per **service account**, **model selector**, **flow**, and **model**.\n\nSource: `divyam_selector:model_selection_requests_total` and `divyam_selector:model_selection_latency_seconds`\n\nLabels: service_account_id, model_selector_id, flowid, model_name, model_version\n\nDegradation signals: Rising latency per service account, request rate drops, uneven model distribution.",
+              "background_color": "green",
+              "font_size": "14",
+              "text_align": "left",
+              "show_tick": false,
+              "tick_pos": "50%",
+              "tick_edge": "left"
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 2,
+              "height": 3
+            }
+          },
+          {
+            "id": 4980820046610145,
+            "definition": {
+              "title": "Model Selection Requests by Service Account (req/s)",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "name": "a",
+                      "data_source": "metrics",
+                      "query": "sum:route_selector_prod.divyam_selector_model_selection_requests.count{kube_namespace:route-selector-prod-ns,$service_account_id,$model_selector_id,$model_name} by {service_account_id}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              }
+            },
+            "layout": {
+              "x": 2,
+              "y": 0,
+              "width": 5,
+              "height": 3
+            }
+          },
+          {
+            "id": 1618430363631362,
+            "definition": {
+              "title": "Model Selection Avg Latency by Service Account (ms)",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "name": "a",
+                      "data_source": "metrics",
+                      "query": "sum:route_selector_prod.divyam_selector_model_selection_latency_seconds.sum{kube_namespace:route-selector-prod-ns,$service_account_id,$model_selector_id,$model_name} by {service_account_id}"
+                    },
+                    {
+                      "name": "b",
+                      "data_source": "metrics",
+                      "query": "sum:route_selector_prod.divyam_selector_model_selection_latency_seconds.count{kube_namespace:route-selector-prod-ns,$service_account_id,$model_selector_id,$model_name} by {service_account_id}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "(a / b) * 1000"
+                    }
+                  ],
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              },
+              "markers": [
+                {
+                  "label": "Warning: 200ms",
+                  "value": "y = 200",
+                  "display_type": "warning dashed"
+                },
+                {
+                  "label": "Critical: 500ms",
+                  "value": "y = 500",
+                  "display_type": "error dashed"
+                }
+              ]
+            },
+            "layout": {
+              "x": 7,
+              "y": 0,
+              "width": 5,
+              "height": 3
+            }
+          },
+          {
+            "id": 3589145637270515,
+            "definition": {
+              "title": "Selector Latency by Model Selector Id (req/s)",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "time": {},
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "name": "a",
+                      "data_source": "metrics",
+                      "query": "sum:route_selector_prod.divyam_selector_model_selection_requests.count{kube_namespace:route-selector-prod-ns,$service_account_id,$model_selector_id,$model_name} by {model_selector_id}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 6631172204306318,
+            "definition": {
+              "title": "Model Selection Latency Distribution (cumulative req/s by bucket)",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "name": "a",
+                      "data_source": "metrics",
+                      "query": "sum:route_selector_prod.divyam_selector_model_selection_latency_seconds.bucket{kube_namespace:route-selector-prod-ns,$service_account_id,$model_selector_id,$model_name} by {upper_bound}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "cool",
+                    "line_type": "solid",
+                    "line_width": "thin"
+                  },
+                  "display_type": "area"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              }
+            },
+            "layout": {
+              "x": 4,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 3664019012650349,
+            "definition": {
+              "title": "Model Selection Requests by Flow ID (req/s)",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "name": "a",
+                      "data_source": "metrics",
+                      "query": "sum:route_selector_prod.divyam_selector_model_selection_requests.count{kube_namespace:route-selector-prod-ns,$service_account_id,$model_selector_id,$model_name} by {flowid}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              }
+            },
+            "layout": {
+              "x": 8,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 53,
+        "width": 12,
+        "height": 7
+      }
+    },
+    {
+      "id": 1206275718432639,
+      "definition": {
+        "title": "Selector Initiation Performance",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 7311126219118577,
+            "definition": {
+              "title": "Selector Initiation Avg Latency by Service Account (ms)",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "name": "a",
+                      "data_source": "metrics",
+                      "query": "sum:route_selector_prod.divyam_selector_selector_initiation_latency_seconds.sum{kube_namespace:route-selector-prod-ns,$service_account_id,$model_selector_id} by {service_account_id}"
+                    },
+                    {
+                      "name": "b",
+                      "data_source": "metrics",
+                      "query": "sum:route_selector_prod.divyam_selector_selector_initiation_latency_seconds.count{kube_namespace:route-selector-prod-ns,$service_account_id,$model_selector_id} by {service_account_id}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "(a / b) * 1000"
+                    }
+                  ],
+                  "style": {
+                    "palette": "orange",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              },
+              "markers": [
+                {
+                  "label": "Warning: 500ms",
+                  "value": "y = 500",
+                  "display_type": "warning dashed"
+                },
+                {
+                  "label": "Critical: 1s",
+                  "value": "y = 1000",
+                  "display_type": "error dashed"
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 4805267931089152,
+            "definition": {
+              "title": "Selector Initiation Latency Distribution (cumulative req/s by bucket)",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "name": "a",
+                      "data_source": "metrics",
+                      "query": "sum:route_selector_prod.divyam_selector_selector_initiation_latency_seconds.bucket{kube_namespace:route-selector-prod-ns,$service_account_id,$model_selector_id} by {upper_bound}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "cool",
+                    "line_type": "solid",
+                    "line_width": "thin"
+                  },
+                  "display_type": "area"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              }
+            },
+            "layout": {
+              "x": 4,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 4133179875750032,
+            "definition": {
+              "title": "Selector Initiation Rate by Org and Service Account (req/s)",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "name": "a",
+                      "data_source": "metrics",
+                      "query": "sum:route_selector_prod.divyam_selector_selector_initiation_latency_seconds.count{kube_namespace:route-selector-prod-ns,$service_account_id,$model_selector_id} by {org_id,service_account_id}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              }
+            },
+            "layout": {
+              "x": 8,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 60,
+        "width": 12,
+        "height": 4
+      }
+    },
+    {
+      "id": 44125770539067,
+      "definition": {
+        "title": "Internal Calls Performance (observe_block_metrics)",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 71623278840300,
+            "definition": {
+              "type": "note",
+              "content": "**Internal Calls Tracing**\n\nGeneral-purpose call tracking from `observe_block_metrics` context manager.\n\nSource: `divyam_selector:calls_total` and `divyam_selector:calls_latency_seconds`\n\nActive call types:\n- **embed**: Embedding calls (sentence-transformers/all-minilm-l6-v2)\n- **initialize_selector**: Selector initialization (selector_version_1)\n- **nearest_neighbors_fetch**: Qdrant vector search\n\nWatch for: Latency trending up on any call type, embed calls slowing down.",
+              "background_color": "gray",
+              "font_size": "14",
+              "text_align": "left",
+              "show_tick": false,
+              "tick_pos": "50%",
+              "tick_edge": "left"
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 2,
+              "height": 3
+            }
+          },
+          {
+            "id": 5315329459557640,
+            "definition": {
+              "title": "Internal Calls Rate by Type and Name (calls/s)",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "name": "a",
+                      "data_source": "metrics",
+                      "query": "sum:route_selector_prod.divyam_selector_calls.count{kube_namespace:route-selector-prod-ns} by {type,name}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              }
+            },
+            "layout": {
+              "x": 2,
+              "y": 0,
+              "width": 5,
+              "height": 3
+            }
+          },
+          {
+            "id": 2025524768632610,
+            "definition": {
+              "title": "Internal Calls Avg Latency by Type and Name (ms)",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "name": "a",
+                      "data_source": "metrics",
+                      "query": "sum:route_selector_prod.divyam_selector_calls_latency_seconds.sum{kube_namespace:route-selector-prod-ns} by {type,name}"
+                    },
+                    {
+                      "name": "b",
+                      "data_source": "metrics",
+                      "query": "sum:route_selector_prod.divyam_selector_calls_latency_seconds.count{kube_namespace:route-selector-prod-ns} by {type,name}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "(a / b) * 1000"
+                    }
+                  ],
+                  "style": {
+                    "palette": "cool",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "min": "0"
+              },
+              "markers": [
+                {
+                  "label": "Warning: 200ms",
+                  "value": "y = 200",
+                  "display_type": "warning dashed"
+                },
+                {
+                  "label": "Critical: 1s",
+                  "value": "y = 1000",
+                  "display_type": "error dashed"
+                }
+              ]
+            },
+            "layout": {
+              "x": 7,
+              "y": 0,
+              "width": 5,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 64,
+        "width": 12,
+        "height": 4
+      }
+    }
+  ],
+  "notify_list": [],
+  "created_at": "2026-04-23T20:05:30.768212+00:00",
+  "modified_at": "2026-04-24T06:31:01.286780+00:00",
+  "reflow_type": "fixed",
+  "tags": [
+    "ai:created_with_ai"
+  ],
+  "restricted_roles": []
+}

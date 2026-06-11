@@ -31,3 +31,14 @@ outputs/*
 
 # ignore intellij project files
 .idea/
+# generated throwaway TF secrets (gen-tf-env.sh) — never commit
+.tf-secrets.env
+*.tf-secrets.env
+
+# iac.sh remembered cloud/env + prevent_destroy backups
+.iac.conf
+*.pdbak
+
+# generated Terraform config+secrets (auto-sourced by iac.sh) and k8s.sh remembered config
+iac/values/secrets.env
+.k8s.conf

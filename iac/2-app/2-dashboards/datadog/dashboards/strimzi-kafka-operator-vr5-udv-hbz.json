@@ -1,0 +1,1538 @@
+{
+  "id": "vr5-udv-hbz",
+  "title": "Strimzi Kafka Operator",
+  "description": "Comprehensive monitoring dashboard for the Strimzi Kafka Operator running in the kafka-prod-ns namespace on divyam-prod-k8s-cluster. Covers operator reconciliations, managed resources, JVM performance, garbage collection, and Vert.x HTTP server and thread pool metrics.",
+  "author_handle": "rbharathkumar0409@gmail.com",
+  "author_name": "Bharath Kumar",
+  "layout_type": "ordered",
+  "url": "/dashboard/vr5-udv-hbz/strimzi-kafka-operator",
+  "template_variables": [
+    {
+      "name": "kube_cluster_name",
+      "prefix": "kube_cluster_name",
+      "available_values": [
+        "divyam-prod-k8s-cluster"
+      ],
+      "default": "divyam-prod-k8s-cluster"
+    },
+    {
+      "name": "kube_namespace",
+      "prefix": "kube_namespace",
+      "available_values": [
+        "kafka-prod-ns"
+      ],
+      "default": "kafka-prod-ns"
+    }
+  ],
+  "widgets": [
+    {
+      "id": 3238001059367434,
+      "definition": {
+        "title": "Operator Overview",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 4621981262059923,
+            "definition": {
+              "type": "note",
+              "content": "Monitoring the **Strimzi Kafka Operator** (`v0.45.0`) running on `divyam-prod-k8s-cluster` (AKS) in `kafka-prod-ns`.\n\nThis dashboard covers operator reconciliations, managed Kafka resources, JVM health (memory, GC, threads), and the embedded Vert.x HTTP server and worker pool.\n\n**Key signals to watch:**\n- Reconciliation rate spikes or drops\n- JVM heap usage approaching max\n- GC pause frequency and duration\n- Vert.x request latency and queue depth",
+              "background_color": "white",
+              "font_size": "14",
+              "text_align": "left",
+              "vertical_align": "top",
+              "show_tick": false,
+              "tick_pos": "50%",
+              "tick_edge": "left",
+              "has_padding": true
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 3,
+              "height": 4
+            }
+          },
+          {
+            "id": 6088694345236299,
+            "definition": {
+              "title": "Total Managed Resources",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:kafka_prod_ns.strimzi_resources{$kube_namespace,$kube_cluster_name}",
+                      "aggregator": "last"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 3,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 3834279136165242,
+            "definition": {
+              "title": "Paused Resources",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:kafka_prod_ns.strimzi_resources_paused{$kube_namespace,$kube_cluster_name}",
+                      "aggregator": "last"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 5,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 5048412830093246,
+            "definition": {
+              "title": "Process CPU Usage",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kafka_prod_ns.process_cpu_usage{$kube_namespace,$kube_cluster_name}",
+                      "aggregator": "last"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a * 100"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": false,
+              "custom_unit": "%",
+              "precision": 2
+            },
+            "layout": {
+              "x": 7,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 6117924229179242,
+            "definition": {
+              "title": "Managed Resources by Kind",
+              "type": "toplist",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:kafka_prod_ns.strimzi_resources{$kube_namespace,$kube_cluster_name} by {kind}",
+                      "aggregator": "last"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "sort": {
+                    "count": 10,
+                    "order_by": [
+                      {
+                        "type": "formula",
+                        "index": 0,
+                        "order": "desc"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "layout": {
+              "x": 9,
+              "y": 0,
+              "width": 3,
+              "height": 4
+            }
+          },
+          {
+            "id": 7462929374989815,
+            "definition": {
+              "title": "System Load Avg (1m)",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kafka_prod_ns.system_load_average_1m{$kube_namespace,$kube_cluster_name}",
+                      "aggregator": "last"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 2
+            },
+            "layout": {
+              "x": 3,
+              "y": 2,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 177333965729590,
+            "definition": {
+              "title": "System CPU Count",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kafka_prod_ns.system_cpu_count{$kube_namespace,$kube_cluster_name}",
+                      "aggregator": "last"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 5,
+              "y": 2,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 4454726139897995,
+            "definition": {
+              "title": "System CPU Usage",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kafka_prod_ns.system_cpu_usage{$kube_namespace,$kube_cluster_name}",
+                      "aggregator": "last"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a * 100"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": false,
+              "custom_unit": "%",
+              "precision": 2
+            },
+            "layout": {
+              "x": 7,
+              "y": 2,
+              "width": 2,
+              "height": 2
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 0,
+        "width": 12,
+        "height": 5
+      }
+    },
+    {
+      "id": 4248281691995423,
+      "definition": {
+        "title": "Strimzi Reconciliations and Resources",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 5222146616138382,
+            "definition": {
+              "title": "Periodical Reconciliation Rate by Kind",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:kafka_prod_ns.strimzi_reconciliations_periodical.count{$kube_namespace,$kube_cluster_name} by {kind}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 4637582355348576,
+            "definition": {
+              "title": "Managed Resources by Kind",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:kafka_prod_ns.strimzi_resources{$kube_namespace,$kube_cluster_name} by {kind}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 5,
+        "width": 12,
+        "height": 4
+      }
+    },
+    {
+      "id": 2614211082583093,
+      "definition": {
+        "title": "JVM Memory",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 7609116111031536,
+            "definition": {
+              "title": "JVM Heap Memory Used vs Max",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "used",
+                      "query": "avg:kafka_prod_ns.jvm_memory_used_bytes{$kube_namespace,$kube_cluster_name,area:heap}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "max",
+                      "query": "avg:kafka_prod_ns.jvm_memory_max_bytes{$kube_namespace,$kube_cluster_name,area:heap}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "committed",
+                      "query": "avg:kafka_prod_ns.jvm_memory_committed_bytes{$kube_namespace,$kube_cluster_name,area:heap}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "used",
+                      "alias": "Used"
+                    },
+                    {
+                      "formula": "max",
+                      "alias": "Max"
+                    },
+                    {
+                      "formula": "committed",
+                      "alias": "Committed"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 5712218158969276,
+            "definition": {
+              "title": "JVM Non-Heap Memory Used by Pool",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kafka_prod_ns.jvm_memory_used_bytes{$kube_namespace,$kube_cluster_name,area:nonheap} by {id}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "area"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 2463744103611650,
+            "definition": {
+              "title": "JVM Buffer Memory",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "used",
+                      "query": "avg:kafka_prod_ns.jvm_buffer_memory_used_bytes{$kube_namespace,$kube_cluster_name}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "capacity",
+                      "query": "avg:kafka_prod_ns.jvm_buffer_total_capacity_bytes{$kube_namespace,$kube_cluster_name}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "used",
+                      "alias": "Used"
+                    },
+                    {
+                      "formula": "capacity",
+                      "alias": "Total Capacity"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 7964642802902465,
+            "definition": {
+              "title": "GC Live Data Size vs Max Data Size",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "live",
+                      "query": "avg:kafka_prod_ns.jvm_gc_live_data_size_bytes{$kube_namespace,$kube_cluster_name}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "maxdata",
+                      "query": "avg:kafka_prod_ns.jvm_gc_max_data_size_bytes{$kube_namespace,$kube_cluster_name}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "live",
+                      "alias": "Live Data Size"
+                    },
+                    {
+                      "formula": "maxdata",
+                      "alias": "Max Data Size"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 9,
+        "width": 12,
+        "height": 7
+      }
+    },
+    {
+      "id": 8783210576116954,
+      "definition": {
+        "title": "JVM Garbage Collection",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 5064479200545661,
+            "definition": {
+              "title": "GC Pause Count by Action",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:kafka_prod_ns.jvm_gc_pause_seconds.count{$kube_namespace,$kube_cluster_name} by {action,gc}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "warm"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 7364229588974850,
+            "definition": {
+              "title": "GC Pause Total Time by Collector",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:kafka_prod_ns.jvm_gc_pause_seconds.sum{$kube_namespace,$kube_cluster_name} by {gc,action}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "warm"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 2626108877427455,
+            "definition": {
+              "title": "GC Max Pause Duration",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "max:kafka_prod_ns.jvm_gc_pause_seconds_max{$kube_namespace,$kube_cluster_name} by {gc,action}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "warm"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 873810367802367,
+            "definition": {
+              "title": "GC Memory Allocated and Promoted Rate",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "alloc",
+                      "query": "sum:kafka_prod_ns.jvm_gc_memory_allocated_bytes.count{$kube_namespace,$kube_cluster_name}.as_rate()"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "promoted",
+                      "query": "sum:kafka_prod_ns.jvm_gc_memory_promoted_bytes.count{$kube_namespace,$kube_cluster_name}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "alloc",
+                      "alias": "Allocated"
+                    },
+                    {
+                      "formula": "promoted",
+                      "alias": "Promoted"
+                    }
+                  ],
+                  "style": {
+                    "palette": "warm"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 16,
+        "width": 12,
+        "height": 7
+      }
+    },
+    {
+      "id": 8124073863853377,
+      "definition": {
+        "title": "JVM Threads and Classes",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 8397056420603354,
+            "definition": {
+              "title": "Live Threads",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kafka_prod_ns.jvm_threads_live_threads{$kube_namespace,$kube_cluster_name}",
+                      "aggregator": "last"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 2,
+              "height": 3
+            }
+          },
+          {
+            "id": 7966578735920520,
+            "definition": {
+              "title": "Daemon Threads",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kafka_prod_ns.jvm_threads_daemon_threads{$kube_namespace,$kube_cluster_name}",
+                      "aggregator": "last"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 2,
+              "y": 0,
+              "width": 2,
+              "height": 3
+            }
+          },
+          {
+            "id": 6809031130193298,
+            "definition": {
+              "title": "Peak Threads",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kafka_prod_ns.jvm_threads_peak_threads{$kube_namespace,$kube_cluster_name}",
+                      "aggregator": "last"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 4,
+              "y": 0,
+              "width": 2,
+              "height": 3
+            }
+          },
+          {
+            "id": 4817862554312198,
+            "definition": {
+              "title": "Thread States",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kafka_prod_ns.jvm_threads_states_threads{$kube_namespace,$kube_cluster_name} by {state}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "area"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 6481878944370315,
+            "definition": {
+              "title": "Threads Started Rate",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:kafka_prod_ns.jvm_threads_started_threads.count{$kube_namespace,$kube_cluster_name}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 5198175257253888,
+            "definition": {
+              "title": "Classes Loaded and Unloaded",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "loaded",
+                      "query": "avg:kafka_prod_ns.jvm_classes_loaded_classes{$kube_namespace,$kube_cluster_name}"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "unloaded",
+                      "query": "sum:kafka_prod_ns.jvm_classes_unloaded_classes.count{$kube_namespace,$kube_cluster_name}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "loaded",
+                      "alias": "Loaded Classes"
+                    },
+                    {
+                      "formula": "unloaded",
+                      "alias": "Unloaded Classes (cumulative)"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 23,
+        "width": 12,
+        "height": 7
+      }
+    },
+    {
+      "id": 8445168382470825,
+      "definition": {
+        "title": "Vert.x HTTP Server",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 1126424915835015,
+            "definition": {
+              "title": "Active Connections",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kafka_prod_ns.vertx_http_server_active_connections{$kube_namespace,$kube_cluster_name}",
+                      "aggregator": "last"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 2,
+              "height": 3
+            }
+          },
+          {
+            "id": 3564410450124299,
+            "definition": {
+              "title": "Active Requests",
+              "type": "query_value",
+              "requests": [
+                {
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kafka_prod_ns.vertx_http_server_active_requests{$kube_namespace,$kube_cluster_name}",
+                      "aggregator": "last"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            },
+            "layout": {
+              "x": 2,
+              "y": 0,
+              "width": 2,
+              "height": 3
+            }
+          },
+          {
+            "id": 1922604989779687,
+            "definition": {
+              "title": "HTTP Request Rate by Status Code",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:kafka_prod_ns.vertx_http_server_requests.count{$kube_namespace,$kube_cluster_name} by {code}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 4,
+              "y": 0,
+              "width": 8,
+              "height": 3
+            }
+          },
+          {
+            "id": 3217829779381688,
+            "definition": {
+              "title": "HTTP Request and Response Bytes Rate",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "reqbytes",
+                      "query": "sum:kafka_prod_ns.vertx_http_server_request_bytes.count{$kube_namespace,$kube_cluster_name}.as_rate()"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "respbytes",
+                      "query": "sum:kafka_prod_ns.vertx_http_server_response_bytes.count{$kube_namespace,$kube_cluster_name}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "reqbytes",
+                      "alias": "Request Bytes/s"
+                    },
+                    {
+                      "formula": "respbytes",
+                      "alias": "Response Bytes/s"
+                    }
+                  ],
+                  "style": {
+                    "palette": "cool"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          },
+          {
+            "id": 6286681706656445,
+            "definition": {
+              "title": "HTTP Response Time (Avg and Max)",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "total_time",
+                      "query": "sum:kafka_prod_ns.vertx_http_server_response_time_seconds.sum{$kube_namespace,$kube_cluster_name}.as_rate()"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "total_count",
+                      "query": "sum:kafka_prod_ns.vertx_http_server_response_time_seconds.count{$kube_namespace,$kube_cluster_name}.as_rate()"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "maxrt",
+                      "query": "max:kafka_prod_ns.vertx_http_server_response_time_seconds_max{$kube_namespace,$kube_cluster_name}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "total_time / total_count",
+                      "alias": "Avg Response Time (s)"
+                    },
+                    {
+                      "formula": "maxrt",
+                      "alias": "Max Response Time (s)"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 6,
+              "y": 3,
+              "width": 6,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 30,
+        "width": 12,
+        "height": 7
+      }
+    },
+    {
+      "id": 76962510328043,
+      "definition": {
+        "title": "Vert.x Worker Pool",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 6429967797983465,
+            "definition": {
+              "title": "Pool In Use",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kafka_prod_ns.vertx_pool_in_use{$kube_namespace,$kube_cluster_name}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "purple"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 6201575018516107,
+            "definition": {
+              "title": "Pool Queue Pending",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kafka_prod_ns.vertx_pool_queue_pending{$kube_namespace,$kube_cluster_name}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "orange"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 4,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 195307402560686,
+            "definition": {
+              "title": "Pool Ratio (Utilization)",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "avg:kafka_prod_ns.vertx_pool_ratio{$kube_namespace,$kube_cluster_name}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "purple"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 8,
+              "y": 0,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 458376718875774,
+            "definition": {
+              "title": "Pool Completion Rate",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "a",
+                      "query": "sum:kafka_prod_ns.vertx_pool_completed.count{$kube_namespace,$kube_cluster_name}.as_rate()"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "a"
+                    }
+                  ],
+                  "style": {
+                    "palette": "green"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 5758741517108000,
+            "definition": {
+              "title": "Pool Queue Time (Avg and Max)",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "qsum",
+                      "query": "sum:kafka_prod_ns.vertx_pool_queue_time_seconds.sum{$kube_namespace,$kube_cluster_name}.as_rate()"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "qcount",
+                      "query": "sum:kafka_prod_ns.vertx_pool_queue_time_seconds.count{$kube_namespace,$kube_cluster_name}.as_rate()"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "qmax",
+                      "query": "max:kafka_prod_ns.vertx_pool_queue_time_seconds_max{$kube_namespace,$kube_cluster_name}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "qsum / qcount",
+                      "alias": "Avg Queue Time (s)"
+                    },
+                    {
+                      "formula": "qmax",
+                      "alias": "Max Queue Time (s)"
+                    }
+                  ],
+                  "style": {
+                    "palette": "orange"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 4,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          },
+          {
+            "id": 7373631995268032,
+            "definition": {
+              "title": "Pool Usage Time (Avg and Max)",
+              "show_legend": false,
+              "type": "timeseries",
+              "requests": [
+                {
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "data_source": "metrics",
+                      "name": "usum",
+                      "query": "sum:kafka_prod_ns.vertx_pool_usage_seconds.sum{$kube_namespace,$kube_cluster_name}.as_rate()"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "ucount",
+                      "query": "sum:kafka_prod_ns.vertx_pool_usage_seconds.count{$kube_namespace,$kube_cluster_name}.as_rate()"
+                    },
+                    {
+                      "data_source": "metrics",
+                      "name": "umax",
+                      "query": "max:kafka_prod_ns.vertx_pool_usage_seconds_max{$kube_namespace,$kube_cluster_name}"
+                    }
+                  ],
+                  "formulas": [
+                    {
+                      "formula": "usum / ucount",
+                      "alias": "Avg Usage Time (s)"
+                    },
+                    {
+                      "formula": "umax",
+                      "alias": "Max Usage Time (s)"
+                    }
+                  ],
+                  "style": {
+                    "palette": "purple"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true
+              }
+            },
+            "layout": {
+              "x": 8,
+              "y": 3,
+              "width": 4,
+              "height": 3
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 37,
+        "width": 12,
+        "height": 7
+      }
+    }
+  ],
+  "notify_list": [],
+  "created_at": "2026-04-23T17:38:28.498972+00:00",
+  "modified_at": "2026-04-24T04:28:22.702036+00:00",
+  "reflow_type": "fixed",
+  "tags": [
+    "ai:created_with_ai"
+  ],
+  "restricted_roles": []
+}
