@@ -431,6 +431,21 @@ releases:
   namespace: {{ $ns }}
   chart: {{ $chart }}
 
+  # Per-release timing markers. presync prints a timestamped START before the release's
+  # helm op, postsync a DONE after it completes (including --wait). A release that is HELD
+  # shows a START with no matching DONE, and the wall-clock gap is its wait time — a
+  # deterministic way to spot which release a `sync`/`apply` is stuck on. (helmfile also
+  # prints a per-release DURATION column in its end-of-run summary.)
+  hooks:
+    - events: ["presync"]
+      showlogs: true
+      command: "sh"
+      args: ["-c", "echo \"[$(date -u +%H:%M:%S)] >>> HELM START {{ $name }}-{{ $env }}\""]
+    - events: ["postsync"]
+      showlogs: true
+      command: "sh"
+      args: ["-c", "echo \"[$(date -u +%H:%M:%S)] <<< HELM DONE  {{ $name }}-{{ $env }}\""]
+
   {{- if $needs }}
   needs:
     {{- range $dep := $needs }}
