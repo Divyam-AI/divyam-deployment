@@ -66,6 +66,12 @@ locals {
   datadog_cfg     = try(local.root.datadog, {})
   datadog_enabled = try(local.datadog_cfg.enabled, false)
   cluster_name    = local.root.k8s.name
+}
+
+inputs = {
+  project_id             = local.root.resource_scope.name
+  region                 = local.root.region
+  cluster_name           = local.cluster_name
   cluster_endpoint = try(
     dependency.k8s.outputs.cluster_endpoints[local.cluster_name],
     one(values(dependency.k8s.outputs.cluster_endpoints)),
@@ -76,14 +82,6 @@ locals {
     one(values(dependency.k8s.outputs.cluster_ca_certificates)),
     ""
   )
-}
-
-inputs = {
-  project_id             = local.root.resource_scope.name
-  region                 = local.root.region
-  cluster_name           = local.cluster_name
-  cluster_endpoint       = local.cluster_endpoint
-  cluster_ca_certificate = local.cluster_ca_certificate
   datadog_enabled        = local.datadog_enabled
   datadog_site           = trimspace(try(local.datadog_cfg.site, ""))
   datadog_docker_registry    = trimspace(try(local.datadog_cfg.docker_registry, "asia.gcr.io/datadoghq"))
