@@ -166,19 +166,18 @@ repositories:
   "divyam-e2e-test-runner"               "e2e-test-runner"
 
   "cloudnative-pg-operator"               "cnpg-system"
-  "eck-operator"                          "elastic-system"
+  "opensearch-operator"                   "opensearch-operator-system"
   "redis-operator"                        "redis-operator-system"
 
   "temporal"                              "temporal"
   "temporal-postgres"                     "temporal"
-  "temporal-elasticsearch"                "temporal"
 
   "lakefs"                                "lakefs"
   "lakefs-postgres"                       "lakefs"
 
   "argilla"                               "argilla"
   "argilla-postgres"                      "argilla"
-  "argilla-elasticsearch"                 "argilla"
+  "argilla-opensearch"                    "argilla"
   "argilla-redis"                         "argilla"
 
   "evalm8-server"                         "evalm8"
@@ -288,17 +287,16 @@ repositories:
   "divyam-control-plane-exporter" (list "mysql" "clickhouse" "divyam-db-upgrades" )
   "divyam-e2e-test-runner"        (list "divyam-router-controller" "divyam-route-selector" "clickhouse" "mysql")
   "cloudnative-pg-operator"       (list)
-  "eck-operator"                  (list)
+  "opensearch-operator"           (list)
   "redis-operator"                (list)
   "temporal-postgres"             (list "cloudnative-pg-operator")
-  "temporal-elasticsearch"        (list "eck-operator")
   "lakefs-postgres"               (list "cloudnative-pg-operator")
   "argilla-postgres"              (list "cloudnative-pg-operator")
-  "argilla-elasticsearch"         (list "eck-operator")
+  "argilla-opensearch"            (list "opensearch-operator")
   "argilla-redis"                 (list "redis-operator")
-  "temporal"                      (list "temporal-postgres" "temporal-elasticsearch")
+  "temporal"                      (list "temporal-postgres")
   "lakefs"                        (list "lakefs-postgres" "external-secrets-operator")
-  "argilla"                       (list "argilla-postgres" "argilla-elasticsearch" "argilla-redis" "external-secrets-operator")
+  "argilla"                       (list "argilla-postgres" "argilla-opensearch" "argilla-redis" "external-secrets-operator")
   "evalm8-server"                 (list "temporal" "lakefs" "argilla" "mysql" "external-secrets-operator")
   "evalm8-wfs"                    (list "temporal" "lakefs" "argilla" "mysql" "external-secrets-operator" "evalm8-server")
   "evalm8-ui"                     (list "evalm8-server")
@@ -319,11 +317,10 @@ repositories:
   "argilla"                 "argilla-%s-svc"
   "evalm8-server"           "evalm8-server-%s-svc"
   "evalm8-ui"               "evalm8-ui-%s-svc"
-  "temporal-postgres"            "temporal-postgres-rw"
-  "temporal-elasticsearch"       "temporal-elasticsearch-es-http"
-  "lakefs-postgres"              "lakefs-postgres-rw"
-  "argilla-postgres"             "argilla-postgres-rw"
-  "argilla-elasticsearch"        "argilla-elasticsearch-es-http"
+  "temporal-postgres"            "temporal-postgres-%s-rw"
+  "lakefs-postgres"              "lakefs-postgres-%s-rw"
+  "argilla-postgres"             "argilla-postgres-%s-rw"
+  "argilla-opensearch"           "argilla-opensearch-%s-svc"
   "argilla-redis"                "argilla-redis"
 -}}
 
