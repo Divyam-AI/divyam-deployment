@@ -368,7 +368,12 @@ releases:
 {{- range $name, $rawCfg := $values.charts }}
   {{- $cfg := merge (dict "enabled" true "values" dict "namespace" nil) ($rawCfg | default dict) }}
 
-  {{- if $cfg.enabled }}
+  {{- /* Enabled gating: read the explicit flag. mergo (used by `merge`) treats the bool
+         `false` as a zero value, so merging a default of true would silently re-enable a
+         chart marked `enabled: false`. Default to true only when the key is absent. */ -}}
+  {{- $enabled := true }}
+  {{- if hasKey ($rawCfg | default dict) "enabled" }}{{- $enabled = (index ($rawCfg | default dict) "enabled") }}{{- end }}
+  {{- if $enabled }}
 
     {{- $chart := printf "%s/%s" $base $name }}
     {{- if eq $name "external-secrets-operator" }}
@@ -401,7 +406,10 @@ releases:
       {{- $depRaw := index $values.charts $depName | default dict }}
       {{- $depCfg := merge (dict "enabled" true "values" dict "namespace" nil) $depRaw }}
 
-      {{- if $depCfg.enabled }}
+      {{- /* Same explicit-flag gating as above (mergo would re-enable an enabled:false dep). */ -}}
+      {{- $depEnabled := true }}
+      {{- if hasKey $depRaw "enabled" }}{{- $depEnabled = (index $depRaw "enabled") }}{{- end }}
+      {{- if $depEnabled }}
 
         {{- $depNs := include "namespace" (dict
             "namespace" $depCfg.namespace
