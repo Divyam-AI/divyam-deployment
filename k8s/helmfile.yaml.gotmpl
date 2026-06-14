@@ -458,7 +458,11 @@ releases:
       {{- $depRaw := index $values.charts $dep | default dict }}
       {{- $depCfg := merge (dict "enabled" true "values" dict "namespace" nil) $depRaw }}
 
-      {{- if $depCfg.enabled }}
+      {{- /* Only emit a need for a dep that is actually enabled. A disabled dep has no
+             release, so listing it as a need is an undefined-release error in helmfile. */ -}}
+      {{- $depEnabled := true }}
+      {{- if hasKey $depRaw "enabled" }}{{- $depEnabled = (index $depRaw "enabled") }}{{- end }}
+      {{- if $depEnabled }}
 
         {{- $depNs := include "namespace" (dict
             "namespace" $depCfg.namespace
