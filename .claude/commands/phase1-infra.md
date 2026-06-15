@@ -12,7 +12,7 @@ shared/prod env; stop at every checkpoint.
    If unset, ask. `iac.sh` now validates naming (so a bad value fails fast, even at `config` time):
    `ENV` must be one of `dev|prod|preprod|stage|sandbox`, and on Azure `len(org)+len(env) ≤ 10` (the
    Key Vault / storage 24-char cap). If a client needs a different env, widen `ALLOWED_ENVS` in
-   `scripts/iac.sh` (+ the sandbox `create-sandbox.sh`) — see known-gotchas §2.
+   `scripts/iac.sh` — see known-gotchas §2.
 2. **Creds (handoff).** Run `make iac -- creds`. If it fails, hand the user the action item to run
    `! az login` / `! gcloud auth login` (+ `gcloud auth application-default login`) and **pause**.
    On resume, re-run `make iac -- creds` to verify before continuing.

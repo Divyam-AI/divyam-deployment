@@ -1,0 +1,113 @@
+# Alert simulation specs for the `kubernetes` rule group.
+# Mirrors iac/2-app/2-alerts/common/rules/k8s.json. Human-editable — see README.md for the schema.
+# Referenced by /simulate, /verify-alert, /alert-loop and the scenario-simulator agent.
+
+defaults:
+  namespace: alert-sim
+  match_field: alert        # match Zenduty incidents on the rule's `alert` name
+
+scenarios:
+  - rule: pods-in-crashloopbackoff
+    group: k8s.json
+    wait: 4m                # for:2m + interval:1m + backend lag
+    trigger:
+      - kubectl create namespace alert-sim --dry-run=client -o yaml | kubectl apply -f -
+      - kubectl -n alert-sim run crashloop --image=busybox --restart=Always -- /bin/sh -c "exit 1"
+    cleanup:
+      - kubectl -n alert-sim delete pod crashloop --ignore-not-found
+
+  - rule: pods-in-failed-state
+    group: k8s.json
+    wait: 4m
+    trigger:
+      - kubectl create namespace alert-sim --dry-run=client -o yaml | kubectl apply -f -
+      - kubectl -n alert-sim run failed --image=busybox --restart=Never -- /bin/sh -c "exit 1"
+    cleanup:
+      - kubectl -n alert-sim delete pod failed --ignore-not-found
+
+  - rule: deployment-replica-mismatch
+    group: k8s.json
+    wait: 4m
+    trigger:
+      # image that never becomes Ready -> available/desired < 0.8
+      - kubectl create namespace alert-sim --dry-run=client -o yaml | kubectl apply -f -
+      - kubectl -n alert-sim create deployment badimg --image=divyam.invalid/does-not-exist:0 --replicas=3
+    cleanup:
+      - kubectl -n alert-sim delete deployment badimg --ignore-not-found
+
+  - rule: statefulset-replica-mismatch
+    group: k8s.json
+    wait: 4m
+    trigger:
+      - kubectl create namespace alert-sim --dry-run=client -o yaml | kubectl apply -f -
+      - |
+        kubectl -n alert-sim apply -f - <<'EOF'
+        apiVersion: apps/v1
+        kind: StatefulSet
+        metadata: {name: badsts}
+        spec:
+          serviceName: badsts
+          replicas: 3
+          selector: {matchLabels: {app: badsts}}
+          template:
+            metadata: {labels: {app: badsts}}
+            spec:
+              containers:
+                - name: c
+                  image: divyam.invalid/does-not-exist:0
+        EOF
+    cleanup:
+      - kubectl -n alert-sim delete statefulset badsts --ignore-not-found
+
+  - rule: pvc-unbound-state
+    group: k8s.json
+    wait: 3m                # for:1m + interval + lag
+    trigger:
+      - kubectl create namespace alert-sim --dry-run=client -o yaml | kubectl apply -f -
+      - |
+        kubectl -n alert-sim apply -f - <<'EOF'
+        apiVersion: v1
+        kind: PersistentVolumeClaim
+        metadata: {name: unbound}
+        spec:
+          accessModes: [ReadWriteOnce]
+          storageClassName: does-not-exist
+          resources: {requests: {storage: 1Gi}}
+        EOF
+    cleanup:
+      - kubectl -n alert-sim delete pvc unbound --ignore-not-found
+
+  - rule: pvc-usage-high
+    group: k8s.json
+    wait: 4m
+    note: >
+      Slower/heavier: bind a small PVC and fill it past 60%. Uses the default storage class.
+      Adjust the dd count to exceed 60% of the requested size.
+    trigger:
+      - kubectl create namespace alert-sim --dry-run=client -o yaml | kubectl apply -f -
+      - |
+        kubectl -n alert-sim apply -f - <<'EOF'
+        apiVersion: v1
+        kind: PersistentVolumeClaim
+        metadata: {name: fillme}
+        spec:
+          accessModes: [ReadWriteOnce]
+          resources: {requests: {storage: 1Gi}}
+        ---
+        apiVersion: v1
+        kind: Pod
+        metadata: {name: filler}
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: c
+              image: busybox
+              command: ["/bin/sh","-c","dd if=/dev/zero of=/data/blob bs=1M count=700; sleep 600"]
+              volumeMounts: [{name: d, mountPath: /data}]
+          volumes:
+            - name: d
+              persistentVolumeClaim: {claimName: fillme}
+        EOF
+    cleanup:
+      - kubectl -n alert-sim delete pod filler --ignore-not-found
+      - kubectl -n alert-sim delete pvc fillme --ignore-not-found

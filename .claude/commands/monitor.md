@@ -5,8 +5,7 @@ allowed-tools: Bash(make:*), Bash(kubectl get:*), Bash(kubectl logs:*), Bash(hel
 ---
 Use `divyam-tooling`. Read-only observability inspection (this answers "is the stack healthy by its own
 alerts/SLOs", complementing `/cluster-status` = pods, and `/debug-stack` = first failing release).
-Focus (from args): **$ARGUMENTS**. Get kubeconfig first if needed (`/kubeconfig`); on a MicroK8s
-sandbox, prefix `kubectl`/`helm` with `sudo microk8s` if they report `Insufficient permissions`.
+Focus (from args): **$ARGUMENTS**. Get kubeconfig first if needed (`/kubeconfig`).
 
 1. **Backend.** Identify which observability backend is active: cloud-native (GCP Cloud Monitoring /
    Azure Managed Prometheus), Datadog (`datadog.enabled`), or in-cluster kube-prometheus-stack. The

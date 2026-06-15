@@ -10,9 +10,8 @@ Provision cloud infrastructure and deploy the Divyam platform stack on Kubernete
 Phase 1's `export_details` module writes `k8s/helm-values/provider.yaml`, which Phase 2's Helmfile
 consumes. The Helmfile phase is run **from the bastion/jumphost VM** created in Phase 1.
 
-> This repo is the real GKE/AKS path. A separate, lightweight **sandbox** dev path (SkyPilot VM +
-> single-node MicroK8s) handles the feature build/deploy loop. The
-> alert closed loop (below) can target either cluster — whatever `kubectl` currently points at.
+> This repo is the real GKE/AKS path. The alert closed loop (below) targets whatever cluster
+> `kubectl` currently points at.
 
 ## Tooling (pin these versions)
 
@@ -89,7 +88,7 @@ want a live watch** (if yes: `! make status -- -w -i 30`, their terminal). Never
 `--tui` from a tool shell (interactive loops, never return). **When `k8s-install` turns `running`**
 (the table hints this too): ask the user — terminal (`make k8s -- status --tui`, user-run) or web
 dashboard (`make k8s -- status --dashboard`, background it; binds `0.0.0.0:8080`, no browser —
-share the URL; on a sandbox laptop the subnet must be routed first, e.g. via `sshuttle`)? Preview with `-n`.
+share the URL; if you're outside the subnet, reach it through the bastion VM)? Preview with `-n`.
 The interactive, checkpointed path is `.claude/commands/setup`; the per-phase flows below remain
 the primitives.
 
@@ -216,9 +215,8 @@ make iac -- creds          # validate cloud auth
 ## Skills / plugins to use
 
 **Entry-point agent** (`.claude/agents/divyam-sre.md`): `divyam-sre` is the SRE/platform operator for
-this repo — the single door for deploy/debug/monitor of the divyam-stack, for both standalone use and
-**cross-repo delegation** (a separate sandbox repo spawns it as a sub-agent for heavy iac/k8s
-work). It routes to the skills + commands below. Tools: Bash/Read/Grep/Glob (no Edit — HCL edits go
+this repo — the single door for deploy/debug/monitor of the divyam-stack. It routes to the skills +
+commands below. Tools: Bash/Read/Grep/Glob (no Edit — HCL edits go
 through `terrashark` + the human).
 
 Project skills (`.claude/skills/`), three types:
@@ -269,8 +267,8 @@ items, pauses, and verifies them before resuming** (see the `divyam-platform-eng
 - Alert rules are source of truth — edit `common/rules/*.json`, never generated per-backend resources.
 - `ENV` must be one of `dev|prod|preprod|stage|sandbox` and `ORG_NAME` lowercase-alphanumeric; on Azure
   `len(org)+len(env) ≤ 10` (Key Vault/Storage 24-char cap). `scripts/iac.sh` enforces this (even at
-  `config` time); widen `ALLOWED_ENVS` there + in the sandbox `create-sandbox.sh` for a custom env.
-- Config (`CLOUD_PROVIDER`/`ENV`/`VALUES_FILE`) belongs in `.iac.conf` / flags / sandbox `iac.env` —
+  `config` time); widen `ALLOWED_ENVS` there for a custom env.
+- Config (`CLOUD_PROVIDER`/`ENV`/`VALUES_FILE`) belongs in `.iac.conf` / flags —
   **not** in `secrets.env`. A `VALUES_FILE` pointing at a missing file silently forks state; iac.sh now
   fails loudly on it.
 - Interactive cloud/cluster logins are run by the user via `! <cmd>`; never attempt them yourself.

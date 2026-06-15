@@ -8,7 +8,7 @@ truth first (`ground-truth-rest.md`) so you know what actually exists.
 ## Why this happens here
 
 The remote-state key embeds the **values-file basename** (`cloud/deployment_prefix/<basename>/region/<unit>`,
-see `known-gotchas.md`). Swapping `VALUES_FILE` (e.g. `defaults-dev.hcl` → `sandbox-defaults.hcl`) or
+see `known-gotchas.md`). Swapping `VALUES_FILE` (e.g. `defaults-dev.hcl` → `defaults-prod.hcl`) or
 losing a prior state silently points Terragrunt at an **empty** state while the resources already
 exist in the cloud → cascading `already exists`. 0-foundation also keeps **LOCAL** state inside
 `.terragrunt-cache`, so clearing caches drops it.
