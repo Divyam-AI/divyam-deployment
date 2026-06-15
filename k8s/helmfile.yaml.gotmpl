@@ -355,7 +355,11 @@ repositories:
 {{- if index $svc "name" -}}
 {{- index $svc "name" -}}
 {{- else if hasKey $overrideMap $name -}}
-{{- printf (index $overrideMap $name) $env -}}
+{{- $ov := index $overrideMap $name -}}
+{{- /* Only interpolate the env when the override carries a %s verb. A literal override
+       (e.g. an operator service with no env suffix like "argilla-redis") must be emitted
+       as-is, else printf appends the env as a Go "%!(EXTRA string=...)" error string. */ -}}
+{{- if contains "%s" $ov -}}{{- printf $ov $env -}}{{- else -}}{{- $ov -}}{{- end -}}
 {{- else -}}
 {{- printf "%s-%s-svc" $name $env -}}
 {{- end -}}
