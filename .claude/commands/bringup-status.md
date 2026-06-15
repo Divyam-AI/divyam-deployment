@@ -32,7 +32,7 @@ Cheap: no cloud calls, no terragrunt.
    - **Dashboard** → start it in the background
      (`nohup make k8s -- status --dashboard >/tmp/helm-dashboard.log 2>&1 &`); it binds
      `0.0.0.0:${HELM_DASHBOARD_PORT:-8080}` with no browser — give the printed URL (on a sandbox
-     VM the laptop needs the subnet routed, e.g. router-cd `make sshuttle`).
+     VM the laptop needs the subnet routed first, e.g. via `sshuttle`).
    - **Neither** → keep relaying the table.
 6. **Never run `-w/--watch` or `--tui` yourself** — interactive loops that never return hang the
    tool shell; they belong in the user's terminal (the `!` prefix).

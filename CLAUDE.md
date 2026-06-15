@@ -10,8 +10,8 @@ Provision cloud infrastructure and deploy the Divyam platform stack on Kubernete
 Phase 1's `export_details` module writes `k8s/helm-values/provider.yaml`, which Phase 2's Helmfile
 consumes. The Helmfile phase is run **from the bastion/jumphost VM** created in Phase 1.
 
-> A separate, lightweight **sandbox** dev path (SkyPilot VM +
-> single-node MicroK8s) and the feature build/deploy loop. This repo is the real GKE/AKS path. The
+> This repo is the real GKE/AKS path. A separate, lightweight **sandbox** dev path (SkyPilot VM +
+> single-node MicroK8s) handles the feature build/deploy loop. The
 > alert closed loop (below) can target either cluster — whatever `kubectl` currently points at.
 
 ## Tooling (pin these versions)
@@ -89,7 +89,7 @@ want a live watch** (if yes: `! make status -- -w -i 30`, their terminal). Never
 `--tui` from a tool shell (interactive loops, never return). **When `k8s-install` turns `running`**
 (the table hints this too): ask the user — terminal (`make k8s -- status --tui`, user-run) or web
 dashboard (`make k8s -- status --dashboard`, background it; binds `0.0.0.0:8080`, no browser —
-share the URL; sandbox laptops need router-cd `make sshuttle`)? Preview with `-n`.
+share the URL; on a sandbox laptop the subnet must be routed first, e.g. via `sshuttle`)? Preview with `-n`.
 The interactive, checkpointed path is `.claude/commands/setup`; the per-phase flows below remain
 the primitives.
 
