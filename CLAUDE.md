@@ -60,6 +60,14 @@ k8s/
   docs/cicd-overview.md            # forked-repo CI (helmfile diff) / CD (helmfile apply)
   pipeline/                        # Dockerfile + ci_validate.sh / cd_deploy.sh scaffolds
 scripts/
+  iac.sh / k8s.sh                  # Phase-1 (Terragrunt) / Phase-2 (Helmfile) workflow CLIs
+  bringup.sh / status.sh           # end-to-end bringup orchestrator / step-ledger READER
+  status-ledger.sh                 # shared ledger WRITER (sourced by bringup/iac/k8s)
+  lib/cli.sh                       # shared CLI conventions: colored ❌/✅ status to stderr,
+                                   #   cli::die/need_tool/usage/validate_enum/pick/run, human-vs-agent
+                                   #   detection (cli::interactive). Sourced by all the scripts below.
+  set-prevent-destroy.sh           # flip lifecycle.prevent_destroy across a module (backups *.pdbak)
+  install-prerequisites.sh         # install/verify the pinned toolchain (make prereqs)
   check_cloud_credentials.sh       # validates cloud auth before terragrunt
   write-outputs-yaml.sh            # TF outputs -> provider.yaml for Helm
   migration.sh                     # run before first 2-monitoring apply on existing envs
@@ -280,6 +288,12 @@ items, pauses, and verifies them before resuming** (see the `divyam-platform-eng
   `ProxyJump` encodes the 1–2 hop chain + auth). The scripts stay SSH-agnostic; never install anything
   on the VM; the engineer clones the repo + installs the toolchain manually. See
   `.claude/agents/divyam-sre.md` → "Remote operation mode".
+- **CLI conventions** (all `scripts/*.sh` source `scripts/lib/cli.sh`): errors/status print as colored
+  `❌`/`✅`/`⚠️` lines to **stderr** (stdout stays parseable); color auto-suppresses off a TTY and on
+  `NO_COLOR=1`; `DIVYAM_NONINTERACTIVE=1` forces non-interactive. A failed `make <verb>` is attributed
+  (`✗ 'make <verb>' failed (exit N) …`) and a mistyped verb prints a hint. For usage: `make <verb> -- --help`
+  (works for every verb) or run the script directly (`scripts/iac.sh --help`). When editing a script's
+  `--help`, the header is the leading comment block only (parsing stops at the first code line).
 - Always `make k8s -- diff` before `upgrade`; `install` (`sync`) only for the first install.
 - Alert-query changes should be re-proven (deploy → simulate via `test/alert-sim/*.yaml` → Zenduty
   check with `scripts/zenduty.py`) before declaring done.

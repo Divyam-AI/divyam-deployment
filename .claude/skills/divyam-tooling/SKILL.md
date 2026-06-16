@@ -25,9 +25,10 @@ The **Makefile is the entrypoint**. Two workflow commands cover everything; both
 
 > The **`--` is required** before args — without it `make` swallows `-l/-c/-e`-style flags (and `--long`
 > errors). `make iac`/`make k8s` forward verbatim to `./scripts/iac.sh` / `./scripts/k8s.sh`, which are
-> identical and callable directly **without** `--` — that's what the slash commands and CI use, and what
-> you run when you need per-subcommand help: `./scripts/iac.sh help`, `./scripts/k8s.sh help`. Treat the
-> scripts as the implementation; treat `make iac/k8s --` as the door. Don't invent flags — check `help`.
+> identical and callable directly **without** `--` — that's what the slash commands and CI use. For
+> help: `make <verb> -- --help` (works for every verb), or run the script directly (`./scripts/iac.sh help`,
+> `./scripts/k8s.sh help`). Treat the scripts as the implementation; treat `make iac/k8s --` as the door.
+> Don't invent flags — check `help`. A typo'd `make` verb prints a hint listing the known verbs.
 
 ## Conventions shared by both CLIs
 
@@ -36,6 +37,7 @@ The **Makefile is the entrypoint**. Two workflow commands cover everything; both
 - **Precedence:** CLI flag > pre-existing env var > `.iac.conf`/`.k8s.conf` > file default.
 - **Dry-run:** `-n` prints the command (+ `(dry-run: not executed)`); **`-y`** skips confirmations (automation only).
 - **Secrets:** the Phase-1 flow auto-sources `iac/values/secrets.env` (generate with `make iac -- secrets`). Never print its contents.
+- **Output/error presentation:** all scripts source `scripts/lib/cli.sh` — errors/status are colored `❌`/`✅`/`⚠️` lines on **stderr** (stdout stays parseable); color auto-suppresses off a TTY (so agent/CI/piped output is plain) and on `NO_COLOR=1`. `DIVYAM_NONINTERACTIVE=1` forces non-interactive. A failed `make <verb>` is attributed (`✗ 'make <verb>' failed (exit N) …`). When reading errors, the `❌` line is the root cause.
 
 ## Reference guide — load the file for the task
 
