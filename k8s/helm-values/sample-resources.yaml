@@ -254,7 +254,7 @@ charts:
 
   cloudnative-pg-operator:
     values: {}
-  eck-operator:
+  opensearch-operator:
     values: {}
   redis-operator:
     values: {}
@@ -281,18 +281,7 @@ charts:
         destinationPath: ""                                   # e.g. s3://<bucket>/temporal-postgres
         retentionPolicy: "30d"
         schedule: "0 0 3 * * *"
-  temporal-elasticsearch:
-    values:
-      elasticsearch:
-        nodeSet:
-          count: 1                                            # prod: >= 2 for multi-node durability
-          heapSize: "2g"
-          storage: { storageClass: divyam-premium-ssd, size: 30Gi }
-        resources:
-          requests: { cpu: "500m", memory: "3Gi" }
-          limits:   { cpu: "2",    memory: "5Gi" }
-      snapshots:
-        enabled: false                                        # SLM/repo registration is out-of-band vs ES API
+  # Temporal uses Postgres advanced visibility (PG 12+), so there is no Temporal search datastore.
   lakefs-postgres:
     values:
       cluster:
@@ -320,16 +309,18 @@ charts:
         destinationPath: ""                                   # s3://... | gs://... | azure container URL
         schedule: "0 0 2 * * *"
         retentionPolicy: "30d"
-  argilla-elasticsearch:
+  argilla-opensearch:
     values:
-      elasticsearch:
-        indexReplicas: 0                                      # 0 for single-node internal, >= 1 in prod
-        nodeSet:
-          count: 1                                            # ES holds PRIMARY records - prod: >= 2
-          heapSize: "1g"
-          storage: { storageClass: divyam-default, size: 20Gi }
-      snapshots:
-        enabled: false                                        # records live here - enable backups in prod
+      opensearch:
+        # OpenSearch holds Argilla's PRIMARY records. Prod uses nodePool.replicas >= 2 with index replicas >= 1, plus snapshots.
+        nodePool:
+          replicas: 1                                         # prod >= 2, data-bearing and multi-node
+          diskSize: "20Gi"
+          storageClass: "divyam-default"
+          jvm: "-Xms1g -Xmx1g"
+        resources:
+          requests: { cpu: "500m", memory: "2Gi" }
+          limits:   { cpu: "1",    memory: "3Gi" }
   argilla-redis:
     values:
       redis:
