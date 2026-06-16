@@ -54,14 +54,16 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCRIPTS="$REPO_ROOT/scripts"
 CONF="$REPO_ROOT/.iac.conf"
+# shellcheck source=scripts/lib/cli.sh
+source "$SCRIPTS/lib/cli.sh"
 
 STEPS=(0-foundation 1-platform 2-app kubeconfig k8s-install)
 
 # --- arg parsing (mirrors iac.sh/k8s.sh) -----------------------------------
 SUBCMD=""; CLI_CLOUD=""; CLI_ENV=""; VALUES_DIR=""; CHANNEL=""; ART_VERSION=""
 ASSUME_YES=0; DRYRUN=0; PORCELAIN=0; WATCH=0; INTERVAL=30
-usage() { grep '^#' "$0" | grep -vE '^#(!|[[:space:]]*SPDX-)' | sed 's/^# \{0,1\}//'; }
-die() { echo "bringup.sh: $*" >&2; exit 2; }
+usage() { cli::usage "$0"; }
+die() { cli::die "$@"; }   # ❌-prefixed to stderr, exit 2 (shared lib; preserves prior exit code)
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -140,7 +142,7 @@ cmd_run() {
   "$SCRIPTS/k8s.sh" kubeconfig -c "$CLOUD" -e "$ENV_NAME" "${yn[@]}"
   if [[ "$DRYRUN" -ne 1 ]]; then
     kubectl get ns >/dev/null \
-      || { echo "bringup.sh: kubectl cannot reach the cluster with the fetched kubeconfig — refusing to run helm." >&2; exit 1; }
+      || cli::die "kubectl cannot reach the cluster with the fetched kubeconfig — refusing to run helm." 1
     echo "kubectl context: $(kubectl config current-context)"
   fi
   done_step

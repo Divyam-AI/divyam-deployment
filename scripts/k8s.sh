@@ -64,14 +64,16 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 K8S_DIR="$REPO_ROOT/k8s"
 HELMFILE="$K8S_DIR/helmfile.yaml.gotmpl"
 CONF="$REPO_ROOT/.k8s.conf"
+# shellcheck source=scripts/lib/cli.sh
+source "$REPO_ROOT/scripts/lib/cli.sh"
 
 # --- arg parsing (supports -x, --x, and --x=value) -------------------------
 SUBCMD=""; RELEASE=""; FILTER=""; ASSUME_YES=0; DRYRUN=0
 STATUS_TUI=0; STATUS_DASH=0; PASSTHRU=()
 CLI_VDIR=""; CLI_ENV=""; CLI_ARTIFACTS=""; CLI_CHANNEL=""
 CLI_CLOUD=""; CLUSTER=""; PROJECT=""; REGION_F=""; ZONE_F=""; RESOURCE_GROUP=""; DO_LOGIN=0; NO_TF=0
-usage() { grep '^#' "$0" | grep -vE '^#(!|[[:space:]]*SPDX-)' | sed 's/^# \{0,1\}//'; }
-die() { echo "k8s.sh: $*" >&2; exit 2; }
+usage() { cli::usage "$0"; }
+die() { cli::die "$@"; }   # ❌-prefixed to stderr, exit 2 (shared lib; preserves prior exit code)
 
 while [[ $# -gt 0 ]]; do
   case "$1" in

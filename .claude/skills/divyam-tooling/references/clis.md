@@ -4,7 +4,10 @@
 `make k8s -- <subcommand> [opts]` (the `--` passes flags through). These forward verbatim to
 `./scripts/iac.sh` / `./scripts/k8s.sh`, which are identical and callable directly **without** `--`
 (what the slash commands and CI use). Both print the exact command they run and accept `-n` (dry-run)
-and `-y` (skip confirms). Per-subcommand help: `make iac -- help` / `make k8s -- help`.
+and `-y` (skip confirms). Help: `make iac -- --help` / `make k8s -- --help` (or `… -- help`, or the
+script directly). All scripts share `scripts/lib/cli.sh` — errors/status are colored `❌`/`✅` lines
+on **stderr** (auto-plain off a TTY / under `NO_COLOR=1`); a failed `make <verb>` is attributed and a
+mistyped verb prints a hint.
 
 ## iac.sh subcommands — Phase 1 (Terragrunt), run as `make iac -- <subcommand>`
 
@@ -60,8 +63,18 @@ is passed raw; omit → whole stack), `-f/--filter <sel>` (raw helmfile selector
 `make iac -- plan -l 1-platform.1-k8s -c gcp`, `make k8s -- upgrade -l router`. Forgetting `--` fails
 safe (the CLI errors on the missing flag rather than acting wrongly).
 
+**Error/help behavior:** a recipe failure is attributed — `✗ 'make <verb>' failed (exit N) — … run
+'make <verb> -- --help' for usage.` (the script's own `❌` line above it is the root cause). A
+typo'd/unknown verb (e.g. `make iacc`) prints a hint listing the known verbs and exits 2 instead of
+silently no-op'ing. `make help` is colored at a TTY, plain when piped / `NO_COLOR=1`.
+
 ## Helper scripts (called by the CLIs; usable directly)
 
+- `scripts/lib/cli.sh` — **shared library, sourced (not run)** by every script: `cli::ok/warn/err/info/step`
+  (colored ❌/✅ to stderr), `cli::die [code]` (default exit 2), `cli::need_tool`, `cli::usage` (header-only
+  `--help`), `cli::validate_enum`, `cli::pick`, `cli::run`; `cli::interactive` (TTY + `!CI` + `DIVYAM_NONINTERACTIVE`).
+- `scripts/bringup.sh <run|status>` — end-to-end bringup orchestrator (see the bringup section of CLAUDE.md).
+- `scripts/status.sh` / `scripts/status-ledger.sh` — step-ledger READER (`make status`) / shared WRITER.
 - `scripts/gen-tf-env.sh --cloud <c> --env <e> [--region R --zone Z --out FILE --force]` — writes
   `iac/values/secrets.env` (TF_VAR_* + config; randomises safe secrets, leaves real ones as `FILL`).
 - `scripts/check_cloud_credentials.sh` (needs `CLOUD_PROVIDER`) — GCP ADC/SA-key or Azure SP/az-login pre-flight.
