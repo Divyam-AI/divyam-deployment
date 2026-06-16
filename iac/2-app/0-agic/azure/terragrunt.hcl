@@ -22,7 +22,7 @@ dependency "k8s" {
       cluster_ca_certificate = ""
     }
   }
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "import", "force-unlock"]
 }
 
 dependency "app_gw" {
@@ -35,7 +35,7 @@ dependency "app_gw" {
     agic_identity_client_id   = "00000000-0000-0000-0000-000000000000"
     agic_identity_principal_id = "00000000-0000-0000-0000-000000000000"
   }
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "import", "force-unlock"]
 }
 
 locals {

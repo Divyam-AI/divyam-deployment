@@ -101,7 +101,14 @@ charts:
 
   kafka-cluster:
     values:
+      # Single-broker sandbox: one combined controller+broker node (nodepool.replicaCount 1), so
+      # cluster-wide replication factor / min-ISR must be 1 — the chart defaults to RF=3, which a
+      # single broker can never satisfy (Kafka CR stays NotReady, cascading to kafka-connect/otel).
+      brokerReplicaCount: 1
+      defaultReplicationFactor: 1
+      defaultMinInsyncReplicas: 1
       nodepool:
+        replicaCount: 1
         storage:
           size: "20Gi"
         resources:
@@ -111,6 +118,35 @@ charts:
           limits:
             memory: "4Gi"
             cpu: "2"
+      # KafkaTopic CRs also default to RF=3; on a single broker they must be RF=1 or the Topic
+      # Operator can never reconcile them. Two chart quirks this exposes on a single broker:
+      #   - log topics need an explicit retentionBytes (chart otherwise renders retention.bytes: null);
+      #   - connect_topics offsets/status partitions must match the live auto-created 25/5 (Strimzi
+      #     can't shrink an existing topic's partition count).
+      logs_topics:
+        - name: router-metering-logs
+          partitions: 5
+          replicas: 1
+          retentionMs: 7776000000
+          retentionBytes: 2147483648
+          segmentBytes: 1073741824
+        - name: router-raw-logs
+          partitions: 5
+          replicas: 1
+          retentionMs: 7776000000
+          retentionBytes: 2147483648
+          segmentBytes: 1073741824
+      connect_topics:
+        configs:
+          replicas: 1
+        offsets:
+          partitions: 25
+          replicas: 1
+        status:
+          partitions: 5
+          replicas: 1
+        dlq:
+          replicas: 1
 
   otel-collector:
     values:

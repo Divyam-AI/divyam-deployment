@@ -70,11 +70,29 @@ EOT
 
   merged = merge(local.default_locals, local.cloud_locals)
 
+  # --- Naming guard (fail-fast at parse; mirrors scripts/iac.sh validate_naming) ------------------
+  # deployment_prefix = "divyam-[<org>-]<env>". Azure Storage Accounts and Key Vaults cap names at 24
+  # chars; the tightest derived name is the Key Vault "<deployment_prefix>-vault". ENV must be in the
+  # allowlist (both clouds). _naming_errors is empty when valid; _checked_deployment_prefix re-exposes
+  # deployment_prefix unchanged when valid but fails the parse (via tobool of the joined messages) when
+  # not — and it is referenced by local_state_file and the remote_state key/prefix below, so it is
+  # ALWAYS evaluated for every terragrunt command. Keep _allowed_envs in sync with scripts/iac.sh.
+  _allowed_envs  = ["dev", "prod", "preprod", "stage", "sandbox"]
+  _is_azure      = local.merged.cloud_provider == "azure"
+  _kv_name       = "${local.merged.deployment_prefix}-vault"
+  _sa_name       = "${replace(local.merged.deployment_prefix, "-", "")}tfstate"
+  _naming_errors = compact([
+    contains(local._allowed_envs, local.merged.env_name) ? "" : "ENV '${local.merged.env_name}' not allowed — use one of: ${join(", ", local._allowed_envs)} (widen _allowed_envs in root.hcl + ALLOWED_ENVS in scripts/iac.sh)",
+    (local._is_azure && length(local._sa_name) > 24) ? "Azure Storage Account name '${local._sa_name}' is ${length(local._sa_name)} chars (max 24) — shorten ORG_NAME/env" : "",
+    (local._is_azure && length(local._kv_name) > 24) ? "Azure Key Vault name '${local._kv_name}' is ${length(local._kv_name)} chars (max 24); len(org)+len(env) must be <= 10" : "",
+  ])
+  _checked_deployment_prefix = length(local._naming_errors) == 0 ? local.merged.deployment_prefix : tobool("Divyam naming error: ${join(" | ", local._naming_errors)}")
+
   # Local state filename segregated by cloud_provider, deployment_prefix, and values file (for TG_USE_LOCAL_BACKEND or at_repo_root).
   # Including values file ensures values/defaults.hcl and divyam-pre-prod-defaults.hcl (etc.) use separate state files.
   _values_parts   = split("/", local.values_file)
   _values_basename = replace(element(local._values_parts, length(local._values_parts) - 1), ".hcl", "")
-  local_state_file = "terraform-${local.merged.cloud_provider}-${local.merged.deployment_prefix}-${local._values_basename}.tfstate"
+  local_state_file = "terraform-${local.merged.cloud_provider}-${local._checked_deployment_prefix}-${local._values_basename}.tfstate"
 
   # Outputs for Helm (outputs.yaml): control which Terraform outputs are written by scripts/write-outputs-yaml.sh.
   # exclude_outputs: sensitive data (kubeconfig, connection strings, secrets, certs) — never written to outputs.yaml.
@@ -167,14 +185,14 @@ remote_state {
     path = local.local_state_file
   } : (local.cloud_provider == "gcp" ? merge(
     { bucket = local.merged.tfstate.bucket_name },
-    { prefix = "${local.merged.cloud_provider}/${local.merged.deployment_prefix}/${local._values_basename}/${local.merged.region}/${path_relative_to_include()}" }
+    { prefix = "${local.merged.cloud_provider}/${local._checked_deployment_prefix}/${local._values_basename}/${local.merged.region}/${path_relative_to_include()}" }
   ) : merge(
     {
       resource_group_name  = local.merged.resource_scope.name
       storage_account_name = local.merged.tfstate.bucket_name
       container_name       = local.merged.tfstate.bucket_name
     },
-    { key = "${local.merged.cloud_provider}/${local.merged.deployment_prefix}/${local._values_basename}/${local.merged.region}/${path_relative_to_include()}/terraform.tfstate" }
+    { key = "${local.merged.cloud_provider}/${local._checked_deployment_prefix}/${local._values_basename}/${local.merged.region}/${path_relative_to_include()}/terraform.tfstate" }
   ))
 }
 

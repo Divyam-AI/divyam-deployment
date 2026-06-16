@@ -24,6 +24,8 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=scripts/lib/cli.sh
+source "$REPO_ROOT/scripts/lib/cli.sh"
 
 CLOUD="gcp"; ENV_NAME="dev"; OUT=""; FORCE=0; REGION_ARG=""; ZONE_ARG=""
 while [[ $# -gt 0 ]]; do
@@ -39,15 +41,15 @@ while [[ $# -gt 0 ]]; do
     --out)    OUT="$2"; shift 2;;
     --out=*)  OUT="${1#*=}"; shift;;
     --force)  FORCE=1; shift;;
-    -h|--help) grep '^#' "$0" | grep -vE '^#(!|[[:space:]]*SPDX-)' | sed 's/^# \{0,1\}//'; exit 0;;
-    *) echo "unknown arg: $1" >&2; exit 2;;
+    -h|--help) cli::usage "$0"; exit 0;;
+    *) cli::die "unknown arg: $1 (try --help)";;
   esac
 done
 
 OUT="${OUT:-$REPO_ROOT/iac/values/secrets.env}"
-case "$CLOUD" in gcp|azure) ;; *) echo "--cloud must be gcp|azure" >&2; exit 2;; esac
+cli::validate_enum --cloud "$CLOUD" gcp azure
 if [[ -e "$OUT" && "$FORCE" -ne 1 ]]; then
-  echo "refusing to overwrite existing $OUT (use --force)" >&2; exit 1
+  cli::die "refusing to overwrite existing $OUT (use --force)" 1
 fi
 mkdir -p "$(dirname "$OUT")"
 
@@ -109,8 +111,14 @@ umask 077
   echo
 
   echo "# --- FILL: real values — passed through from your environment if set, else fill these in. ---"
-  echo "# Private image registry (REQUIRED to pull Divyam images): PATH to the cred file from Divyam"
-  echo "export TF_VAR_divyam_artifactory_docker_auth=$(passthru TF_VAR_divyam_artifactory_docker_auth "")"
+  if [[ "$CLOUD" == azure ]]; then
+    echo "# Private image registry (Azure: REQUIRED to pull Divyam images): PATH to the Divyam GAR"
+    echo "# dockerconfigjson file. Stored as a Key Vault secret → image-pull secret. Must be valid JSON."
+    echo "export TF_VAR_divyam_artifactory_docker_auth=$(passthru TF_VAR_divyam_artifactory_docker_auth "")"
+  else
+    echo "# Private image registry: NOT needed on GCP — GKE pulls from GAR via the node/workload service"
+    echo "# account (image_pull_secret_enabled is false for GCP). Leave TF_VAR_divyam_artifactory_docker_auth unset."
+  fi
   echo "# Cloud credentials:"
   if [[ "$CLOUD" == azure ]]; then
     echo "export ARM_CLIENT_ID=$(passthru ARM_CLIENT_ID "")"
@@ -135,11 +143,11 @@ umask 077
 } > "$OUT"
 
 chmod 600 "$OUT"
-echo "wrote ${OUT#"$REPO_ROOT"/} (chmod 600). scripts/iac.sh will auto-source it." >&2
+cli::ok "wrote ${OUT#"$REPO_ROOT"/} (chmod 600). scripts/iac.sh will auto-source it."
 # warn about empty REQUIRED reals
 if ! grep -q 'NOTIFICATION_WEBHOOK_URLS=..' "$OUT"; then
-  echo "WARN: NOTIFICATION_WEBHOOK_URLS is empty — set your Zenduty webhook before running the alert loop." >&2
+  cli::warn "NOTIFICATION_WEBHOOK_URLS is empty — set your Zenduty webhook before running the alert loop."
 fi
-if ! grep -q 'divyam_artifactory_docker_auth=..' "$OUT"; then
-  echo "WARN: TF_VAR_divyam_artifactory_docker_auth is empty — required to pull Divyam images." >&2
+if [[ "$CLOUD" == azure ]] && ! grep -q 'divyam_artifactory_docker_auth=..' "$OUT"; then
+  cli::warn "TF_VAR_divyam_artifactory_docker_auth is empty — Azure needs it (a path to the GAR dockerconfigjson file) to pull Divyam images. GCP does not."
 fi

@@ -25,9 +25,10 @@ The **Makefile is the entrypoint**. Two workflow commands cover everything; both
 
 > The **`--` is required** before args — without it `make` swallows `-l/-c/-e`-style flags (and `--long`
 > errors). `make iac`/`make k8s` forward verbatim to `./scripts/iac.sh` / `./scripts/k8s.sh`, which are
-> identical and callable directly **without** `--` — that's what the slash commands and CI use, and what
-> you run when you need per-subcommand help: `./scripts/iac.sh help`, `./scripts/k8s.sh help`. Treat the
-> scripts as the implementation; treat `make iac/k8s --` as the door. Don't invent flags — check `help`.
+> identical and callable directly **without** `--` — that's what the slash commands and CI use. For
+> help: `make <verb> -- --help` (works for every verb), or run the script directly (`./scripts/iac.sh help`,
+> `./scripts/k8s.sh help`). Treat the scripts as the implementation; treat `make iac/k8s --` as the door.
+> Don't invent flags — check `help`. A typo'd `make` verb prints a hint listing the known verbs.
 
 ## Conventions shared by both CLIs
 
@@ -36,6 +37,7 @@ The **Makefile is the entrypoint**. Two workflow commands cover everything; both
 - **Precedence:** CLI flag > pre-existing env var > `.iac.conf`/`.k8s.conf` > file default.
 - **Dry-run:** `-n` prints the command (+ `(dry-run: not executed)`); **`-y`** skips confirmations (automation only).
 - **Secrets:** the Phase-1 flow auto-sources `iac/values/secrets.env` (generate with `make iac -- secrets`). Never print its contents.
+- **Output/error presentation:** all scripts source `scripts/lib/cli.sh` — errors/status are colored `❌`/`✅`/`⚠️` lines on **stderr** (stdout stays parseable); color auto-suppresses off a TTY (so agent/CI/piped output is plain) and on `NO_COLOR=1`. `DIVYAM_NONINTERACTIVE=1` forces non-interactive. A failed `make <verb>` is attributed (`✗ 'make <verb>' failed (exit N) …`). When reading errors, the `❌` line is the root cause.
 
 ## Reference guide — load the file for the task
 
@@ -47,7 +49,10 @@ The **Makefile is the entrypoint**. Two workflow commands cover everything; both
 | kubectl verification commands + what's allow-listed vs `ask` | `references/kubectl.md` | verifying the cluster/stack, debugging pods |
 | Deployment-failure playbook: `needs` ordering, atomic timeouts, ExternalSecret/secrets chain, provider.yaml/values-dir resolution, transient fetch errors | `references/debugging.md` | a `make k8s -- install/upgrade` fails or releases don't go healthy |
 | GCP vs Azure: project vs resource-group, auth, `get-credentials`, GKE/AKS, service mapping | `references/clouds.md` | anything cloud-specific, kubeconfig, creds |
-| Pinned tool versions + install | `references/prerequisites.md` | setting up a machine, version mismatch, `make prereqs` |
+| Pinned tool versions + install; **Helm 4 breaks helm-diff/helmfile — use Helm 3** | `references/prerequisites.md` | setting up a machine, version mismatch, `make prereqs`, `plugin "diff" exited with error` |
+| Read cloud ground truth WITHOUT az/gcloud — SP/ADC token → ARM/GCP REST (list clusters, inspect a subnet, OIDC issuer, compare federated creds) | `references/ground-truth-rest.md` | az/gcloud absent, "how many clusters exist", "what's in the app-gw subnet", verifying a console/handoff action |
+| Adopt pre-existing resources & recover state: `already exists` → import; the import dep-mock whitelist trick; purge-protected Key Vault; delete+recreate orphaned UAMIs; rebind federated creds after a cluster recreate | `references/recovery-and-imports.md` | a prior/lost-state deployment, `already exists`, broken workload identity, dual state |
+| Known blockers + fixes: env allowlist + org/env name-length (Azure 24-char, now validated), NAP NodePools missing (`0-nap_configs`), Kafka RF vs broker count, App-GW subnet collision, the state-key filename fork | `references/known-gotchas.md` | a deploy stalls/fails in a way that matches a known trap, or an env/org name is rejected |
 
 ## Quick map: intent → command
 

@@ -28,10 +28,12 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 IAC_DIR="$REPO_ROOT/iac"
+# shellcheck source=scripts/lib/cli.sh
+source "$REPO_ROOT/scripts/lib/cli.sh"
 
 LAYER=""; CLOUD=""; SET_VAL=""; RUN=""; YES=0; RESTORE=0
-usage() { grep '^#' "$0" | grep -vE '^#(!|[[:space:]]*SPDX-)' | sed 's/^# \{0,1\}//'; }
-die() { echo "set-prevent-destroy.sh: $*" >&2; exit 2; }
+usage() { cli::usage "$0"; }
+die() { cli::die "$@"; }   # ❌-prefixed to stderr, exit 2 (shared lib; preserves prior exit code)
 
 while [[ $# -gt 0 ]]; do
   case "$1" in

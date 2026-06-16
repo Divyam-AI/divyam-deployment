@@ -32,12 +32,16 @@ TERRAGRUNT_VERSION="0.99.4"
 HELMFILE_VERSION="1.4.4"
 HELM_DIFF_VERSION="3.7.0"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/cli.sh
+source "$SCRIPT_DIR/lib/cli.sh"
+
 CHECK_ONLY=0
 case "${1:-}" in
   --check) CHECK_ONLY=1 ;;
-  -h|--help) grep '^#' "$0" | grep -vE '^#(!|[[:space:]]*SPDX-)' | sed 's/^# \{0,1\}//'; exit 0 ;;
+  -h|--help) cli::usage "$0"; exit 0 ;;
   "") ;;
-  *) echo "unknown arg: $1 (use --check or --help)" >&2; exit 2 ;;
+  *) cli::die "unknown arg: $1 (use --check or --help)" ;;
 esac
 
 INSTALL_BIN="${INSTALL_BIN:-$HOME/.local/bin}"
@@ -151,7 +155,7 @@ ensure_helm_diff() {
   if ! have helm; then miss "helm-diff (helm missing)"; return; fi
   if helm plugin list 2>/dev/null | grep -qi '^diff'; then ok "helm-diff plugin (installed)"; return; fi
   if ! require_install; then miss "helm-diff plugin v$HELM_DIFF_VERSION"; return; fi
-  helm plugin install https://github.com/databus23/helm-diff --version "v${HELM_DIFF_VERSION}" \
+  helm plugin install https://github.com/databus23/helm-diff --version "v${HELM_DIFF_VERSION}" --verify=false \
     && ok "helm-diff v$HELM_DIFF_VERSION installed" || miss "helm-diff install failed"
 }
 
@@ -162,7 +166,10 @@ ensure_helm_dashboard() {
   if ! have helm; then miss "helm-dashboard (helm missing)"; return; fi
   if helm plugin list 2>/dev/null | grep -qi '^dashboard'; then ok "helm-dashboard plugin (installed)"; return; fi
   if ! require_install; then miss "helm-dashboard plugin"; return; fi
-  helm plugin install https://github.com/komodorio/helm-dashboard.git \
+  # Pinned tag + --verify=false: upstream publishes NO .prov signatures, so helm 4's plugin
+  # verification can never pass — the pin is the available supply-chain control (no moving default
+  # branch). Drop --verify=false if upstream ever signs releases; bump the tag deliberately.
+  helm plugin install https://github.com/komodorio/helm-dashboard.git --version v2.1.1 --verify=false \
     && ok "helm-dashboard installed (run: helm dashboard)" || miss "helm-dashboard install failed"
 }
 
@@ -173,7 +180,8 @@ ensure_helm_tui() {
   if ! have helm; then miss "helm-tui (helm missing)"; return; fi
   if helm plugin list 2>/dev/null | grep -qi '^tui'; then ok "helm-tui plugin (installed)"; return; fi
   if ! require_install; then miss "helm-tui plugin"; return; fi
-  helm plugin install https://github.com/pidanou/helm-tui \
+  # Pinned tag + --verify=false: same rationale as helm-dashboard above (unsigned upstream).
+  helm plugin install https://github.com/pidanou/helm-tui --version v0.6.0 --verify=false \
     && ok "helm-tui installed (run: helm tui)" || miss "helm-tui install failed"
 }
 

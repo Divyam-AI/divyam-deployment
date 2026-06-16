@@ -15,6 +15,8 @@ Makefile entrypoint. Target release (from args, empty = whole stack): **$ARGUMEN
    `-l <chart>` if a chart was given. Artifacts source: add `-C <stable|nightly>` and/or
    `-a <version|latest>` if the user specified one (else the resolved channel/version applies — see
    `divyam-tooling` helm-helmfile.md / `k8s/releases/VERSIONING.md`).
-6. Verify with `make k8s -- status` and flag any unhealthy releases/pods.
+6. Verify with `make k8s -- status` and flag any unhealthy releases/pods. For a long install,
+   offer live tracking first: terminal (`! make k8s -- status --tui`, user-run) or web dashboard
+   (background `make k8s -- status --dashboard`, share the URL) — /bringup-status step 5.
 
 For the full provision-then-deploy flow from scratch, use `/setup`.

@@ -2,8 +2,7 @@
 
 Problem → diagnosis → fix playbook for when `make k8s -- install/upgrade` (helmfile sync/apply) fails
 or releases don't come healthy. Pairs with `kubectl.md` (command reference) and `helm-helmfile.md`.
-Get kubeconfig first: `make k8s -- kubeconfig`. On a **MicroK8s sandbox**, the binaries may need
-`sudo microk8s kubectl` / `sudo microk8s helm` if `kubectl`/`helm` hit `Insufficient permissions`.
+Get kubeconfig first: `make k8s -- kubeconfig`.
 
 ## How the install behaves (read this first)
 - **Ordering via `needs`.** `k8s/helmfile.yaml.gotmpl` defines a `needs` map (e.g. `superset` needs
