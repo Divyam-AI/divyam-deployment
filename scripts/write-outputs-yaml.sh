@@ -11,6 +11,10 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/cli.sh
+source "$SCRIPT_DIR/lib/cli.sh"
+
 REPO_ROOT="${3:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 LAYER="${1:-${LAYER:-0}}"
 CLOUD_PROVIDER="${2:-${CLOUD_PROVIDER:-azure}}"
@@ -20,11 +24,10 @@ case "${LAYER}" in
   0) TG_DIR="0-foundation" ;;
   1) TG_DIR="1-platform" ;;
   2) TG_DIR="2-app" ;;
-  *) echo "Error: LAYER must be 0, 1, or 2 (got: ${LAYER})"; exit 1 ;;
+  *) cli::die "LAYER must be 0, 1, or 2 (got: ${LAYER})" 1 ;;
 esac
 if [[ "${CLOUD_PROVIDER}" != "azure" && "${CLOUD_PROVIDER}" != "gcp" ]]; then
-  echo "Error: CLOUD_PROVIDER must be azure or gcp (got: ${CLOUD_PROVIDER})"
-  exit 1
+  cli::die "CLOUD_PROVIDER must be azure or gcp (got: ${CLOUD_PROVIDER})" 1
 fi
 
 # Config is read from root.hcl (locals.outputs_for_helm)
@@ -78,8 +81,7 @@ esac
 TG_DIR_ABS="${REPO_ROOT}/${TG_DIR}"
 
 if [[ ! -d "${TG_DIR_ABS}" ]]; then
-  echo "Error: Layer directory not found: ${TG_DIR_ABS}"
-  exit 1
+  cli::die "Layer directory not found: ${TG_DIR_ABS}" 1
 fi
 
 # Find all directories under TG_DIR that contain terragrunt.hcl and whose path contains CLOUD_PROVIDER

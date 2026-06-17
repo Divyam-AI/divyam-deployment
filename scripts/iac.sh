@@ -67,12 +67,14 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 IAC_DIR="$REPO_ROOT/iac"
 SCRIPTS="$REPO_ROOT/scripts"
 CONF="$REPO_ROOT/.iac.conf"
+# shellcheck source=scripts/lib/cli.sh
+source "$SCRIPTS/lib/cli.sh"
 
 # --- arg parsing (supports -x, --x, and --x=value) -------------------------
 SUBCMD=""; LAYER=""; FILTER=""; ASSUME_YES=0; DRYRUN=0
 CLI_CLOUD=""; CLI_ENV=""; EXTRA_ARGS=()
-usage() { grep '^#' "$0" | grep -vE '^#(!|[[:space:]]*SPDX-)' | sed 's/^# \{0,1\}//'; }
-die() { echo "iac.sh: $*" >&2; exit 2; }
+usage() { cli::usage "$0"; }
+die() { cli::die "$@"; }   # ❌-prefixed to stderr, exit 2 (shared lib; preserves prior exit code)
 
 while [[ $# -gt 0 ]]; do
   case "$1" in

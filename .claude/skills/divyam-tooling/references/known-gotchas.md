@@ -24,15 +24,15 @@ fix. Several are cloud-agnostic-by-design but bite differently on Azure vs GCP.
   ≤ 10**; storage accounts (dashes stripped, `…tfstate`/`…storage`) allow ≤ 11.
 - **Now enforced (fail-fast, no more mid-apply failures):**
   - **env allowlist** — `ENV` must be one of `dev | prod | preprod | stage | sandbox` (both clouds, for
-    bounded & consistent state keys). Enforced in three places: `scripts/iac.sh` (`validate_naming`,
-    runs even at `config` time), the sandbox launcher `create-sandbox.sh`, and a **parse-time guard in
+    bounded & consistent state keys). Enforced in two places: `scripts/iac.sh` (`validate_naming`,
+    runs even at `config` time) and a **parse-time guard in
     `iac/root.hcl`** (`_naming_errors`/`_checked_deployment_prefix`, woven into the backend key so it
-    fires even on a direct `terragrunt` call). Widen the list in **all three** (`ALLOWED_ENVS` /
+    fires even on a direct `terragrunt` call). Widen the list in **both** (`ALLOWED_ENVS` /
     `_allowed_envs`) to permit more.
   - **org rule** — `ORG_NAME` must be lowercase alphanumeric, and on **Azure** `len(org)+len(env) ≤ 10`
     (else iac.sh dies naming the Key Vault that would overflow). GCP isn't length-limited here.
 - **Client teams:** pick an env from the allowlist; if you need a custom env, widen `ALLOWED_ENVS` in
-  `scripts/iac.sh` (and the sandbox `create-sandbox.sh`) and keep `len(org)+len(env) ≤ 10` on Azure.
+  `scripts/iac.sh` and keep `len(org)+len(env) ≤ 10` on Azure.
 
 ## 3. State key embeds the values-file FILENAME (silent state fork)
 - **Symptom:** `apply` tries to create resources that already exist (cascading `already exists`),
@@ -77,9 +77,9 @@ fix. Several are cloud-agnostic-by-design but bite differently on Azure vs GCP.
 - **Symptom:** app_gw apply → `ApplicationGatewaySubnetCannotHaveOtherResources: Subnet … cannot be
   used for application gateway since it has other resources deployed`.
 - **Cause:** the app-gw subnet (delegated to `Microsoft.Network/applicationGateways`) contains a
-  non-gateway NIC — classically the **sandbox VM's own NIC** placed in that subnet by the launcher.
+  non-gateway NIC — classically the **bastion/jumphost VM's own NIC** placed in that subnet.
 - **Fix:** the VM must live in the **main** subnet, never the app-gw subnet (`vnet.subnet`, not
-  `vnet.app_gw_subnet`) — set correctly in the launcher/defaults. Preflight should read the app-gw
+  `vnet.app_gw_subnet`) — set correctly in the defaults. Preflight should read the app-gw
   subnet (`ground-truth-rest.md`) and flag any non-gateway NIC as a human action item before apply.
   If you must proceed without ingress, defer app_gw/AGIC (the stack runs with internal services).
 

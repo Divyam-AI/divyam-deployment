@@ -4,8 +4,7 @@ argument-hint: "[release or namespace, optional]"
 allowed-tools: Bash(make:*), Bash(helm ls:*), Bash(kubectl get:*), Bash(kubectl describe:*), Bash(kubectl logs:*), Skill
 ---
 Use `divyam-tooling` (`references/debugging.md`). Read-only diagnosis via the Makefile entrypoint. Optional
-focus (from args): **$ARGUMENTS**. Ensure kubeconfig first (`make k8s -- kubeconfig`); on a MicroK8s
-sandbox prefix with `sudo microk8s` if `kubectl`/`helm` report `Insufficient permissions`.
+focus (from args): **$ARGUMENTS**. Ensure kubeconfig first (`make k8s -- kubeconfig`).
 
 1. **Triage:** `make k8s -- status` (`helm ls -A`) — note which releases are `deployed` vs `failed`.
    Then `kubectl get pods -A | grep -vE 'Running|Completed'`. Remember: helmfile installs in `needs`

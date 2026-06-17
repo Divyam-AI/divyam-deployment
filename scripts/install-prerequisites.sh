@@ -32,12 +32,16 @@ TERRAGRUNT_VERSION="0.99.4"
 HELMFILE_VERSION="1.4.4"
 HELM_DIFF_VERSION="3.7.0"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/cli.sh
+source "$SCRIPT_DIR/lib/cli.sh"
+
 CHECK_ONLY=0
 case "${1:-}" in
   --check) CHECK_ONLY=1 ;;
-  -h|--help) grep '^#' "$0" | grep -vE '^#(!|[[:space:]]*SPDX-)' | sed 's/^# \{0,1\}//'; exit 0 ;;
+  -h|--help) cli::usage "$0"; exit 0 ;;
   "") ;;
-  *) echo "unknown arg: $1 (use --check or --help)" >&2; exit 2 ;;
+  *) cli::die "unknown arg: $1 (use --check or --help)" ;;
 esac
 
 INSTALL_BIN="${INSTALL_BIN:-$HOME/.local/bin}"

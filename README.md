@@ -39,6 +39,8 @@ The setup has two phases:
 ├── scripts/
 │   ├── iac.sh                      #   Phase-1 infra CLI (config/plan/apply/destroy/...)
 │   ├── k8s.sh                      #   Phase-2 stack CLI (install/upgrade/delete/status/...)
+│   ├── bringup.sh / status.sh      #   End-to-end bringup orchestrator / step-ledger reader
+│   ├── lib/cli.sh                  #   Shared CLI conventions (colored status, errors, --help)
 │   ├── set-prevent-destroy.sh      #   Flip lifecycle.prevent_destroy across a module (backups)
 │   ├── install-prerequisites.sh    #   Install/verify the pinned toolchain
 │   ├── gen-tf-env.sh               #   Generate iac/values/secrets.env
@@ -71,7 +73,8 @@ cloud login stays interactive — run `az login` / `gcloud auth login` yourself.
 > Run the workflows via `make iac -- <args>` / `make k8s -- <args>` — the **`--`** is required so make
 > passes `-l/-c/-e` flags through (e.g. `make iac -- plan -l 1-platform.1-k8s`,
 > `make k8s -- upgrade -l router`). Running `./scripts/iac.sh …` / `./scripts/k8s.sh …` directly is
-> identical and needs no `--`.
+> identical and needs no `--`. For usage, `make <verb> -- --help` (or `scripts/<verb>.sh --help`).
+> If a `make <verb>` fails it says which verb failed and the exit code; a mistyped verb prints a hint.
 
 ### Phase 1 — provision (`make iac`)
 

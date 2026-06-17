@@ -30,9 +30,11 @@ set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONF="$REPO_ROOT/.iac.conf"
+# shellcheck source=scripts/lib/cli.sh
+source "$REPO_ROOT/scripts/lib/cli.sh"
 
-usage() { grep '^#' "$0" | grep -vE '^#(!|[[:space:]]*SPDX-)' | sed 's/^# \{0,1\}//'; }
-die() { echo "status.sh: $*" >&2; exit 2; }
+usage() { cli::usage "$0"; }
+die() { cli::die "$@"; }   # ❌-prefixed to stderr, exit 2 (shared lib; preserves prior exit code)
 
 CLI_CLOUD=""; CLI_ENV=""; PORCELAIN=0; WATCH=0; INTERVAL=30
 while [[ $# -gt 0 ]]; do

@@ -24,6 +24,8 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=scripts/lib/cli.sh
+source "$REPO_ROOT/scripts/lib/cli.sh"
 
 CLOUD="gcp"; ENV_NAME="dev"; OUT=""; FORCE=0; REGION_ARG=""; ZONE_ARG=""
 while [[ $# -gt 0 ]]; do
@@ -39,15 +41,15 @@ while [[ $# -gt 0 ]]; do
     --out)    OUT="$2"; shift 2;;
     --out=*)  OUT="${1#*=}"; shift;;
     --force)  FORCE=1; shift;;
-    -h|--help) grep '^#' "$0" | grep -vE '^#(!|[[:space:]]*SPDX-)' | sed 's/^# \{0,1\}//'; exit 0;;
-    *) echo "unknown arg: $1" >&2; exit 2;;
+    -h|--help) cli::usage "$0"; exit 0;;
+    *) cli::die "unknown arg: $1 (try --help)";;
   esac
 done
 
 OUT="${OUT:-$REPO_ROOT/iac/values/secrets.env}"
-case "$CLOUD" in gcp|azure) ;; *) echo "--cloud must be gcp|azure" >&2; exit 2;; esac
+cli::validate_enum --cloud "$CLOUD" gcp azure
 if [[ -e "$OUT" && "$FORCE" -ne 1 ]]; then
-  echo "refusing to overwrite existing $OUT (use --force)" >&2; exit 1
+  cli::die "refusing to overwrite existing $OUT (use --force)" 1
 fi
 mkdir -p "$(dirname "$OUT")"
 
@@ -141,12 +143,11 @@ umask 077
 } > "$OUT"
 
 chmod 600 "$OUT"
-echo "wrote ${OUT#"$REPO_ROOT"/} (chmod 600). scripts/iac.sh will auto-source it." >&2
+cli::ok "wrote ${OUT#"$REPO_ROOT"/} (chmod 600). scripts/iac.sh will auto-source it."
 # warn about empty REQUIRED reals
 if ! grep -q 'NOTIFICATION_WEBHOOK_URLS=..' "$OUT"; then
-  echo "WARN: NOTIFICATION_WEBHOOK_URLS is empty — set your Zenduty webhook before running the alert loop." >&2
+  cli::warn "NOTIFICATION_WEBHOOK_URLS is empty — set your Zenduty webhook before running the alert loop."
 fi
 if [[ "$CLOUD" == azure ]] && ! grep -q 'divyam_artifactory_docker_auth=..' "$OUT"; then
-  echo "WARN: TF_VAR_divyam_artifactory_docker_auth is empty — Azure needs it (a path to the GAR" >&2
-  echo "      dockerconfigjson file) to pull Divyam images. GCP does not." >&2
+  cli::warn "TF_VAR_divyam_artifactory_docker_auth is empty — Azure needs it (a path to the GAR dockerconfigjson file) to pull Divyam images. GCP does not."
 fi

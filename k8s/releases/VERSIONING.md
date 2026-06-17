@@ -3,7 +3,7 @@
 This is the source of truth for how Divyam stack artifacts are **named, versioned, and traced**. The
 artifact files here pin every chart version + image tag for one coherent build of the stack. The
 nightly→stable **pipeline is not built yet** — this contract is frozen so the pipeline and all
-consumers (helmfile, `scripts/k8s.sh`, the sandbox launcher) can be implemented independently.
+consumers (helmfile, `scripts/k8s.sh`) can be implemented independently.
 
 An "artifacts file" is `chartBasePath` + per-chart `{chart: {version[, subPath]}, values: {image: {tag}}}`
 plus a scalar `release:` metadata block (below). The helmfile `unset`s `chartBasePath` and `release`
@@ -84,7 +84,7 @@ the ledger rows (or `nightly/<base>-nightly.*` files) sharing the same `base`.
   3. neither → local `<valuesDir>/artifacts.yaml` → `stable/latest` → legacy newest (`sort -V`).
 
 Examples: `make k8s -- install -C stable` (latest stable) · `-C stable -a 1.0.0` · `-C nightly -a latest`.
-The sandbox keeps its local `artifacts.yaml` as default and opts into a channel via the launcher
+A consumer can keep its local `artifacts.yaml` as default and opt into a channel via flags
 (`--artifacts-channel/--artifacts-version`).
 
 ## Pipeline obligations (for the future, not-yet-built pipeline)
