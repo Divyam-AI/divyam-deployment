@@ -179,6 +179,7 @@ kubectl get ns
 |----------|----------|---------|-------------|
 | `HELMFILE_VALUES_DIR` | No | `.` (current directory) | Path to the directory containing your values files. |
 | `ARTIFACTS_VERSION` | No | _(unset)_ | When set, loads `releases/<VERSION>-artifacts.yaml` instead of `artifacts.yaml`. |
+| `STACK` | No | `both` | Which stack to deploy: `evalm8`, `router`, or `both`. Falls back to `settings.stack` in `resources.yaml`. Mirrors the iac `stack` selector. |
 ---
 
 ## 2. Expected Directory Structure
@@ -238,6 +239,26 @@ make k8s -- upgrade -d /path/to/values  # point at a different values directory
 ```bash
 make k8s -- upgrade -l clickhouse     # → helmfile -l name=clickhouse-<env> apply
 ```
+
+### Selecting a Stack (evalm8 / router / both)
+
+The platform ships two stacks: the **router** ecosystem (router-controller, route-selector,
+selector-training, evaluator, clickhouse, kafka, superset, and so on) and the **evalm8** stack
+(evalm8 apps with their temporal, lakefs, and argilla datastores and operators). `external-secrets`,
+`mysql`, and persistent storage are shared and always deploy.
+
+Pass `--stack` to bring up only one stack. The default is `both`. The same selector exists in the iac
+`stack` variable, so infrastructure and Helm pick the same stack.
+
+```bash
+make k8s -- install --stack evalm8    # only the evalm8 stack (+ shared infra)
+make k8s -- upgrade --stack router    # only the router stack (+ shared infra)
+make k8s -- diff    --stack evalm8    # preview just one stack
+STACK=evalm8 helmfile list            # raw helmfile: list the selected releases
+```
+
+A persistent default for an environment can be set as `settings.stack` in `resources.yaml`. The
+`--stack` flag and the `STACK` env var override it.
 
 ### Preview Changes
 

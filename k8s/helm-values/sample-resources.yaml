@@ -1,6 +1,7 @@
 settings:
   use_spot_nodes: true
   storage_class: economyHdd   # Possible values: economyHdd, standardSsd, premiumSsd
+  # stack: both               # Which stack to deploy: evalm8 | router | both. Override with STACK env or --stack.
 
 charts:
   divyam-persistent-storage:

@@ -10,6 +10,14 @@ locals {
   region            = get_env("REGION","centralindia")
   zone              = get_env("ZONE","centralindia-1")
 
+  # Stack selector: which Divyam stack this deployment provisions.
+  # Allowed values are "evalm8", "router", or "both" (the default).
+  # This mirrors the helmfile STACK selector so IaC and Helm pick the same stack.
+  # Units read it as local.root.stack to gate evalm8-only cloud resources.
+  # No evalm8-only IaC resources exist today (all infra is shared), so this gates nothing yet.
+  # When evalm8-only resources are added, gate their unit with exclude { if = local.root.stack == "router" }.
+  stack             = get_env("STACK", "both")
+
   deployment_mode = "onprem"  # Set value to "managed" | "onprem"
 
   deployment_prefix = (

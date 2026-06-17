@@ -4,6 +4,7 @@
 #   helmfile diff
 #   helmfile -l name=mysql apply
 #   helmfile destroy
+#   STACK=evalm8 helmfile list    # select only one stack: evalm8 | router | both (default both)
 
 helmDefaults:
   createNamespace: true
@@ -136,6 +137,16 @@ repositories:
 {{- $clusterDomain := $values.global.clusterDomain }}
 {{- $externalSecretsChartName := "external-secrets/external-secrets" }}
 
+{{/* Stack selector: evalm8 | router | both. Gates which release groups are enabled so a single
+     invocation brings up only the selected stack. Precedence: STACK env var, then STACK_SELECTOR
+     env var, then resources.yaml settings.stack, then "both". The matching terraform variable
+     gates the evalm8 cloud resources in iac/, so both phases select the same stack. */}}
+{{- $stack := env "STACK" | default (env "STACK_SELECTOR") | default (dig "stack" "both" $settings) }}
+{{- if not (has $stack (list "evalm8" "router" "both")) }}
+{{- fail (printf "ERROR: invalid stack selector '%s'. Set STACK (or settings.stack) to one of: evalm8, router, both." $stack) }}
+{{- end }}
+{{- $_ := exec "sh" (list "-c" (printf "echo '[INFO] stack selector: %s' >&2" $stack)) }}
+
 ###############################################################################
 # 2. Namespace Group Map
 ###############################################################################
@@ -187,6 +198,52 @@ repositories:
   "evalm8-ingress"                        "evalm8"
 
 -}}
+
+###############################################################################
+# 2b. Stack Membership (drives the stack selector)
+###############################################################################
+{{/*
+  Namespace groups that belong to the Evalm8 stack: the Evalm8 apps, their datastores
+  (temporal, lakefs, argilla), and the operators those datastores need (CNPG, OpenSearch,
+  Redis). Every group not listed here is treated as router/platform.
+*/}}
+{{- $evalm8Groups := dict
+  "evalm8"                      true
+  "temporal"                    true
+  "lakefs"                      true
+  "argilla"                     true
+  "cnpg-system"                 true
+  "opensearch-operator-system"  true
+  "redis-operator-system"       true
+-}}
+
+{{/*
+  Charts shared by both stacks, always enabled regardless of the selector. External Secrets
+  resolves cloud secrets for every workload, mysql is the platform database that both the
+  router services and evalm8-server/wfs use, and persistent storage backs both.
+*/}}
+{{- $sharedCharts := dict
+  "external-secrets-operator"   true
+  "mysql"                       true
+  "divyam-persistent-storage"   true
+-}}
+
+{{/*
+  Per-chart stack membership. A chart is selected when the stack is "both", when it is a shared
+  chart, or when its namespace group matches the selected stack (evalm8 groups for "evalm8",
+  everything else for "router"). A chart's group is namespaceGroupMap[name] or its own name.
+*/}}
+{{- $stackEnabled := dict }}
+{{- range $cName, $_cfg := $values.charts }}
+  {{- $grp := index $namespaceGroupMap $cName | default $cName }}
+  {{- $isEvalm8 := hasKey $evalm8Groups $grp }}
+  {{- $sel := false }}
+  {{- if eq $stack "both" }}{{- $sel = true }}
+  {{- else if hasKey $sharedCharts $cName }}{{- $sel = true }}
+  {{- else if eq $stack "evalm8" }}{{- $sel = $isEvalm8 }}
+  {{- else }}{{- $sel = (not $isEvalm8) }}{{- end }}
+  {{- $_ := set $stackEnabled $cName $sel }}
+{{- end }}
 
 {{/*
   Charts that receive a top-level `ingress` value merged from provider.yaml
@@ -378,6 +435,8 @@ releases:
          chart marked `enabled: false`. Default to true only when the key is absent. */ -}}
   {{- $enabled := true }}
   {{- if hasKey ($rawCfg | default dict) "enabled" }}{{- $enabled = (index ($rawCfg | default dict) "enabled") }}{{- end }}
+  {{- /* Stack selector gate: a chart not in the selected stack is treated as disabled. */ -}}
+  {{- if not (index $stackEnabled $name) }}{{- $enabled = false }}{{- end }}
   {{- if $enabled }}
 
     {{- $chart := printf "%s/%s" $base $name }}
@@ -414,6 +473,7 @@ releases:
       {{- /* Same explicit-flag gating as above (mergo would re-enable an enabled:false dep). */ -}}
       {{- $depEnabled := true }}
       {{- if hasKey $depRaw "enabled" }}{{- $depEnabled = (index $depRaw "enabled") }}{{- end }}
+      {{- if not (index $stackEnabled $depName) }}{{- $depEnabled = false }}{{- end }}
       {{- if $depEnabled }}
 
         {{- $depNs := include "namespace" (dict
@@ -464,9 +524,11 @@ releases:
       {{- $depCfg := merge (dict "enabled" true "values" dict "namespace" nil) $depRaw }}
 
       {{- /* Only emit a need for a dep that is actually enabled. A disabled dep has no
-             release, so listing it as a need is an undefined-release error in helmfile. */ -}}
+             release, so listing it as a need is an undefined-release error in helmfile.
+             A dep outside the selected stack is disabled too, so its need is dropped. */ -}}
       {{- $depEnabled := true }}
       {{- if hasKey $depRaw "enabled" }}{{- $depEnabled = (index $depRaw "enabled") }}{{- end }}
+      {{- if not (index $stackEnabled $dep) }}{{- $depEnabled = false }}{{- end }}
       {{- if $depEnabled }}
 
         {{- $depNs := include "namespace" (dict
