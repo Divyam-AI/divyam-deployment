@@ -10,6 +10,12 @@ locals {
   region            = get_env("REGION","centralindia")
   zone              = get_env("ZONE","centralindia-1")
 
+  # Stack selector: which Divyam stack this deployment provisions and deploys.
+  # Allowed values are "evalm8", "router", or "both" (the default).
+  # 3-export_details writes this into provider.yaml (like deployment_mode), so the helmfile deploys the same stack this infra was provisioned for.
+  # It also gates the evalm8-only cloud resources (the new charts' secret-manager keys and the lakeFS object storage) so a router-only deployment does not provision them.
+  stack             = get_env("STACK", "both")
+
   deployment_mode = "onprem"  # Set value to "managed" | "onprem"
 
   deployment_prefix = (
