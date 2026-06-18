@@ -1,7 +1,6 @@
 settings:
   use_spot_nodes: true
   storage_class: economyHdd   # Possible values: economyHdd, standardSsd, premiumSsd
-  # stack: both               # Fallback stack when provider.yaml omits it: evalm8 | router | both. STACK env / --stack override.
 
 charts:
   divyam-persistent-storage:

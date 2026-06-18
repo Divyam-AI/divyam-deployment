@@ -32,8 +32,6 @@
 #                           / .k8s.conf / helmfile default). With -C, resolves within that channel.
 #   -C, --channel <stable|nightly>  Set ARTIFACTS_CHANNEL -> releases/<channel>/<-a|latest>-artifacts.yaml.
 #                           Omit to use a local artifacts.yaml or stable/latest. See k8s/releases/VERSIONING.md.
-#       --stack <evalm8|router|both>  Set STACK -> select only that stack's releases (default both).
-#                           Mirrors the iac stack selector. Falls back to $STACK, then settings.stack.
 #       --tui                 status: open the helm-tui terminal UI (`helm tui`).
 #       --dashboard           status: open the helm-dashboard web UI (`helm dashboard`).
 #   kubeconfig options (resolved from iac/values/secrets.env + provider.yaml when omitted):
@@ -72,7 +70,7 @@ source "$REPO_ROOT/scripts/lib/cli.sh"
 # --- arg parsing (supports -x, --x, and --x=value) -------------------------
 SUBCMD=""; RELEASE=""; FILTER=""; ASSUME_YES=0; DRYRUN=0
 STATUS_TUI=0; STATUS_DASH=0; PASSTHRU=()
-CLI_VDIR=""; CLI_ENV=""; CLI_ARTIFACTS=""; CLI_CHANNEL=""; CLI_STACK=""
+CLI_VDIR=""; CLI_ENV=""; CLI_ARTIFACTS=""; CLI_CHANNEL=""
 CLI_CLOUD=""; CLUSTER=""; PROJECT=""; REGION_F=""; ZONE_F=""; RESOURCE_GROUP=""; DO_LOGIN=0; NO_TF=0
 usage() { cli::usage "$0"; }
 die() { cli::die "$@"; }   # ❌-prefixed to stderr, exit 2 (shared lib; preserves prior exit code)
@@ -91,8 +89,6 @@ while [[ $# -gt 0 ]]; do
     --artifacts-version=*)  CLI_ARTIFACTS="${1#*=}"; shift;;
     -C|--channel) CLI_CHANNEL="${2:?--channel needs a value}"; shift 2;;
     --channel=*)  CLI_CHANNEL="${1#*=}"; shift;;
-    --stack)      CLI_STACK="${2:?--stack needs a value}"; shift 2;;
-    --stack=*)    CLI_STACK="${1#*=}"; shift;;
     --tui)        STATUS_TUI=1; shift;;
     --dashboard)  STATUS_DASH=1; shift;;
     -c|--cloud)   CLI_CLOUD="${2:?--cloud needs a value}"; shift 2;;
@@ -129,9 +125,6 @@ VALUES_DIR="${CLI_VDIR:-${HELMFILE_VALUES_DIR:-${CONF_VDIR:-k8s/helm-values}}}"
 ENV_OVERRIDE="${CLI_ENV:-${ENV:-$CONF_ENV}}"
 ARTIFACTS_VERSION="${CLI_ARTIFACTS:-${ARTIFACTS_VERSION:-$CONF_ARTIFACTS}}"
 ARTIFACTS_CHANNEL="${CLI_CHANNEL:-${ARTIFACTS_CHANNEL:-$CONF_CHANNEL}}"
-# Stack selector: flag, then $STACK, else empty (helmfile falls back to settings.stack, then both).
-STACK="${CLI_STACK:-${STACK:-}}"
-case "$STACK" in ""|evalm8|router|both) ;; *) die "--stack must be one of: evalm8, router, both (got '$STACK')";; esac
 # Channel/version are passed through `make k8s -- …`; reject `=` (make would eat NAME=VALUE as a var).
 case "${ARTIFACTS_CHANNEL}${ARTIFACTS_VERSION}" in *=*) die "channel/version must be plain tokens (no '=')";; esac
 # Accept an absolute --values-dir (e.g. an out-of-repo dir like the sandbox's sky_workdir values);
@@ -182,7 +175,6 @@ hf() {  # <diff|sync|apply|destroy|template> [extra args...]
   local -a cmd=(helmfile -f "$HELMFILE" "${SEL[@]}" "$verb" "$@" "${PASSTHRU[@]}")
   local ctx="env=${ENV_NAME:-<auto>}"; [[ -n "$ARTIFACTS_VERSION" ]] && ctx+=" ARTIFACTS_VERSION=$ARTIFACTS_VERSION"
   [[ -n "$ARTIFACTS_CHANNEL" ]] && ctx+=" ARTIFACTS_CHANNEL=$ARTIFACTS_CHANNEL"
-  [[ -n "$STACK" ]] && ctx+=" STACK=$STACK"
   echo "+ (cd $VALUES_DIR && ${cmd[*]})   [$ctx]"
   [[ "$DRYRUN" -eq 1 ]] && { echo "  (dry-run: not executed)"; return 0; }
   # Export the ABSOLUTE values dir: helmfile resolves `readFile` in helmfile.yaml.gotmpl relative to
@@ -191,7 +183,6 @@ hf() {  # <diff|sync|apply|destroy|template> [extra args...]
   ( cd "$BASE" && export HELMFILE_VALUES_DIR="$BASE"; \
     [[ -n "$ARTIFACTS_VERSION" ]] && export ARTIFACTS_VERSION; \
     [[ -n "$ARTIFACTS_CHANNEL" ]] && export ARTIFACTS_CHANNEL; \
-    [[ -n "$STACK" ]] && export STACK; \
     "${cmd[@]}" )
 }
 

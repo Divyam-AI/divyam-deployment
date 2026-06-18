@@ -4,7 +4,7 @@
 #   helmfile diff
 #   helmfile -l name=mysql apply
 #   helmfile destroy
-#   STACK=evalm8 helmfile list    # select only one stack: evalm8 | router | both (default both)
+# Stack selection (evalm8 | router | both) comes from the `stack` key in provider.yaml. Absent = all.
 
 helmDefaults:
   createNamespace: true
@@ -137,16 +137,17 @@ repositories:
 {{- $clusterDomain := $values.global.clusterDomain }}
 {{- $externalSecretsChartName := "external-secrets/external-secrets" }}
 
-{{/* Stack selector: evalm8 | router | both. Gates which release groups are enabled so a single
-     invocation brings up only the selected stack. Terraform writes the chosen stack into
-     provider.yaml (like deployment_mode), so a provisioned cluster deploys the stack it was
-     provisioned for. Precedence: STACK env var, then STACK_SELECTOR env var, then provider.yaml
-     stack, then resources.yaml settings.stack, then "both". */}}
-{{- $stack := env "STACK" | default (env "STACK_SELECTOR") | default (dig "stack" "" $global) | default (dig "stack" "both" $settings) }}
+{{/* Stack selector: evalm8 | router | both. Read ONLY from provider.yaml (terraform writes the
+     chosen stack there, the same way it writes deployment_mode), so a provisioned cluster deploys
+     the stack it was provisioned for. When the key is ABSENT from provider.yaml the helmfile keeps
+     the prior default behaviour and enables every chart. When it is set to evalm8 or router, only
+     that stack's namespace groups plus the always-shared charts (external-secrets, mysql,
+     persistent-storage) are enabled. The IaC that writes this value lands as a separate PR. */}}
+{{- $stack := dig "stack" "both" $global }}
 {{- if not (has $stack (list "evalm8" "router" "both")) }}
-{{- fail (printf "ERROR: invalid stack selector '%s'. Set STACK (or settings.stack) to one of: evalm8, router, both." $stack) }}
+{{- fail (printf "ERROR: invalid provider.yaml stack '%s'. Set it to one of: evalm8, router, both (or omit it to deploy all services)." $stack) }}
 {{- end }}
-{{- $_ := exec "sh" (list "-c" (printf "echo '[INFO] stack selector: %s' >&2" $stack)) }}
+{{- $_ := exec "sh" (list "-c" (printf "echo '[INFO] stack selector (provider.yaml): %s' >&2" $stack)) }}
 
 ###############################################################################
 # 2. Namespace Group Map
