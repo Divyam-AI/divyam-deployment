@@ -19,22 +19,9 @@ helmDefaults:
 
 
 repositories:
-  # Only repos that an ENABLED local chart actually builds a dependency from. helmfile
-  # adds every listed repo at sync start (a flaky add aborts the whole sync), so we keep
-  # this minimal. external-secrets-operator and cloudnative-pg-operator are thin wrappers
-  # with a Chart.yaml dependency, so their upstream repos are required. temporal and lakefs
-  # are VENDORED (no dependencies). opensearch-operator and ot-helm (redis-operator) back
-  # the Argilla substack, required now that Argilla is enabled (the search + job-queue
-  # datastores). Their dependency archives are gitignored, so helmfile builds them from
-  # these upstream repos at sync.
+  # The chart key external-secrets-operator maps to the remote chart external-secrets/external-secrets, so helmfile needs this repo registered to pull it.
   - name: external-secrets
     url: https://charts.external-secrets.io
-  - name: cloudnative-pg
-    url: https://cloudnative-pg.github.io/charts
-  - name: opensearch-operator
-    url: https://opensearch-project.github.io/opensearch-k8s-operator/
-  - name: ot-helm
-    url: https://ot-container-kit.github.io/helm-charts/
 
 ###############################################################################
 # 1. Load and Merge Values
