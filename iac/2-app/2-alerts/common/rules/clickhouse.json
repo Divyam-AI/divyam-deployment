@@ -9,7 +9,7 @@
   "rules": [
     {
       "alert": "clickhouse-disk-usage-high",
-      "_comment": "Escape hatch: disk-used % is (total-free)/total — not expressible in the structured query IR. Datadog ClickHouse integration emits clickhouse.disks.free_space_bytes and clickhouse.disks.total_space_bytes tagged with disk_name and host.",
+      "_comment": "Escape hatch: disk-used % is (total-free)/total — not expressible in the structured query IR. The clickhouse.disks.free_space / clickhouse.disks.total_space metrics are emitted by a custom_queries block in the Datadog ClickHouse check (1-platform/2-monitoring/.../datadog/common/main.tf), tagged with disk_name and kube_cluster_name.",
       "window": "15m",
       "for": "5m",
       "severity": "WARNING",
@@ -22,11 +22,10 @@
       },
       "annotations": {
         "summary": "ClickHouse Disk Usage High",
-        "description": "Warn when ClickHouse disk usage exceeds 80%; critical at 90%. Recovery at 75% (warn) / 85% (critical).",
-        "runbook_url": "https://runbooks.divyam.ai/clickhouse/disk-usage-high"
+        "description": "Warn when ClickHouse disk usage exceeds 80%; critical at 90%. Recovery at 75% (warn) / 85% (critical)."
       },
       "datadog": {
-        "query": "max(last_{{window}}):(avg:clickhouse.disks.total_space_bytes{kube_cluster_name:{{cluster_name}}} by {host,disk_name} - avg:clickhouse.disks.free_space_bytes{kube_cluster_name:{{cluster_name}}} by {host,disk_name}) / avg:clickhouse.disks.total_space_bytes{kube_cluster_name:{{cluster_name}}} by {host,disk_name} * 100 > {{threshold}}",
+        "query": "max(last_{{window}}):(avg:clickhouse.disks.total_space{kube_cluster_name:{{cluster_name}}} by {host,disk_name} - avg:clickhouse.disks.free_space{kube_cluster_name:{{cluster_name}}} by {host,disk_name}) / avg:clickhouse.disks.total_space{kube_cluster_name:{{cluster_name}}} by {host,disk_name} * 100 > {{threshold}}",
         "notify": true,
         "message": "ClickHouse disk {{disk_name.name}} on {{host.name}} (cluster {{kube_cluster_name.name}}) has exceeded disk usage thresholds (warn 80%, critical 90%)."
       }
