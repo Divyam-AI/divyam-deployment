@@ -1,0 +1,124 @@
+# Chart versions and docker image references — merged with provider.yaml + resources.yaml via helmfile.
+# Pinned to the latest published chart versions (OCI) + image tags (GAR). Release artifacts files are
+# produced/committed by internal release tooling — see ../VERSIONING.md.
+# Stopgap: body re-purposed byte-for-byte from stable/1.0.0 until the real nightly pipeline lands.
+
+release:
+  channel: nightly
+  version: "1.0.1-nightly.20260619.1"
+  base: "1.0.1"
+  created: "2026-06-19T00:00:00Z"
+  build-id: "manually seeded"
+  seq: 1
+
+chartBasePath: "oci://asia-south1-docker.pkg.dev/prod-benchmarking/divyam-public-helm-as1"
+
+divyam-router-controller:
+  chart:
+    version: 0.1.179
+  values:
+    image:
+      tag: "0.1.201"
+
+divyam-route-selector:
+  chart:
+    version: 0.1.9
+  values:
+    image:
+      tag: "0.1.69"
+
+divyam-evaluator:
+  chart:
+    version: 0.2.12
+  values:
+    image:
+      tag: "0.1.62"
+
+divyam-selector-training:
+  chart:
+    version: 0.0.44
+  values:
+    image:
+      tag: "0.0.107"
+
+divyam-control-plane-exporter:
+  chart:
+    version: 0.2.12
+  values:
+    image:
+      tag: "0.1.20"
+
+divyam-db-upgrades:
+  chart:
+    version: 0.1.11
+  values:
+    image:
+      tag: "0.0.16"
+
+divyam-e2e-test-runner:
+  chart:
+    version: 0.1.9
+  values:
+    image:
+      tag: "0.0.6"
+
+infinity:
+  chart:
+    subPath: infinity
+    version: 0.0.106
+  values:
+    image:
+      tag: "0.0.76-trt-onnx"
+
+qdrant:
+  chart:
+    subPath: qdrant
+    version: 2.0.105
+
+altinity-clickhouse-operator:
+  chart:
+    version: 0.24.94
+
+clickhouse:
+  chart:
+    version: 0.2.83
+
+strimzi-kafka-operator:
+  chart:
+    version: 0.45.97
+
+kafka-cluster:
+  chart:
+    version: 0.1.89
+
+kafka-connect:
+  chart:
+    version: 0.1.61
+
+otel-collector:
+  chart:
+    version: 0.1.12
+
+mysql:
+  chart:
+    version: 0.2.13
+
+divyam-redis:
+  chart:
+    version: 0.1.10
+
+superset:
+  chart:
+    version: 0.15.9
+
+superset-postgres:
+  chart:
+    version: 0.1.9
+
+superset-ingress:
+  chart:
+    version: 0.0.74
+
+external-secrets-operator:
+  chart:
+    version: 0.10.5

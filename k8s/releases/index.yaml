@@ -8,3 +8,10 @@ releases:
     created: "2026-06-07T00:00:00Z"
     source_sha: genesis
     # genesis stable: hand-seeded, no nightly predecessor (no promoted_from).
+  - version: "1.0.1-nightly.20260619.1"
+    channel: nightly
+    base: "1.0.1"
+    created: "2026-06-19T00:00:00Z"
+    build-id: "manually seeded"
+    seq: 1
+    # stopgap: body re-purposed byte-for-byte from stable/1.0.0 until the real nightly pipeline lands.
