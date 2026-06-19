@@ -177,6 +177,12 @@ hf() {  # <diff|sync|apply|destroy|template> [extra args...]
   [[ -n "$ARTIFACTS_CHANNEL" ]] && ctx+=" ARTIFACTS_CHANNEL=$ARTIFACTS_CHANNEL"
   echo "+ (cd $VALUES_DIR && ${cmd[*]})   [$ctx]"
   [[ "$DRYRUN" -eq 1 ]] && { echo "  (dry-run: not executed)"; return 0; }
+  # Drop helmfile's cached charts so OCI charts are re-pulled fresh: a stale/partial entry
+  # (e.g. an interrupted pull) otherwise fails the run with a confusing chart/connection error.
+  # Best-effort — never let cleanup fail the verb.
+  local hf_cache="${HELMFILE_CACHE_HOME:-${XDG_CACHE_HOME:-$HOME/.cache}/helmfile}"
+  echo "+ rm -rf $hf_cache   (clear helmfile chart cache)"
+  rm -rf "$hf_cache" 2>/dev/null || true
   # Export the ABSOLUTE values dir: helmfile resolves `readFile` in helmfile.yaml.gotmpl relative to
   # the helmfile's own directory (k8s/), not this CWD — so a relative "." can't find provider.yaml
   # when the values dir lives elsewhere. An absolute path resolves correctly regardless of CWD.
@@ -202,8 +208,21 @@ cmd_config() {
   [[ -f "$CONF" ]] || echo "(nothing persisted yet — run: k8s.sh config -d k8s/helm-values -e prod)"
 }
 
+# Fail closed if no cluster is reachable, so helm never silently falls back to its
+# localhost:8080 default (every release then fails in 0s with "kubernetes cluster
+# unreachable"). Read-only guard only — POPULATING the kubeconfig is the caller's
+# responsibility (cloud clusters: `make k8s -- kubeconfig`; the microk8s sandbox: its setup).
+# Probe with `helm` (the binary helmfile actually uses, always present where this runs), NOT
+# kubectl — on a microk8s sandbox kubectl is only a shell alias and absent non-interactively.
+ensure_kubeconfig() {
+  [[ "$DRYRUN" -eq 1 ]] && return 0
+  helm ls -A >/dev/null 2>&1 \
+    || die "helm cannot reach the cluster (KUBECONFIG=${KUBECONFIG:-<unset; using ~/.kube/config>}); refusing to run helmfile — ensure the kubeconfig is populated for this shell." 1
+}
+
 cmd_change() {  # <sync|apply> with auto-diff + confirm
   local verb="$1" label="$2"
+  ensure_kubeconfig
   if [[ "$ASSUME_YES" -ne 1 && "$DRYRUN" -ne 1 ]]; then
     echo "-- diff preview before $label --"
     set +e; hf diff; set -e

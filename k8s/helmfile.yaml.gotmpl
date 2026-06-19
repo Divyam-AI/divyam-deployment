@@ -300,7 +300,14 @@ releases:
 
   {{- if $cfg.enabled }}
 
-    {{- $chart := printf "%s/%s" $base $name }}
+    {{/* Optional per-chart override: `<chart>.chart.repository` (oci:// base or local dir) wins over the
+         global $base, so ONE locally-built chart can be served from oci://localhost:32000 while the rest
+         stay on the published release. Absent key ⇒ current behavior ($base) for every chart. */}}
+    {{- $chartBase := $base }}
+    {{- if and (hasKey $cfg "chart") $cfg.chart (kindIs "map" $cfg.chart) }}
+      {{- $chartBase = (index $cfg.chart "repository") | default $base }}
+    {{- end }}
+    {{- $chart := printf "%s/%s" $chartBase $name }}
     {{- if eq $name "external-secrets-operator" }}
       {{- $chart = $externalSecretsChartName }}
     {{- end }}
