@@ -89,11 +89,6 @@ locals {
           operator = "Exists"
         }
       ]
-      extraConfd = {
-        configMap = {
-          name = "datadog-clickhouse-check"
-        }
-      }
     },
     length(local.datadog_node_agent_password_env) > 0 ? {
       env = local.datadog_node_agent_password_env
@@ -195,49 +190,6 @@ resource "kubernetes_secret_v1" "datadog_mysql_secret" {
   depends_on = [kubectl_manifest.datadog_namespace]
 }
 
-resource "kubernetes_config_map_v1" "datadog_clickhouse_check" {
-  for_each = var.datadog_enabled ? { "enabled" = true } : {}
-
-  metadata {
-    name      = "datadog-clickhouse-check"
-    namespace = local.datadog_namespace
-  }
-
-  data = {
-    "clickhouse.yaml" = yamlencode({
-      instances = [
-        {
-          server   = var.clickhouse_host
-          port     = var.clickhouse_port
-          username = var.clickhouse_username
-          password = "%%env_DIVYAM_CLICKHOUSE_PASSWORD%%"
-          # The Datadog ClickHouse integration does NOT collect disk capacity from system.disks
-          # (it only emits disk I/O / event counters). Emit free/total space as custom metrics so
-          # the clickhouse-disk-usage-high monitor (2-app/2-alerts) has data. Metric names + the
-          # disk_name tag must match that monitor's query.
-          # Note: the ClickHouse integration auto-prepends "clickhouse." to custom_query metric
-          # names, so "disks.free_space" emits as "clickhouse.disks.free_space" in Datadog.
-          # Tag with cluster name so the kube_cluster_name filter in monitors matches.
-          # custom_queries metrics don't inherit Kubernetes infra tags automatically.
-          tags = ["kube_cluster_name:${var.cluster_name}"]
-          custom_queries = [
-            {
-              query = "SELECT name, free_space, total_space FROM system.disks"
-              columns = [
-                { name = "disk_name", type = "tag" },
-                { name = "disks.free_space", type = "gauge" },
-                { name = "disks.total_space", type = "gauge" },
-              ]
-            }
-          ]
-        }
-      ]
-    })
-  }
-
-  depends_on = [kubectl_manifest.datadog_namespace]
-}
-
 # kubectl_manifest + validate_schema=false: DatadogAgent CRD appears only after the operator Helm
 # chart is applied; kubernetes_manifest fails at plan with "CRD may not be installed".
 resource "kubectl_manifest" "datadog_agent" {
@@ -261,6 +213,5 @@ resource "kubectl_manifest" "datadog_agent" {
     kubernetes_secret_v1.datadog_secret,
     kubernetes_secret_v1.datadog_clickhouse_secret,
     kubernetes_secret_v1.datadog_mysql_secret,
-    kubernetes_config_map_v1.datadog_clickhouse_check,
   ]
 }

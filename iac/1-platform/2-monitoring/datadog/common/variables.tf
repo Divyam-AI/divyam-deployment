@@ -106,24 +106,6 @@ variable "divyam_db_password" {
   sensitive   = true
 }
 
-variable "clickhouse_host" {
-  description = "In-cluster FQDN of the ClickHouse HTTP service the Datadog check connects to. Default matches the Altinity CHI (release clk-dev) deployed by the clickhouse Helm chart."
-  type        = string
-  default     = "clickhouse-clk-dev.clickhouse-dev-ns.svc.cluster.local"
-}
-
-variable "clickhouse_port" {
-  description = "ClickHouse HTTP port for the Datadog check (clickhouse-connect uses HTTP, not the 9000 native TCP port)."
-  type        = number
-  default     = 8123
-}
-
-variable "clickhouse_username" {
-  description = "ClickHouse user for the Datadog check; pairs with divyam_clickhouse_password. Matches divyam_clickhouse_user_name (default \"default\")."
-  type        = string
-  default     = "default"
-}
-
 variable "datadog_docker_registry" {
   description = "Container registry for Datadog images (global.registry on DatadogAgent)."
   type        = string
