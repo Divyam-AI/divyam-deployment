@@ -61,7 +61,7 @@ Two layers, kept deliberately small:
      version: <this file's id>
      base: <target stable core>        # nightly: the target; stable: == version
      created: <RFC3339 UTC>
-     source_sha: <build/source git sha>
+     build-id: <pipeline run id; "manually seeded" for hand-seeded files>
      seq: <int>                        # nightly only
      promoted_from: <nightly id>       # stable only — the exact nightly that became this stable
    ```
@@ -90,7 +90,7 @@ A consumer can keep its local `artifacts.yaml` as default and opt into a channel
 ## Pipeline obligations (for the future, not-yet-built pipeline)
 
 - **Nightly run:** read `NEXT_VERSION`=base; id = `<base>-nightly.<UTCdate>.<seq>` (seq monotonic/day);
-  write `nightly/<id>-artifacts.yaml` (schema + scalar `release:` with `source_sha`); **append a row to
+  write `nightly/<id>-artifacts.yaml` (schema + scalar `release:` with `build-id`); **append a row to
   `index.yaml`**; on passing gates, atomically (write-temp-then-`mv`) update `nightly/latest`=id.
 - **Promotion (nightly → stable):** input nightly id `N`, target stable `S` (= `base` of `N`). Copy
   `nightly/N-artifacts.yaml` → `stable/S-artifacts.yaml` **byte-for-byte** (image tags & chart versions
