@@ -278,7 +278,7 @@ charts:
   divyam-db-upgrades:
     values: {}
 
-  divyam-e2e-test-runner: 
+  divyam-e2e-test-runner:
     values:
       resources:
         requests:
@@ -287,4 +287,131 @@ charts:
         limits:
           cpu: 1
           memory: 1Gi
+
+  cloudnative-pg-operator:
+    values: {}
+  opensearch-operator:
+    values: {}
+  redis-operator:
+    values: {}
+
+  # Per-consumer datastores (operator-managed CRs, co-located in each consumer ns).
+  # NOTE: HA + backup key paths differ per datastore chart (see each chart's values.yaml).
+  # Backups are gated off here - buckets/creds are terraform-provisioned per env, then
+  # backup.enabled / snapshots.enabled are flipped on with the credential secret refs.
+  temporal-postgres:
+    values:
+      cluster:
+        instances: 2                                          # prod: 3
+        storage: { storageClass: divyam-premium-ssd, size: 20Gi }
+        resources:
+          requests: { cpu: "500m", memory: "1Gi" }
+          limits:   { cpu: "2",    memory: "4Gi" }
+        highAvailability:
+          enabled: false                                      # prod: true (with instances >= 3)
+          minSyncReplicas: 1
+          maxSyncReplicas: 1
+      backup:
+        enabled: false                                        # flip on once bucket+creds exist
+        provider: ""                                          # s3 | azure | google
+        destinationPath: ""                                   # e.g. s3://<bucket>/temporal-postgres
+        retentionPolicy: "30d"
+        schedule: "0 0 3 * * *"
+  # Temporal uses Postgres advanced visibility (PG 12+), so there is no Temporal search datastore.
+  lakefs-postgres:
+    values:
+      cluster:
+        instances: 1                                          # prod: 3 (lakeFS PG is critical)
+        storage: { storageClass: divyam-default, size: 10Gi }
+      highAvailability:
+        podAntiAffinity: true
+        synchronousReplication: { enabled: false, number: 1 } # prod: enabled true at instances >= 2
+      backup:
+        enabled: false
+        destinationPath: ""
+        scheduledBackup: { enabled: false, schedule: "0 0 0 * * *" }
+        retentionPolicy: "30d"
+  argilla-postgres:
+    values:
+      cluster:
+        instances: 1                                          # prod: >= 2
+        storage: { storageClass: divyam-default, size: 10Gi }
+      highAvailability:
+        enabled: false
+        synchronousReplication: false
+        synchronousReplicas: 1
+      backup:
+        enabled: false
+        destinationPath: ""                                   # s3://... | gs://... | azure container URL
+        schedule: "0 0 2 * * *"
+        retentionPolicy: "30d"
+  argilla-opensearch:
+    values:
+      opensearch:
+        # OpenSearch holds Argilla's PRIMARY records. Prod uses nodePool.replicas >= 2 with index replicas >= 1, plus snapshots.
+        nodePool:
+          replicas: 1                                         # prod >= 2, data-bearing and multi-node
+          diskSize: "20Gi"
+          storageClass: "divyam-default"
+          jvm: "-Xms1g -Xmx1g"
+        resources:
+          requests: { cpu: "500m", memory: "2Gi" }
+          limits:   { cpu: "1",    memory: "3Gi" }
+  argilla-redis:
+    values:
+      redis:
+        storage: { storageClass: divyam-default, size: 5Gi }  # transient job queue, not critical-data
+
+  temporal:
+    values: {}
+
+  lakefs:
+    values:
+      highAvailability:
+        pdb: { enabled: false }                               # prod: true
+      lakefs:
+        replicaCount: 1                                       # prod: >= 2 (lakeFS server is critical)
+
+  argilla:
+    values:
+      server:
+        replicaCount: 1
+        resources:
+          requests: { cpu: "500m", memory: "1Gi" }
+          limits:   { cpu: "1",    memory: "2Gi" }
+      worker:
+        replicaCount: 1
+        resources:
+          requests: { cpu: "250m", memory: "512Mi" }
+          limits:   { cpu: "500m", memory: "1Gi" }
+
+  evalm8-server:
+    values:
+      server:
+        replicaCount: 2
+        resources:
+          requests: { cpu: "500m", memory: "1Gi" }
+          limits:   { cpu: "1",    memory: "2Gi" }
+      highAvailability:
+        pdb: { enabled: true, minAvailable: 1 }
+        podAntiAffinity: { enabled: true }
+
+  evalm8-wfs:
+    values:
+      worker:
+        replicaCount: 2
+        resources:
+          requests: { cpu: "500m", memory: "1Gi" }
+          limits:   { cpu: "1",    memory: "2Gi" }
+
+  evalm8-ui:
+    values:
+      ui:
+        replicaCount: 1
+        resources:
+          requests: { cpu: "100m", memory: "128Mi" }
+          limits:   { cpu: "250m", memory: "256Mi" }
+
+  evalm8-ingress:
+    values: {}
 
