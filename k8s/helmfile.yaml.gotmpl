@@ -6,11 +6,15 @@
 #   helmfile destroy
 # Stack selection (evalm8 | router | both) comes from the `stack` key in provider.yaml. Absent = all.
 
+# wait/timeout/atomic are env-overridable so a caller (e.g. the sandbox / nightly CI) can relax them
+# for faster failure + surviving wreckage to diagnose. Unset env ⇒ the prod defaults below verbatim —
+# the prod path never sets these vars, so its behavior is unchanged. Set by k8s.sh's --no-wait /
+# --deploy-timeout / --no-atomic flags (exported as HF_WAIT / HF_TIMEOUT / HF_ATOMIC).
 helmDefaults:
   createNamespace: true
-  wait: true
-  timeout: 1200
-  atomic: true
+  wait: {{ env "HF_WAIT" | default "true" }}
+  timeout: {{ env "HF_TIMEOUT" | default "1200" }}
+  atomic: {{ env "HF_ATOMIC" | default "true" }}
   diffArgs:
     - "--normalize-manifests"
     - "--three-way-merge"
