@@ -295,3 +295,9 @@ items, pauses, and verifies them before resuming** (see the `divyam-platform-eng
 - Always `make k8s -- diff` before `upgrade`; `install` (`sync`) only for the first install.
 - Alert-query changes should be re-proven (deploy → simulate via `test/alert-sim/*.yaml` → Zenduty
   check with `scripts/zenduty.py`) before declaring done.
+- **Long-running ops → `agent-operating-loops`** (`.claude/skills/`, mirror of the canonical in
+  `divyam-sandbox`): monitor a stack install granularly (~20–30s; a stuck release hangs up to the 1200s
+  atomic timeout), self-heal only safe idempotent retries, and on an unresolved failure run the
+  **failure→bug** loop (search `box-autofiled` issues first, then a write-gated bug). Durable lessons →
+  the **self-learning→PR** loop. Both housekeeping loops are background + double-gated (ask before
+  running, then the write-gate).
