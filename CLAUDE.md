@@ -270,6 +270,9 @@ items, pauses, and verifies them before resuming** (see the `divyam-platform-eng
 
 ## Conventions
 
+- **GitHub content footer (all agents, default):** agent-authored GitHub content (issue/PR/comment
+  bodies) carries the `📦 via Box · <role>` footer **ONLY** — never "🤖 Generated with Claude Code" or a
+  `Co-Authored-By: Claude` line (overrides the default tool footer; git *commit* trailers are separate).
 - Don't commit/push unless asked. Never commit `iac/values/secrets.env` (or `.tf-secrets.env`),
   `provider.yaml` secrets, or tokens.
 - Alert rules are source of truth — edit `common/rules/*.json`, never generated per-backend resources.

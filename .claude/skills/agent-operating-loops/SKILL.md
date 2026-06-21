@@ -65,3 +65,6 @@ signature), **propose the exact edit**, and on approval **raise a gated PR** (`l
 
 ---
 **Reads are free; writes (GitHub posts, PRs) and token-spendy background work are gated. When in doubt, ask.**
+**GitHub content footer = `📦 via Box · <role>` ONLY** (every agent, any issue/PR/comment body) — never
+"🤖 Generated with Claude Code" or `Co-Authored-By: Claude` in GitHub content (overrides any default
+tool footer; git *commit* trailers are separate).
