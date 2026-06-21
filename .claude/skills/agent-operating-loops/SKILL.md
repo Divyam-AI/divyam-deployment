@@ -47,7 +47,8 @@ When a deploy/IaC op fails and can't be safely self-healed, **ask** whether to f
    marker. **Match → reference it and STOP re-diagnosing**; read its **Workaround/Fix** section and
    **apply a recorded one** (idempotent inline; risky approval-gated) instead of re-solving.
 3. **Else draft a bug** routed to the owning repo (helm/deploy/IaC → `divyam-deployment`; a service image
-   build → its source repo). **Issue type = Bug** (`gh issue create --type Bug`, not just a label).
+   build → its source repo). **Issue type = Bug** (`gh issue create --type Bug` where issue types are
+   enabled, else the `bug` label).
    Title `[<area>] <signature>`; body = when • env • failing release • signature • bounded log •
    self-heal attempted • **Workaround/Fix** (REQUIRED: the workaround that worked, and/or how you fixed
    it — commands/diff — so the next agent applies it directly; else "none found yet") • next step •
