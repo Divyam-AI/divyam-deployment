@@ -177,3 +177,16 @@ mysql -h mysql-<env>-svc -uroot -p -e "SELECT 1; SHOW STATUS LIKE 'Threads_conne
 - k8s-values `resources.yaml`: cpu/mem (buffer pool), storage, `max_connections`. **Back up before any
   upgrade (single node).** **Reliability gap: no replication/failover for a serving-critical store —
   candidate for an HA change.**
+
+## MicroK8s host (single-node sandbox) — golden-image clone cert/node drift
+Cloned-from-golden-image sandbox VMs inherit **bake-time** node identity. Two failures appear together:
+a stale `microk8s-node` stuck **NotReady** (wrong IP), and `kubectl logs`/`exec` failing **x509**
+because the kubelet **serving** cert carries the bake-time node IP in its SAN.
+**Critical traps:** `microk8s refresh-certs` does **NOT** cover the kubelet serving cert; the snap's
+`create_user_certificates` **aborts** (`REAL_PATH: unbound variable`) and **truncates** the user certs
+— don't use it.
+**Recovery (working):** (1) from the intact private keys + cluster CA, re-sign all user/serving certs
+with `openssl`, correct **EKU** per cert (`serverAuth` kubelet serving / `clientAuth` clients) + the
+**live** node IP/hostname in the SAN; (2) re-embed the certs into the kubeconfigs; (3) restart
+`microk8s.daemon-kubelite`; (4) verify one node Ready + `kubectl logs <pod>` no longer x509. Durable
+fix (regenerate identity + serving cert at clone first-boot): divyam-sandbox#23. Gap `G-CLONE-KUBELET-CERT`.

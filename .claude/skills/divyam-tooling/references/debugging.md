@@ -44,6 +44,19 @@ To inspect a release that keeps getting rolled back, retry with atomic off / a l
 failed pod survives for `describe`/`logs`: `make k8s -- upgrade -l <chart> -- --no-atomic --timeout 300s`
 (args after a second `--` pass straight to helmfile/helm; confirm with `./scripts/k8s.sh help`).
 
+### Single-node: rollback from HARD pod anti-affinity + surge
+**Symptom:** on a single-node cluster (sandbox MicroK8s), `helm upgrade` of `divyam-route-selector` /
+`divyam-router-controller` hangs to the progress-deadline then rolls back; the new pod is `Pending`
+with `didn't match pod anti-affinity rules`.
+**Cause:** charts default to `requiredDuringSchedulingIgnoredDuringExecution` (HARD) pod anti-affinity
++ RollingUpdate `maxSurge>0`; the surge pod can't co-schedule with the incumbent on one node → never
+schedulable → deadline → rollback. These charts **don't honor `.Values.strategy`** (can't force
+`Recreate`).
+**Fix (sandbox):** (1) override to SOFT affinity via the chart's `.Values.affinity` passthrough —
+present only in SOURCE charts, not published (divyam-helm-charts#72 / gap `G-CHART-AFFINITY-PUBLISH`),
+so needs a `source` box; or (2) **scale the release to 0, then redeploy** to clear the HARD incumbent.
+Proper fix: a `.Values.strategy` passthrough — divyam-helm-charts#73.
+
 ### ExternalSecret / secrets not resolving
 The secret chain: `provider.yaml` `secrets:` → **external-secrets-operator** → `SecretStore` →
 `ExternalSecret` → the k8s `Secret` a chart mounts. Charts only render an ExternalSecret when
