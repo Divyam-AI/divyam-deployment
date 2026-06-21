@@ -44,12 +44,17 @@ When a deploy/IaC op fails and can't be safely self-healed, **ask** whether to f
    tried.
 2. **Search the owning repo first** — `gh issue list --repo Divyam-AI/divyam-deployment --state open
    --label box-autofiled --search "<signature>"`, matched on a hidden `<!-- box-bug:<signature-hash> -->`
-   marker. **Match → reference it and STOP** (don't re-diagnose / re-file).
+   marker. **Match → reference it and STOP re-diagnosing**; read its **Workaround/Fix** section and
+   **apply a recorded one** (idempotent inline; risky approval-gated) instead of re-solving.
 3. **Else draft a bug** routed to the owning repo (helm/deploy/IaC → `divyam-deployment`; a service image
-   build → its source repo). Title `[<area>] <signature>`; body = when • env • failing release • signature
-   • bounded log • self-heal attempted • next step • hidden marker; labels `box-autofiled` + `bug`;
-   footer `📦 via Box · divyam-sre`.
-4. **Post only through the write-gate** — show exact title + body + target repo, get approval, offer to edit.
+   build → its source repo). **Issue type = Bug** (`gh issue create --type Bug`, not just a label).
+   Title `[<area>] <signature>`; body = when • env • failing release • signature • bounded log •
+   self-heal attempted • **Workaround/Fix** (REQUIRED: the workaround that worked, and/or how you fixed
+   it — commands/diff — so the next agent applies it directly; else "none found yet") • next step •
+   hidden marker; label `box-autofiled`; footer `📦 via Box · divyam-sre`.
+4. **Post only through the write-gate** — show exact type + title + body + target repo, get approval,
+   offer to edit. If you later find a workaround/fix for an open bug, update its Workaround/Fix section
+   (write-gated) so knowledge compounds.
 
 ## C. Self-learning loop (background; ask-before-run, then PR write-gate)
 When a **durable, higher-dimension, decision-shaping** fact is learned (still true in ~3 months; not a
