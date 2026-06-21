@@ -456,11 +456,28 @@ k8s_stamped() {  # <step> <cmd...> — subshell so an inner `die`/exit still lan
   return "$rc"
 }
 
+# Record a helm deploy (install/upgrade) in the deploy ledger (~/.k8s-deploys) so `box stack -d` can
+# show per-chart deploy status/age/pending by diffing the last applied snapshot vs the live
+# artifacts.yaml — no cluster query. Best-effort: never fails the deploy. Wraps the actual deploy cmd.
+# shellcheck disable=SC1091
+source "$REPO_ROOT/scripts/deploy-ledger.sh"
+k8s_deploy_recorded() {  # <verb> <cmd...>
+  local verb="$1"; shift
+  if [[ "$DRYRUN" -eq 1 ]]; then "$@"; return "$?"; fi
+  resolve_env 2>/dev/null || true
+  local af="$BASE/artifacts.yaml" scope="${RELEASE:-all}" env="${ENV_NAME:-}"
+  local id; id="$(deploy_record_start "$af" "$verb" "$scope" "$env")"
+  local rc=0; ( "$@" ) || rc=$?
+  if [[ "$rc" -eq 0 ]]; then deploy_record_end "$id" "$verb" "$scope" "$env" applied
+  else deploy_record_end "$id" "$verb" "$scope" "$env" failed; fi
+  return "$rc"
+}
+
 case "$SUBCMD" in
   config)            cmd_config;;
   diff)              hf diff;;
-  install)           k8s_stamped k8s-install cmd_change sync "install (helmfile sync)";;
-  upgrade)           cmd_change apply "upgrade (helmfile apply)";;
+  install)           k8s_stamped k8s-install k8s_deploy_recorded install cmd_change sync "install (helmfile sync)";;
+  upgrade)           k8s_deploy_recorded upgrade cmd_change apply "upgrade (helmfile apply)";;
   delete|destroy)    cmd_delete;;
   diagnose)          cmd_diagnose;;
   template)          hf template;;
