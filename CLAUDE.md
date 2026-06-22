@@ -270,6 +270,9 @@ items, pauses, and verifies them before resuming** (see the `divyam-platform-eng
 
 ## Conventions
 
+- **GitHub content footer (all agents, default):** agent-authored GitHub content (issue/PR/comment
+  bodies) carries the `📦 via Box · <role>` footer **ONLY** — never "🤖 Generated with Claude Code" or a
+  `Co-Authored-By: Claude` line (overrides the default tool footer; git *commit* trailers are separate).
 - Don't commit/push unless asked. Never commit `iac/values/secrets.env` (or `.tf-secrets.env`),
   `provider.yaml` secrets, or tokens.
 - Alert rules are source of truth — edit `common/rules/*.json`, never generated per-backend resources.
@@ -295,3 +298,9 @@ items, pauses, and verifies them before resuming** (see the `divyam-platform-eng
 - Always `make k8s -- diff` before `upgrade`; `install` (`sync`) only for the first install.
 - Alert-query changes should be re-proven (deploy → simulate via `test/alert-sim/*.yaml` → Zenduty
   check with `scripts/zenduty.py`) before declaring done.
+- **Long-running ops → `agent-operating-loops`** (`.claude/skills/`, mirror of the canonical in
+  `divyam-sandbox`): monitor a stack install granularly (~20–30s; a stuck release hangs up to the 1200s
+  atomic timeout), self-heal only safe idempotent retries, and on an unresolved failure run the
+  **failure→bug** loop (search `box-autofiled` issues first, then a write-gated bug). Durable lessons →
+  the **self-learning→PR** loop. Both housekeeping loops are background + double-gated (ask before
+  running, then the write-gate).

@@ -40,15 +40,22 @@ skill's handoff loop). Every command below is independently invocable by whichev
   channel/version contract → `k8s/releases/VERSIONING.md`.
 - **Tear down** → `/destroy-layer <layer>` (guarded, type-to-confirm).
 
-## Long-running operations — keep the user informed
-Bringup, full-layer applies, and stack installs run for many minutes. Run them in the
-**background**, then poll the **one-shot** `make status -- -c <cloud> -e <env>` (the
-`/bringup-status` command; reads the step ledger, no cloud calls) at a regular interval (~60s) and
-relay the STEP/STATUS/ELAPSED/TYPICAL table whenever it changes — which step is `running` (vs its
-TYPICAL duration), what completed, what's `pending` — until exit 0 (all applied) or a step turns
-`failed` (then `/debug-stack` or the run's log). **Never run `-w/--watch` from a tool shell** —
-it's an interactive clear-screen loop that never returns; offer it to the user for their own
-terminal instead (`! make status -- -w -i 10`).
+## Long-running operations — monitor granularly, then loop on failure/learning
+Bringup, full-layer applies, and stack installs run for many minutes — follow **`agent-operating-loops`**
+(the shared loops). Run them in the **background**, then poll the **one-shot** `make status -- -c <cloud>
+-e <env>` (`/bringup-status`; reads the step ledger, no cloud calls) and relay the
+STEP/STATUS/ELAPSED/TYPICAL table whenever it changes, until exit 0 (all applied) or a step `failed`.
+**During a Helm install, monitor granularly (~20–30s)** with `make k8s -- status` + `kubectl get pods -A
+| grep -vE 'Running|Completed'`: a release that misses readiness **hangs up to the 1200s atomic timeout,
+then rolls back and aborts every release after it** — catch the stuck release early (the first failing
+one is the real one). **Never run `-w/--watch`/`--tui` from a tool shell** (interactive, never returns;
+offer it to the user: `! make status -- -w -i 10`).
+
+**Unresolved failure → failure→bug loop** (`agent-operating-loops` §B): if it isn't a safe idempotent
+retry, **ask the user** whether to file a bug, then run it **in the background** — search
+`divyam-deployment`'s open `box-autofiled` issues for the signature first (reference + stop if found),
+else draft a write-gated bug. Durable, decision-shaping lessons → the self-learning loop §C (gated PR).
+Both gated: ask-before-run + write-gate.
 
 ## Guardrails
 - **No HCL edits here.** You have `Bash, Read, Grep, Glob` — no `Edit`. Running contracts and
