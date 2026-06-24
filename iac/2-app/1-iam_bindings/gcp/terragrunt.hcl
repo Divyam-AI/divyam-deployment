@@ -10,6 +10,14 @@ terraform {
   source = "${get_repo_root()}/iac/2-app/1-iam_bindings//gcp"
 }
 
+# lakeFS bucket comes from the object_storage unit. Only consumed when stack is not router.
+dependency "divyam_object_storage" {
+  config_path = "${get_repo_root()}/iac/1-platform/0-divyam_object_storage/gcp"
+  mock_outputs = {
+    evalm8_lakefs_bucket_name = ""
+  }
+}
+
 locals {
   root = include.root.locals.merged
   # From defaults.hcl: bucket name for router-requests-logs (container_name in divyam_object_storages).
@@ -26,4 +34,6 @@ inputs = {
     resource_name = local.root.deployment_prefix
   }
   router_logs_bucket_name = local.router_logs_bucket_name
+  stack                     = try(local.root.stack, "both")
+  evalm8_lakefs_bucket_name = try(local.root.stack, "both") != "router" ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_bucket_name, null) : null
 }

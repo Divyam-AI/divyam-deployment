@@ -74,3 +74,15 @@ output "router_requests_logs_container_names" {
   description = "Container names for the storage account with type 'router-requests-logs' (from divyam_object_storages)."
   value       = var.router_requests_logs_storage_key != null ? [for k, v in merge(azurerm_storage_container.container, data.azurerm_storage_container.existing) : v.name if startswith(k, "${var.router_requests_logs_storage_key}/")] : []
 }
+
+
+# Evalm8 lakeFS data store, identified by type lakefs-data in evalm8_object_storages.
+output "evalm8_lakefs_storage_account_name" {
+  description = "Name of the storage account with type lakefs-data from evalm8_object_storages. Consumed by the evalm8 export unit."
+  value       = var.evalm8_lakefs_storage_key != null ? try(local.all_storage_account_names[var.evalm8_lakefs_storage_key], null) : null
+}
+
+output "evalm8_lakefs_container_name" {
+  description = "First container name for the storage account with type lakefs-data from evalm8_object_storages. Consumed by the evalm8 export unit."
+  value       = var.evalm8_lakefs_storage_key != null ? try(one([for k, v in merge(azurerm_storage_container.container, data.azurerm_storage_container.existing) : v.name if startswith(k, "${var.evalm8_lakefs_storage_key}/")]), null) : null
+}

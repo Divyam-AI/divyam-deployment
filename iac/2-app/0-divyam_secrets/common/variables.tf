@@ -8,6 +8,7 @@ variable "environment" {
 variable "input" {
   description = "Secrets input: all divyam_* secret values (from TF_VAR_* or Terragrunt)."
   type = object({
+    evalm8_enabled                      = optional(bool, false)
     divyam_db_root_password             = optional(string)
     divyam_db_user_name                 = optional(string)
     divyam_db_password                  = string

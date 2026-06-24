@@ -35,6 +35,70 @@ locals {
   openai_key                    = var.input.divyam_openai_billing_admin_api_key != null ? var.input.divyam_openai_billing_admin_api_key : ""
 }
 
+# Evalm8 secret values, TF-generated, gated by evalm8_enabled.
+# All eight evalm8 vault keys. Created only when the evalm8 stack is in scope.
+# The encrypt and jwt keys are at least 32 chars. The encryption key is exactly 64 hex chars for AES-256.
+resource "random_password" "evalm8_lakefs_access_key_id" {
+  count   = var.input.evalm8_enabled ? 1 : 0
+  length  = 20
+  special = false
+}
+
+resource "random_password" "evalm8_lakefs_secret_access_key" {
+  count   = var.input.evalm8_enabled ? 1 : 0
+  length  = 40
+  special = false
+}
+
+resource "random_password" "evalm8_lakefs_auth_encrypt_key" {
+  count   = var.input.evalm8_enabled ? 1 : 0
+  length  = 32
+  special = false
+}
+
+resource "random_password" "evalm8_argilla_api_key" {
+  count   = var.input.evalm8_enabled ? 1 : 0
+  length  = 32
+  special = false
+}
+
+resource "random_password" "evalm8_argilla_auth_secret_key" {
+  count   = var.input.evalm8_enabled ? 1 : 0
+  length  = 32
+  special = false
+}
+
+resource "random_password" "evalm8_argilla_default_user_password" {
+  count   = var.input.evalm8_enabled ? 1 : 0
+  length  = 24
+  special = true
+}
+
+resource "random_password" "evalm8_jwt_secret" {
+  count   = var.input.evalm8_enabled ? 1 : 0
+  length  = 48
+  special = false
+}
+
+# Exactly 64 hex chars for an AES-256 key. random_id renders byte_length 32 as 64 hex digits.
+resource "random_id" "evalm8_encryption_key" {
+  count       = var.input.evalm8_enabled ? 1 : 0
+  byte_length = 32
+}
+
+locals {
+  evalm8_secrets = var.input.evalm8_enabled ? {
+    "divyam-lakefs-access-key-id"          = random_password.evalm8_lakefs_access_key_id[0].result
+    "divyam-lakefs-secret-access-key"      = random_password.evalm8_lakefs_secret_access_key[0].result
+    "divyam-lakefs-auth-encrypt-key"       = random_password.evalm8_lakefs_auth_encrypt_key[0].result
+    "divyam-argilla-api-key"               = random_password.evalm8_argilla_api_key[0].result
+    "divyam-argilla-auth-secret-key"       = random_password.evalm8_argilla_auth_secret_key[0].result
+    "divyam-argilla-default-user-password" = random_password.evalm8_argilla_default_user_password[0].result
+    "divyam-evalm8-jwt-secret"             = random_password.evalm8_jwt_secret[0].result
+    "divyam-evalm8-encryption-key"         = random_id.evalm8_encryption_key[0].hex
+  } : {}
+}
+
 locals {
   secrets = merge(
     {
@@ -68,6 +132,8 @@ locals {
     # Azure only: Kafka to Blob storage consumer reads this from Key Vault. Not set for GCP.
     var.input.router_requests_logs_storage_account_connection_string != null ? {
       "router-requests-logs-storage-account-connection-string" = var.input.router_requests_logs_storage_account_connection_string
-    } : {}
+    } : {},
+    # Evalm8 vault keys, TF-generated. Empty unless the evalm8 stack is in scope.
+    local.evalm8_secrets
   )
 }

@@ -32,6 +32,8 @@ dependency "divyam_object_storage" {
   mock_outputs = {
     router_requests_logs_storage_account_name = ""
     router_requests_logs_container_names      = []
+    evalm8_lakefs_storage_account_name        = ""
+    evalm8_lakefs_container_name               = ""
   }
 }
 
@@ -101,6 +103,9 @@ inputs = {
   key_vault_name    = try(dependency.divyam_secrets.outputs.key_vault_name, local.key_vault_name)
   storage_account   = try(dependency.divyam_object_storage.outputs.router_requests_logs_storage_account_name, local.storage_account)
   storage_container = try(one(dependency.divyam_object_storage.outputs.router_requests_logs_container_names), local.storage_container)
+  stack                         = try(local.root.stack, "both")
+  evalm8_lakefs_storage_account = try(local.root.stack, "both") != "router" ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_storage_account_name, "") : ""
+  evalm8_lakefs_container       = try(local.root.stack, "both") != "router" ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_container_name, "") : ""
   tenant_id         = get_env("ARM_TENANT_ID", "")
   wif_client_id_map = {
     "divyam-router-controller"     = try(dependency.iam_bindings.outputs.uai_client_ids["router-controller-${local.env}-sa_uai_client_id"], "")
@@ -114,6 +119,11 @@ inputs = {
     "kafka-connect"         = try(dependency.iam_bindings.outputs.uai_client_ids["kafka-${local.env}-connect_uai_client_id"], "")
     "divyam-e2e-test-runner" = try(dependency.iam_bindings.outputs.uai_client_ids["e2e-test-runner-${local.env}-sa_uai_client_id"], "")
     "divyam-control-plane-exporter" = try(dependency.iam_bindings.outputs.uai_client_ids["control-plane-exp-${local.env}-sa_uai_client_id"], "")
+    # evalm8 workload-identity client IDs, present only when stack is not router, absent SAs yield empty.
+    "lakefs"        = try(dependency.iam_bindings.outputs.uai_client_ids["lakefs-${local.env}-sa_uai_client_id"], "")
+    "argilla"       = try(dependency.iam_bindings.outputs.uai_client_ids["argilla-${local.env}-sa_uai_client_id"], "")
+    "evalm8-server" = try(dependency.iam_bindings.outputs.uai_client_ids["evalm8-server-${local.env}-sa_uai_client_id"], "")
+    "evalm8-wfs"    = try(dependency.iam_bindings.outputs.uai_client_ids["evalm8-wfs-${local.env}-sa_uai_client_id"], "")
   }
   cluster_domain            = try(local.export_cfg.cluster_domain, "")
   image_pull_secret_enabled = try(local.export_cfg.image_pull_secret_enabled, true)

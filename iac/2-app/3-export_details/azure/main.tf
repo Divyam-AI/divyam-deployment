@@ -37,6 +37,9 @@ monitoring:
 
 EOT
 
+  # evalm8 lakeFS storage lines, emitted under platform.azure only when set (stack not router).
+  evalm8_block = trimspace(var.evalm8_lakefs_storage_account) != "" ? "    evalm8:\n      lakefs:\n        storage_account: \"${var.evalm8_lakefs_storage_account}\"\n        container: \"${var.evalm8_lakefs_container}\"" : ""
+
   platform_block = <<-EOT
 # Global config and platform provider (Azure)
 # Combined with resources.yaml and artifacts.yaml via helmfile
@@ -51,6 +54,7 @@ ${local.custom_tags_block}
     storage_configs:
       container: "${var.storage_container}"
       storage_account: "${var.storage_account}"
+${local.evalm8_block}
     wif:
       tenantID: "${var.tenant_id}"
       clientIdMap:
@@ -71,6 +75,7 @@ imagePullSecretConfig:
   enabled: ${var.image_pull_secret_enabled}
 
 deployment_mode: "${var.deployment_mode}"
+stack: "${var.stack}"
 clusterDomain: "${var.cluster_domain}"
 
 EOT

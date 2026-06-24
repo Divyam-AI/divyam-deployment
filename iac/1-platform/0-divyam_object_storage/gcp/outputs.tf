@@ -70,3 +70,15 @@ output "import_keys_created" {
   description = "Resource address keys for terraform import. Use: terraform import 'google_storage_bucket.this[\"<key>\"]' projects/<project>/storage/buckets/<bucket-name>"
   value       = local.import_keys_created
 }
+
+
+# Evalm8 lakeFS data store, identified by type lakefs-data in evalm8_object_storages.
+locals {
+  evalm8_lakefs_keys      = var.evalm8_lakefs_storage_key != null ? [for k in keys(local.all_bucket_names) : k if startswith(k, "${var.evalm8_lakefs_storage_key}/")] : []
+  evalm8_lakefs_first_key = length(local.evalm8_lakefs_keys) > 0 ? local.evalm8_lakefs_keys[0] : null
+}
+
+output "evalm8_lakefs_bucket_name" {
+  description = "Name of the GCS bucket with type lakefs-data from evalm8_object_storages. Consumed by the evalm8 export unit."
+  value       = local.evalm8_lakefs_first_key != null ? local.all_bucket_names[local.evalm8_lakefs_first_key] : null
+}

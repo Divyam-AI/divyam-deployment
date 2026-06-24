@@ -2,8 +2,12 @@
 locals {
   cloud_provider = get_env("CLOUD_PROVIDER", "")
   env = get_env("ENV", "")
+  # Evalm8 secrets are provisioned only when the evalm8 stack is in scope.
+  stack = get_env("STACK", "both")
   secrets_input = merge(
     {
+    # Gate for the evalm8 secret keys. Values are TF-generated in the common module, no TF_VAR_ env needed.
+    evalm8_enabled = local.stack != "router"
     divyam_db_root_password             = get_env("TF_VAR_divyam_db_root_password", "")
     divyam_db_user_name                 = get_env("TF_VAR_divyam_db_user_name", "divyam-prod")
     divyam_db_password                  = get_env("TF_VAR_divyam_db_password", "")

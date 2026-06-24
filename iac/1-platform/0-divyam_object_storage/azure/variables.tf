@@ -33,6 +33,12 @@ variable "router_requests_logs_storage_key" {
   default     = null
 }
 
+variable "evalm8_lakefs_storage_key" {
+  description = "Key in storage_accounts that holds the evalm8 lakeFS data store, type lakefs-data. Used for the evalm8_lakefs outputs."
+  type        = string
+  default     = null
+}
+
 variable "account_tier" {
   description = "Storage account tier"
   type        = string

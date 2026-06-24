@@ -20,6 +20,24 @@ variable "storage_account" {
   default     = ""
 }
 
+variable "stack" {
+  description = "Divyam stack selector written into provider.yaml so the helmfile deploys the same stack this infra was provisioned for."
+  type        = string
+  default     = "both"
+}
+
+variable "evalm8_lakefs_storage_account" {
+  description = "Azure storage account name for the evalm8 lakeFS store. Written under platform.azure so the lakefs chart resolves objectStorage. Empty when stack is router."
+  type        = string
+  default     = ""
+}
+
+variable "evalm8_lakefs_container" {
+  description = "Azure container name for the evalm8 lakeFS store. Written under platform.azure so the lakefs chart resolves objectStorage. Empty when stack is router."
+  type        = string
+  default     = ""
+}
+
 variable "tenant_id" {
   description = "Azure AD tenant ID for workload identity federation."
   type        = string

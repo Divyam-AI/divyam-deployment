@@ -14,6 +14,7 @@ dependency "divyam_object_storage" {
   config_path = "${get_repo_root()}/iac/1-platform/0-divyam_object_storage/gcp"
   mock_outputs = {
     router_requests_logs_bucket_name = ""
+    evalm8_lakefs_bucket_name        = ""
   }
 }
 
@@ -70,6 +71,8 @@ inputs = {
   environment               = local.env
   project_id                = local.root.resource_scope.name
   storage_bucket            = try(dependency.divyam_object_storage.outputs.router_requests_logs_bucket_name, local.storage_bucket)
+  stack                     = try(local.root.stack, "both")
+  evalm8_lakefs_bucket      = try(local.root.stack, "both") != "router" ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_bucket_name, "") : ""
   cluster_domain            = try(local.export_cfg.cluster_domain, "")
   ingress_deploy            = true
   ingress_external          = try(local.lb_cfg.public, false)

@@ -41,3 +41,21 @@ variable "router_logs_storage_account_id" {
   type        = string
   default     = null
 }
+
+variable "stack" {
+  description = "Divyam stack selector (evalm8, router, both). Gates the evalm8 service accounts in the common registry."
+  type        = string
+  default     = "both"
+}
+
+variable "evalm8_lakefs_storage_account_name" {
+  description = "Azure storage account name for the evalm8 lakeFS store (from the object_storage unit). Looked up in Azure to get the storage account ID. Optional."
+  type        = string
+  default     = null
+}
+
+variable "evalm8_lakefs_storage_account_id" {
+  description = "The evalm8 lakeFS storage account ID. Optional when evalm8_lakefs_storage_account_name is set (looked up in Azure)."
+  type        = string
+  default     = null
+}

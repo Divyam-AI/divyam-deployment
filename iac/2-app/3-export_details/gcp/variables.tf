@@ -14,6 +14,18 @@ variable "storage_bucket" {
   default     = ""
 }
 
+variable "stack" {
+  description = "Divyam stack selector written into provider.yaml so the helmfile deploys the same stack this infra was provisioned for."
+  type        = string
+  default     = "both"
+}
+
+variable "evalm8_lakefs_bucket" {
+  description = "GCS bucket name for the evalm8 lakeFS store. Written under platform.gcp so the lakefs chart resolves objectStorage. Empty when stack is router."
+  type        = string
+  default     = ""
+}
+
 variable "cluster_domain" {
   description = "Cluster domain for cross-cluster DNS. Leave empty for in-cluster."
   type        = string

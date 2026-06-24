@@ -138,6 +138,19 @@ locals {
     container_name       = "${replace(local.deployment_prefix, "-", "")}container" # Azure Container or GCP Bucket
   }]
 
+  # --- Evalm8 Data (lakeFS object storage) ---
+  # Only provisioned when the evalm8 stack is in scope (stack != "router"). Empty for a router-only deployment.
+  # Mirrors the divyam_object_storages element shape. type = "lakefs-data" identifies the lakeFS data store.
+  # storage_account_name groups this into its own Azure storage account, kept distinct from the router account.
+  # On GCP storage_account_name is only a grouping key, container_name is the GCS bucket name.
+  evalm8_object_storages = local.stack != "router" ? [{
+    create               = true # If this is set to false, edit the below values that is to be used for setting up Divyam.
+    type                 = "lakefs-data"                                        # Identifies this storage as the lakeFS data store
+    scope_name           = "${local.resource_scope}"                            # Azure Resource Group or GCP Project
+    storage_account_name = "${replace(local.deployment_prefix, "-", "")}lakefs" # Full Azure storage account name (no dashes). Not for GCP, used for grouping
+    container_name       = "${replace(local.deployment_prefix, "-", "")}lakefs" # Azure Container or GCP Bucket
+  }] : []
+
   # -- Secrets ---
   divyam_secrets = {
     # If this is set to false, edit the below values that is to be used for setting up Divyam.

@@ -17,6 +17,15 @@ dependency "divyam_secrets" {
   }
 }
 
+# evalm8 lakeFS storage comes from the object_storage unit. Only consumed when stack is not router.
+dependency "divyam_object_storage" {
+  config_path = "${get_repo_root()}/iac/1-platform/0-divyam_object_storage/azure"
+  mock_outputs = {
+    evalm8_lakefs_storage_account_name = ""
+    evalm8_lakefs_container_name       = ""
+  }
+}
+
 locals {
   root = include.root.locals.merged
   # From defaults.hcl: storage account name for router-requests-logs; AKS cluster name. Fetched from Azure in Terraform via data sources.
@@ -37,4 +46,6 @@ inputs = {
   azure_key_vault_id                  = dependency.divyam_secrets.outputs.key_vault_id
   router_logs_storage_account_name    = local.router_logs_storage_account_name
   aks_cluster_name                   = local.aks_cluster_name
+  stack                              = try(local.root.stack, "both")
+  evalm8_lakefs_storage_account_name = try(local.root.stack, "both") != "router" ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_storage_account_name, null) : null
 }
