@@ -9,6 +9,15 @@ variable "input" {
   description = "Secrets input: all divyam_* secret values (from TF_VAR_* or Terragrunt)."
   type = object({
     evalm8_enabled                      = optional(bool, false)
+    divyam_lakefs_access_key_id          = optional(string, "")
+    divyam_lakefs_secret_access_key      = optional(string, "")
+    divyam_lakefs_auth_encrypt_key       = optional(string, "")
+    divyam_argilla_api_key               = optional(string, "")
+    divyam_argilla_auth_secret_key       = optional(string, "")
+    divyam_argilla_default_user_password = optional(string, "")
+    divyam_evalm8_jwt_secret             = optional(string, "")
+    divyam_evalm8_encryption_key         = optional(string, "")
+    divyam_evalm8_admin_password         = optional(string, "")
     divyam_db_root_password             = optional(string)
     divyam_db_user_name                 = optional(string)
     divyam_db_password                  = string

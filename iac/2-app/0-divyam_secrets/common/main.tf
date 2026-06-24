@@ -35,9 +35,10 @@ locals {
   openai_key                    = var.input.divyam_openai_billing_admin_api_key != null ? var.input.divyam_openai_billing_admin_api_key : ""
 }
 
-# Evalm8 secret values, TF-generated, gated by evalm8_enabled.
-# All eight evalm8 vault keys. Created only when the evalm8 stack is in scope.
-# The encrypt and jwt keys are at least 32 chars. The encryption key is exactly 64 hex chars for AES-256.
+# Evalm8 secret values, gated by evalm8_enabled.
+# Each key is taken from its TF_VAR_* input when the user sets one, with a random fallback for a sandbox.
+# All nine evalm8 vault keys, created only when the evalm8 stack is in scope.
+# The random fallbacks for the encrypt and jwt keys are at least 32 chars. The encryption key is exactly 64 hex chars for AES-256.
 resource "random_password" "evalm8_lakefs_access_key_id" {
   count   = var.input.evalm8_enabled ? 1 : 0
   length  = 20
@@ -96,15 +97,15 @@ resource "random_password" "evalm8_admin_password" {
 
 locals {
   evalm8_secrets = var.input.evalm8_enabled ? {
-    "divyam-lakefs-access-key-id"          = random_password.evalm8_lakefs_access_key_id[0].result
-    "divyam-lakefs-secret-access-key"      = random_password.evalm8_lakefs_secret_access_key[0].result
-    "divyam-lakefs-auth-encrypt-key"       = random_password.evalm8_lakefs_auth_encrypt_key[0].result
-    "divyam-argilla-api-key"               = random_password.evalm8_argilla_api_key[0].result
-    "divyam-argilla-auth-secret-key"       = random_password.evalm8_argilla_auth_secret_key[0].result
-    "divyam-argilla-default-user-password" = random_password.evalm8_argilla_default_user_password[0].result
-    "divyam-evalm8-jwt-secret"             = random_password.evalm8_jwt_secret[0].result
-    "divyam-evalm8-encryption-key"         = random_id.evalm8_encryption_key[0].hex
-    "divyam-evalm8-admin-password"         = random_password.evalm8_admin_password[0].result
+    "divyam-lakefs-access-key-id"          = (var.input.divyam_lakefs_access_key_id != null && var.input.divyam_lakefs_access_key_id != "") ? var.input.divyam_lakefs_access_key_id : random_password.evalm8_lakefs_access_key_id[0].result
+    "divyam-lakefs-secret-access-key"      = (var.input.divyam_lakefs_secret_access_key != null && var.input.divyam_lakefs_secret_access_key != "") ? var.input.divyam_lakefs_secret_access_key : random_password.evalm8_lakefs_secret_access_key[0].result
+    "divyam-lakefs-auth-encrypt-key"       = (var.input.divyam_lakefs_auth_encrypt_key != null && var.input.divyam_lakefs_auth_encrypt_key != "") ? var.input.divyam_lakefs_auth_encrypt_key : random_password.evalm8_lakefs_auth_encrypt_key[0].result
+    "divyam-argilla-api-key"               = (var.input.divyam_argilla_api_key != null && var.input.divyam_argilla_api_key != "") ? var.input.divyam_argilla_api_key : random_password.evalm8_argilla_api_key[0].result
+    "divyam-argilla-auth-secret-key"       = (var.input.divyam_argilla_auth_secret_key != null && var.input.divyam_argilla_auth_secret_key != "") ? var.input.divyam_argilla_auth_secret_key : random_password.evalm8_argilla_auth_secret_key[0].result
+    "divyam-argilla-default-user-password" = (var.input.divyam_argilla_default_user_password != null && var.input.divyam_argilla_default_user_password != "") ? var.input.divyam_argilla_default_user_password : random_password.evalm8_argilla_default_user_password[0].result
+    "divyam-evalm8-jwt-secret"             = (var.input.divyam_evalm8_jwt_secret != null && var.input.divyam_evalm8_jwt_secret != "") ? var.input.divyam_evalm8_jwt_secret : random_password.evalm8_jwt_secret[0].result
+    "divyam-evalm8-encryption-key"         = (var.input.divyam_evalm8_encryption_key != null && var.input.divyam_evalm8_encryption_key != "") ? var.input.divyam_evalm8_encryption_key : random_id.evalm8_encryption_key[0].hex
+    "divyam-evalm8-admin-password"         = (var.input.divyam_evalm8_admin_password != null && var.input.divyam_evalm8_admin_password != "") ? var.input.divyam_evalm8_admin_password : random_password.evalm8_admin_password[0].result
   } : {}
 }
 
