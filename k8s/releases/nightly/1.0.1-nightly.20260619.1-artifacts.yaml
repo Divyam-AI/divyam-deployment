@@ -1,13 +1,15 @@
 # Chart versions and docker image references — merged with provider.yaml + resources.yaml via helmfile.
 # Pinned to the latest published chart versions (OCI) + image tags (GAR). Release artifacts files are
 # produced/committed by internal release tooling — see ../VERSIONING.md.
+# Stopgap: body re-purposed byte-for-byte from stable/1.0.0 until the real nightly pipeline lands.
 
 release:
-  channel: stable
-  version: "1.0.0"
-  base: "1.0.0"
-  created: "2026-06-07T16:17:09Z"
-  build-id: genesis-repin
+  channel: nightly
+  version: "1.0.1-nightly.20260619.1"
+  base: "1.0.1"
+  created: "2026-06-19T00:00:00Z"
+  build-id: "manually seeded"
+  seq: 1
 
 chartBasePath: "oci://asia-south1-docker.pkg.dev/prod-benchmarking/divyam-public-helm-as1"
 

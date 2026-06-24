@@ -4,12 +4,17 @@
 #   helmfile diff
 #   helmfile -l name=mysql apply
 #   helmfile destroy
+# Stack selection (evalm8 | router | both) comes from the `stack` key in provider.yaml. Absent = all.
 
+# wait/timeout/atomic are env-overridable so a caller (e.g. the sandbox / nightly CI) can relax them
+# for faster failure + surviving wreckage to diagnose. Unset env ⇒ the prod defaults below verbatim —
+# the prod path never sets these vars, so its behavior is unchanged. Set by k8s.sh's --no-wait /
+# --deploy-timeout / --no-atomic flags (exported as HF_WAIT / HF_TIMEOUT / HF_ATOMIC).
 helmDefaults:
   createNamespace: true
-  wait: true
-  timeout: 1200
-  atomic: true
+  wait: {{ env "HF_WAIT" | default "true" }}
+  timeout: {{ env "HF_TIMEOUT" | default "1200" }}
+  atomic: {{ env "HF_ATOMIC" | default "true" }}
   diffArgs:
     - "--normalize-manifests"
     - "--three-way-merge"
@@ -18,6 +23,7 @@ helmDefaults:
 
 
 repositories:
+  # The chart key external-secrets-operator maps to the remote chart external-secrets/external-secrets, so helmfile needs this repo registered to pull it.
   - name: external-secrets
     url: https://charts.external-secrets.io
 
@@ -122,6 +128,18 @@ repositories:
 {{- $clusterDomain := $values.global.clusterDomain }}
 {{- $externalSecretsChartName := "external-secrets/external-secrets" }}
 
+{{/* Stack selector: evalm8 | router | both. Read ONLY from provider.yaml (terraform writes the
+     chosen stack there, the same way it writes deployment_mode), so a provisioned cluster deploys
+     the stack it was provisioned for. When the key is ABSENT from provider.yaml the helmfile keeps
+     the prior default behaviour and enables every chart. When it is set to evalm8 or router, only
+     that stack's namespace groups plus the always-shared charts (external-secrets, mysql,
+     persistent-storage) are enabled. The IaC that writes this value lands as a separate PR. */}}
+{{- $stack := dig "stack" "both" $global }}
+{{- if not (has $stack (list "evalm8" "router" "both")) }}
+{{- fail (printf "ERROR: invalid provider.yaml stack '%s'. Set it to one of: evalm8, router, both (or omit it to deploy all services)." $stack) }}
+{{- end }}
+{{- $_ := exec "sh" (list "-c" (printf "echo '[INFO] stack selector (provider.yaml): %s' >&2" $stack)) }}
+
 ###############################################################################
 # 2. Namespace Group Map
 ###############################################################################
@@ -152,7 +170,73 @@ repositories:
 
   "divyam-e2e-test-runner"               "e2e-test-runner"
 
+  "cloudnative-pg-operator"               "cnpg-operator"
+  "opensearch-operator"                   "opensearch-operator"
+  "redis-operator"                        "redis-operator"
+
+  "temporal"                              "temporal"
+  "temporal-postgres"                     "temporal"
+
+  "lakefs"                                "lakefs"
+  "lakefs-postgres"                       "lakefs"
+
+  "argilla"                               "argilla"
+  "argilla-postgres"                      "argilla"
+  "argilla-opensearch"                    "argilla"
+  "argilla-redis"                         "argilla"
+
+  "evalm8-server"                         "evalm8"
+  "evalm8-wfs"                            "evalm8"
+  "evalm8-ui"                             "evalm8"
+  "evalm8-ingress"                        "evalm8"
+
 -}}
+
+###############################################################################
+# 2b. Stack Membership (drives the stack selector)
+###############################################################################
+{{/*
+  Namespace groups that belong to the Evalm8 stack: the Evalm8 apps, their datastores
+  (temporal, lakefs, argilla), and the operators those datastores need (CNPG, OpenSearch,
+  Redis). Every group not listed here is treated as router/platform.
+*/}}
+{{- $evalm8Groups := dict
+  "evalm8"                      true
+  "temporal"                    true
+  "lakefs"                      true
+  "argilla"                     true
+  "cnpg-operator"               true
+  "opensearch-operator"         true
+  "redis-operator"              true
+-}}
+
+{{/*
+  Charts shared by both stacks, always enabled regardless of the selector. External Secrets
+  resolves cloud secrets for every workload, mysql is the platform database that both the
+  router services and evalm8-server/wfs use, and persistent storage backs both.
+*/}}
+{{- $sharedCharts := dict
+  "external-secrets-operator"   true
+  "mysql"                       true
+  "divyam-persistent-storage"   true
+-}}
+
+{{/*
+  Per-chart stack membership. A chart is selected when the stack is "both", when it is a shared
+  chart, or when its namespace group matches the selected stack (evalm8 groups for "evalm8",
+  everything else for "router"). A chart's group is namespaceGroupMap[name] or its own name.
+*/}}
+{{- $stackEnabled := dict }}
+{{- range $cName, $_cfg := $values.charts }}
+  {{- $grp := index $namespaceGroupMap $cName | default $cName }}
+  {{- $isEvalm8 := hasKey $evalm8Groups $grp }}
+  {{- $sel := false }}
+  {{- if eq $stack "both" }}{{- $sel = true }}
+  {{- else if hasKey $sharedCharts $cName }}{{- $sel = true }}
+  {{- else if eq $stack "evalm8" }}{{- $sel = $isEvalm8 }}
+  {{- else }}{{- $sel = (not $isEvalm8) }}{{- end }}
+  {{- $_ := set $stackEnabled $cName $sel }}
+{{- end }}
 
 {{/*
   Charts that receive a top-level `ingress` value merged from provider.yaml
@@ -162,6 +246,8 @@ repositories:
 {{- $chartsWithProviderIngress := dict
   "superset-ingress"                  true
   "divyam-router-controller-ingress"  true
+  "evalm8-ingress"                    true
+  "argilla"                           true
 -}}
 
 {{/*
@@ -193,6 +279,11 @@ repositories:
   "divyam-router-controller"      true
   "divyam-route-selector"         true
   "infinity"                      true
+  "evalm8-server"                 true
+  "evalm8-ui"                     true
+  "temporal"                      true
+  "lakefs"                        true
+  "argilla"                       true
 -}}
 
 {{/*
@@ -213,6 +304,11 @@ repositories:
   "divyam-selector-training"      true
   "divyam-control-plane-exporter" true
   "divyam-e2e-test-runner"        true
+  "lakefs"                        true
+  "argilla"                       true
+  "evalm8-server"                 true
+  "evalm8-wfs"                    true
+  "evalm8-ui"                     true
 -}}
 
 ###############################################################################
@@ -241,6 +337,21 @@ repositories:
   "divyam-db-upgrades"           (list "clickhouse" "mysql" "kafka-cluster" "external-secrets-operator")
   "divyam-control-plane-exporter" (list "mysql" "clickhouse" "divyam-db-upgrades" )
   "divyam-e2e-test-runner"        (list "divyam-router-controller" "divyam-route-selector" "clickhouse" "mysql")
+  "cloudnative-pg-operator"       (list)
+  "opensearch-operator"           (list)
+  "redis-operator"                (list)
+  "temporal-postgres"             (list "cloudnative-pg-operator")
+  "lakefs-postgres"               (list "cloudnative-pg-operator")
+  "argilla-postgres"              (list "cloudnative-pg-operator")
+  "argilla-opensearch"            (list "opensearch-operator")
+  "argilla-redis"                 (list "redis-operator")
+  "temporal"                      (list "temporal-postgres")
+  "lakefs"                        (list "lakefs-postgres" "external-secrets-operator")
+  "argilla"                       (list "argilla-postgres" "argilla-opensearch" "argilla-redis" "external-secrets-operator")
+  "evalm8-server"                 (list "temporal" "lakefs" "argilla" "mysql" "external-secrets-operator")
+  "evalm8-wfs"                    (list "temporal" "lakefs" "argilla" "mysql" "external-secrets-operator" "evalm8-server")
+  "evalm8-ui"                     (list "evalm8-server")
+  "evalm8-ingress"                (list "evalm8-server" "evalm8-ui")
 
 -}}
 
@@ -252,6 +363,16 @@ repositories:
   "clickhouse" "clickhouse-clk-%s"
   "divyam-route-selector" "route-selector-%s-svc"
   "divyam-router-controller" "router-controller-%s-svc"
+  "temporal"                "temporal-%s-svc"
+  "lakefs"                  "lakefs-%s-svc"
+  "argilla"                 "argilla-%s-svc"
+  "evalm8-server"           "evalm8-server-%s-svc"
+  "evalm8-ui"               "evalm8-ui-%s-svc"
+  "temporal-postgres"            "temporal-postgres-%s-rw"
+  "lakefs-postgres"              "lakefs-postgres-%s-rw"
+  "argilla-postgres"             "argilla-postgres-%s-rw"
+  "argilla-opensearch"           "argilla-opensearch-%s-svc"
+  "argilla-redis"                "argilla-redis"
 -}}
 
 ###############################################################################
@@ -284,7 +405,11 @@ repositories:
 {{- if index $svc "name" -}}
 {{- index $svc "name" -}}
 {{- else if hasKey $overrideMap $name -}}
-{{- printf (index $overrideMap $name) $env -}}
+{{- $ov := index $overrideMap $name -}}
+{{- /* Only interpolate the env when the override carries a %s verb. A literal override
+       (e.g. an operator service with no env suffix like "argilla-redis") must be emitted
+       as-is, else printf appends the env as a Go "%!(EXTRA string=...)" error string. */ -}}
+{{- if contains "%s" $ov -}}{{- printf $ov $env -}}{{- else -}}{{- $ov -}}{{- end -}}
 {{- else -}}
 {{- printf "%s-%s-svc" $name $env -}}
 {{- end -}}
@@ -298,7 +423,14 @@ releases:
 {{- range $name, $rawCfg := $values.charts }}
   {{- $cfg := merge (dict "enabled" true "values" dict "namespace" nil) ($rawCfg | default dict) }}
 
-  {{- if $cfg.enabled }}
+  {{- /* Enabled gating: read the explicit flag. mergo (used by `merge`) treats the bool
+         `false` as a zero value, so merging a default of true would silently re-enable a
+         chart marked `enabled: false`. Default to true only when the key is absent. */ -}}
+  {{- $enabled := true }}
+  {{- if hasKey ($rawCfg | default dict) "enabled" }}{{- $enabled = (index ($rawCfg | default dict) "enabled") }}{{- end }}
+  {{- /* Stack selector gate: a chart not in the selected stack is treated as disabled. */ -}}
+  {{- if not (index $stackEnabled $name) }}{{- $enabled = false }}{{- end }}
+  {{- if $enabled }}
 
     {{/* Optional per-chart override: `<chart>.chart.repository` (oci:// base or local dir) wins over the
          global $base, so ONE locally-built chart can be served from oci://localhost:32000 while the rest
@@ -338,7 +470,11 @@ releases:
       {{- $depRaw := index $values.charts $depName | default dict }}
       {{- $depCfg := merge (dict "enabled" true "values" dict "namespace" nil) $depRaw }}
 
-      {{- if $depCfg.enabled }}
+      {{- /* Same explicit-flag gating as above (mergo would re-enable an enabled:false dep). */ -}}
+      {{- $depEnabled := true }}
+      {{- if hasKey $depRaw "enabled" }}{{- $depEnabled = (index $depRaw "enabled") }}{{- end }}
+      {{- if not (index $stackEnabled $depName) }}{{- $depEnabled = false }}{{- end }}
+      {{- if $depEnabled }}
 
         {{- $depNs := include "namespace" (dict
             "namespace" $depCfg.namespace
@@ -365,6 +501,21 @@ releases:
   namespace: {{ $ns }}
   chart: {{ $chart }}
 
+  # Per-release timing markers. presync prints a timestamped START before the release's
+  # helm op, postsync a DONE after it completes (including --wait). A release that is HELD
+  # shows a START with no matching DONE, and the wall-clock gap is its wait time. A
+  # deterministic way to spot which release a `sync`/`apply` is stuck on. (helmfile also
+  # prints a per-release DURATION column in its end-of-run summary.)
+  hooks:
+    - events: ["presync"]
+      showlogs: true
+      command: "sh"
+      args: ["-c", "echo \"[$(date -u +%H:%M:%S)] >>> HELM START {{ $name }}-{{ $env }}\""]
+    - events: ["postsync"]
+      showlogs: true
+      command: "sh"
+      args: ["-c", "echo \"[$(date -u +%H:%M:%S)] <<< HELM DONE  {{ $name }}-{{ $env }}\""]
+
   {{- if $needs }}
   needs:
     {{- range $dep := $needs }}
@@ -372,7 +523,13 @@ releases:
       {{- $depRaw := index $values.charts $dep | default dict }}
       {{- $depCfg := merge (dict "enabled" true "values" dict "namespace" nil) $depRaw }}
 
-      {{- if $depCfg.enabled }}
+      {{- /* Only emit a need for a dep that is actually enabled. A disabled dep has no
+             release, so listing it as a need is an undefined-release error in helmfile.
+             A dep outside the selected stack is disabled too, so its need is dropped. */ -}}
+      {{- $depEnabled := true }}
+      {{- if hasKey $depRaw "enabled" }}{{- $depEnabled = (index $depRaw "enabled") }}{{- end }}
+      {{- if not (index $stackEnabled $dep) }}{{- $depEnabled = false }}{{- end }}
+      {{- if $depEnabled }}
 
         {{- $depNs := include "namespace" (dict
             "namespace" $depCfg.namespace
