@@ -350,8 +350,8 @@ repositories:
   "lakefs"                        (list "lakefs-postgres" "external-secrets-operator")
   "argilla"                       (list "argilla-postgres" "argilla-opensearch" "argilla-redis" "external-secrets-operator")
   "argilla-ingress"               (list "argilla")
-  "evalm8-server"                 (list "temporal" "lakefs" "argilla" "mysql" "external-secrets-operator")
-  "evalm8-wfs"                    (list "temporal" "lakefs" "argilla" "mysql" "external-secrets-operator" "evalm8-server")
+  "evalm8-server"                 (list "temporal" "lakefs" "argilla" "argilla-ingress" "mysql" "external-secrets-operator")
+  "evalm8-wfs"                    (list "temporal" "lakefs" "argilla" "argilla-ingress" "mysql" "external-secrets-operator" "evalm8-server")
   "evalm8-ui"                     (list "evalm8-server")
   "evalm8-ingress"                (list "evalm8-server" "evalm8-ui")
 
