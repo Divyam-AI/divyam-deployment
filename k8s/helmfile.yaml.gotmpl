@@ -184,6 +184,7 @@ repositories:
   "argilla-postgres"                      "argilla"
   "argilla-opensearch"                    "argilla"
   "argilla-redis"                         "argilla"
+  "argilla-ingress"                       "argilla"
 
   "evalm8-server"                         "evalm8"
   "evalm8-wfs"                            "evalm8"
@@ -247,7 +248,7 @@ repositories:
   "superset-ingress"                  true
   "divyam-router-controller-ingress"  true
   "evalm8-ingress"                    true
-  "argilla"                           true
+  "argilla-ingress"                   true
 -}}
 
 {{/*
@@ -348,6 +349,7 @@ repositories:
   "temporal"                      (list "temporal-postgres")
   "lakefs"                        (list "lakefs-postgres" "external-secrets-operator")
   "argilla"                       (list "argilla-postgres" "argilla-opensearch" "argilla-redis" "external-secrets-operator")
+  "argilla-ingress"               (list "argilla")
   "evalm8-server"                 (list "temporal" "lakefs" "argilla" "mysql" "external-secrets-operator")
   "evalm8-wfs"                    (list "temporal" "lakefs" "argilla" "mysql" "external-secrets-operator" "evalm8-server")
   "evalm8-ui"                     (list "evalm8-server")
