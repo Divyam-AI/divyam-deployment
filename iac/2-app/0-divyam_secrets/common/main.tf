@@ -30,7 +30,7 @@ locals {
   superset_pg_superset_password = (var.input.divyam_superset_password != null && var.input.divyam_superset_password != "") ? var.input.divyam_superset_password : random_password.random_superset_pg_superset_password[0].result
   divyam_db_root_password       = (var.input.divyam_db_root_password != null && var.input.divyam_db_root_password != "") ? var.input.divyam_db_root_password : random_password.random_db_root_password[0].result
   clickhouse_user               = coalesce(var.input.divyam_clickhouse_user_name, "default")
-  # coalesce(null, "") fails in Terraform; use conditional so empty string is valid default
+  # coalesce(null, "") fails in Terraform, so use a conditional that makes the empty string a valid default
   clickhouse_password           = var.input.divyam_clickhouse_password != null ? var.input.divyam_clickhouse_password : ""
   openai_key                    = var.input.divyam_openai_billing_admin_api_key != null ? var.input.divyam_openai_billing_admin_api_key : ""
 }
@@ -86,6 +86,14 @@ resource "random_id" "evalm8_encryption_key" {
   byte_length = 32
 }
 
+# Initial admin password for the evalm8 bootstrap owner account.
+# The evalm8-server bootstrap that consumes this is not wired yet, see issue #66.
+resource "random_password" "evalm8_admin_password" {
+  count   = var.input.evalm8_enabled ? 1 : 0
+  length  = 24
+  special = true
+}
+
 locals {
   evalm8_secrets = var.input.evalm8_enabled ? {
     "divyam-lakefs-access-key-id"          = random_password.evalm8_lakefs_access_key_id[0].result
@@ -96,6 +104,7 @@ locals {
     "divyam-argilla-default-user-password" = random_password.evalm8_argilla_default_user_password[0].result
     "divyam-evalm8-jwt-secret"             = random_password.evalm8_jwt_secret[0].result
     "divyam-evalm8-encryption-key"         = random_id.evalm8_encryption_key[0].hex
+    "divyam-evalm8-admin-password"         = random_password.evalm8_admin_password[0].result
   } : {}
 }
 
