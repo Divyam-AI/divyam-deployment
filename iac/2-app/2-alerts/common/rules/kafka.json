@@ -1,0 +1,151 @@
+{
+  "name": "kafka",
+  "description": "Kafka broker health, consumer lag, and storage alerts",
+  "interval": "1m",
+  "labels": {
+    "rule_group": "Kafka"
+  },
+  "rules": [
+    {
+      "alert": "kafka-consumer-lag-sla",
+      "for": "10m",
+      "window": "10m",
+      "severity": "WARNING",
+      "auto_resolve": "10m",
+      "notification": {
+        "notify": true,
+        "priority": 2
+      },
+      "expr": "max by (consumergroup, topic) (kafka_consumergroup_lag{namespace=\"kafka-{{env}}-ns\"}) > {{threshold}}",
+      "thresholds": {
+        "critical": "50000"
+      },
+      "datadog": {
+        "query": "max(last_{{window}}):max:kafka.consumer_lag{kube_cluster_name:{{cluster_name}},kube_namespace:kafka-{{env}}-ns} by {consumer_group,topic} > {{threshold}}",
+        "message": "[P1] Consumer group {{consumer_group.name}} on topic {{topic.name}} has been lagging above the SLA threshold for over 10 minutes on cluster {{kube_cluster_name.name}}."
+      },
+      "annotations": {
+        "summary": "Kafka consumer lag exceeds SLA (P1)",
+        "description": "Consumer group lag has exceeded {{threshold}} messages for more than 10 minutes. Tune threshold to match your team's SLA.",
+        "runbook_url": "https://runbooks.divyam.ai/kafka/consumer-lag-sla"
+      }
+    },
+    {
+      "alert": "kafka-consumer-lag-growing",
+      "for": "10m",
+      "window": "10m",
+      "severity": "WARNING",
+      "auto_resolve": "15m",
+      "notification": {
+        "priority": 3
+      },
+      "expr": "max by (consumergroup, topic) (deriv(kafka_consumergroup_lag{namespace=\"kafka-{{env}}-ns\"}[10m])) > {{threshold}}",
+      "thresholds": {
+        "critical": "1000"
+      },
+      "datadog": {
+        "type": "query alert",
+        "query": "change(avg(last_{{window}}),last_{{window}}):max:kafka.consumer_lag{kube_cluster_name:{{cluster_name}},kube_namespace:kafka-{{env}}-ns} by {consumer_group,topic} > {{threshold}}",
+        "message": "[P2] Consumer group {{consumer_group.name}} on topic {{topic.name}} is accumulating lag at a steady rate on cluster {{kube_cluster_name.name}}. Consumer may not be keeping up with the produce rate."
+      },
+      "annotations": {
+        "summary": "Kafka consumer lag growing steadily (P2)",
+        "description": "Consumer group lag is growing at more than {{threshold}} messages over 10 minutes, suggesting the consumer cannot keep up with the producer.",
+        "runbook_url": "https://runbooks.divyam.ai/kafka/consumer-lag-growing"
+      }
+    },
+    {
+      "alert": "kafka-disk-full",
+      "for": "5m",
+      "window": "5m",
+      "severity": "CRITICAL",
+      "auto_resolve": "10m",
+      "notification": {
+        "priority": 1
+      },
+      "expr": "max by (namespace, persistentvolumeclaim) (kubelet_volume_stats_used_bytes{namespace=\"kafka-{{env}}-ns\"} / kubelet_volume_stats_capacity_bytes{namespace=\"kafka-{{env}}-ns\"} * 100) > {{threshold}}",
+      "thresholds": {
+        "critical": "90"
+      },
+      "datadog": {
+        "query": "max(last_{{window}}):max:kubernetes.io.persistentvolumeclaim.used_bytes{kube_cluster_name:{{cluster_name}},kube_namespace:kafka-{{env}}-ns} by {persistentvolumeclaim} / max:kubernetes.io.persistentvolumeclaim.capacity_bytes{kube_cluster_name:{{cluster_name}},kube_namespace:kafka-{{env}}-ns} by {persistentvolumeclaim} * 100 > {{threshold}}",
+        "message": "[P0] Kafka PVC {{persistentvolumeclaim.name}} is over 90% full on cluster {{kube_cluster_name.name}}. Broker write failures are imminent. Expand the PVC or purge old topic data immediately."
+      },
+      "annotations": {
+        "summary": "Kafka disk full (P0)",
+        "description": "Kafka PVC is over 90% capacity. Write failures are imminent. Expand storage or purge topic data immediately.",
+        "runbook_url": "https://runbooks.divyam.ai/kafka/disk-full"
+      }
+    },
+    {
+      "alert": "kafka-write-failures",
+      "for": "5m",
+      "window": "5m",
+      "severity": "CRITICAL",
+      "auto_resolve": "10m",
+      "notification": {
+        "priority": 1
+      },
+      "expr": "sum by (namespace) (kafka_topic_partition_under_replicated_partition{namespace=\"kafka-{{env}}-ns\"}) > {{threshold}}",
+      "thresholds": {
+        "critical": "0"
+      },
+      "datadog": {
+        "query": "max(last_{{window}}):max:kafka.replication.under_replicated_partitions{kube_cluster_name:{{cluster_name}},kube_namespace:kafka-{{env}}-ns} > {{threshold}}",
+        "message": "[P0] Kafka has under-replicated partitions on cluster {{kube_cluster_name.name}}, indicating broker failures or write bottlenecks. Data loss risk elevated."
+      },
+      "annotations": {
+        "summary": "Kafka write failures — under-replicated partitions (P0)",
+        "description": "Kafka has under-replicated partitions, indicating broker failures or write bottlenecks. Investigate broker health immediately.",
+        "runbook_url": "https://runbooks.divyam.ai/kafka/write-failures"
+      }
+    },
+    {
+      "alert": "kafka-disk-usage-high",
+      "for": "5m",
+      "window": "10m",
+      "severity": "WARNING",
+      "auto_resolve": "15m",
+      "notification": {
+        "notify": true,
+        "priority": 2
+      },
+      "expr": "max by (namespace, persistentvolumeclaim) (kubelet_volume_stats_used_bytes{namespace=\"kafka-{{env}}-ns\"} / kubelet_volume_stats_capacity_bytes{namespace=\"kafka-{{env}}-ns\"} * 100) > {{threshold}}",
+      "thresholds": {
+        "critical": "80"
+      },
+      "datadog": {
+        "query": "max(last_{{window}}):max:kubernetes.io.persistentvolumeclaim.used_bytes{kube_cluster_name:{{cluster_name}},kube_namespace:kafka-{{env}}-ns} by {persistentvolumeclaim} / max:kubernetes.io.persistentvolumeclaim.capacity_bytes{kube_cluster_name:{{cluster_name}},kube_namespace:kafka-{{env}}-ns} by {persistentvolumeclaim} * 100 > {{threshold}}",
+        "message": "[P1] Kafka PVC {{persistentvolumeclaim.name}} disk usage is above 80% on cluster {{kube_cluster_name.name}}. Plan capacity expansion before the disk fills."
+      },
+      "annotations": {
+        "summary": "Kafka disk usage high (P1)",
+        "description": "Kafka PVC usage is above 80%. Plan capacity expansion before it reaches the P0 (90%) threshold.",
+        "runbook_url": "https://runbooks.divyam.ai/kafka/disk-usage"
+      }
+    },
+    {
+      "alert": "kafka-disk-usage-elevated",
+      "for": "5m",
+      "window": "10m",
+      "severity": "INFO",
+      "auto_resolve": "15m",
+      "notification": {
+        "priority": 3
+      },
+      "expr": "max by (namespace, persistentvolumeclaim) (kubelet_volume_stats_used_bytes{namespace=\"kafka-{{env}}-ns\"} / kubelet_volume_stats_capacity_bytes{namespace=\"kafka-{{env}}-ns\"} * 100) > {{threshold}}",
+      "thresholds": {
+        "critical": "70"
+      },
+      "datadog": {
+        "query": "max(last_{{window}}):max:kubernetes.io.persistentvolumeclaim.used_bytes{kube_cluster_name:{{cluster_name}},kube_namespace:kafka-{{env}}-ns} by {persistentvolumeclaim} / max:kubernetes.io.persistentvolumeclaim.capacity_bytes{kube_cluster_name:{{cluster_name}},kube_namespace:kafka-{{env}}-ns} by {persistentvolumeclaim} * 100 > {{threshold}}",
+        "message": "[P2] Kafka PVC {{persistentvolumeclaim.name}} disk usage is above 70% on cluster {{kube_cluster_name.name}}. Monitor growth trend."
+      },
+      "annotations": {
+        "summary": "Kafka disk usage elevated (P2)",
+        "description": "Kafka PVC usage is above 70%. Informational — monitor the growth trend.",
+        "runbook_url": "https://runbooks.divyam.ai/kafka/disk-usage"
+      }
+    }
+  ]
+}
