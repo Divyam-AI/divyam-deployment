@@ -1,0 +1,115 @@
+{
+  "name": "clickhouse",
+  "description": "ClickHouse alerts (disk, ingestion, write failures).",
+  "interval": "1m",
+  "labels": {
+    "rule_group": "ClickHouse",
+    "alert_rule": "AlwaysOn"
+  },
+  "rules": [
+    {
+      "alert": "clickhouse-disk-usage-high",
+      "_comment": "Escape hatch: disk-used % is (total-free)/total — not expressible in the structured query IR. The clickhouse.disks.free_space / clickhouse.disks.total_space metrics are emitted by a custom_queries block in the Datadog ClickHouse check (1-platform/2-monitoring/.../datadog/common/main.tf), tagged with disk_name and kube_cluster_name.",
+      "window": "15m",
+      "for": "5m",
+      "severity": "WARNING",
+      "auto_resolve": "30m",
+      "thresholds": {
+        "warning": "80",
+        "critical": "90",
+        "warning_recovery": "75",
+        "critical_recovery": "85"
+      },
+      "annotations": {
+        "summary": "ClickHouse Disk Usage High",
+        "description": "Warn when ClickHouse disk usage exceeds 80%; critical at 90%. Recovery at 75% (warn) / 85% (critical)."
+      },
+      "datadog": {
+        "query": "max(last_{{window}}):(avg:clickhouse.disks.total_space{kube_cluster_name:{{cluster_name}}} by {host,disk_name} - avg:clickhouse.disks.free_space{kube_cluster_name:{{cluster_name}}} by {host,disk_name}) / avg:clickhouse.disks.total_space{kube_cluster_name:{{cluster_name}}} by {host,disk_name} * 100 > {{threshold}}",
+        "notify": true,
+        "message": "ClickHouse disk {{disk_name.name}} on {{host.name}} (cluster {{kube_cluster_name.name}}) has exceeded disk usage thresholds (warn 80%, critical 90%)."
+      }
+    },
+    {
+      "alert": "clickhouse-no-ingestion",
+      "_comment": "P0: complete ingestion halt — no rows inserted for 5 min. clickhouse.table.insert.row.total is a monotonic counter emitted by the standard Datadog ClickHouse integration; .as_count() gives the per-window delta so a zero delta means no rows inserted. Verified against live agent check output on the sandbox.",
+      "window": "5m",
+      "for": "5m",
+      "severity": "CRITICAL",
+      "auto_resolve": "10m",
+      "thresholds": {
+        "critical": "1"
+      },
+      "annotations": {
+        "summary": "ClickHouse No Ingestion",
+        "description": "No rows have been inserted into ClickHouse for 5 minutes — possible ingestion pipeline halt."
+      },
+      "datadog": {
+        "query": "sum(last_{{window}}):sum:clickhouse.table.insert.row.total{kube_cluster_name:{{cluster_name}}}.as_count() < {{threshold}}",
+        "notify": true,
+        "message": "ClickHouse on cluster {{kube_cluster_name.name}} has had zero row insertions for the past 5 minutes. Check the ingestion pipeline (Kafka consumer, OTel collector, or upstream producers)."
+      }
+    },
+    {
+      "alert": "clickhouse-ingestion-delay",
+      "_comment": "P1: ingestion delay exceeds SLA — delayed inserts building up for 10+ min. clickhouse.query.insert.delayed counts INSERT queries currently queued/delayed due to back-pressure (e.g. max_insert_delay_ms). A sustained non-zero value signals pipeline back-pressure exceeding SLA. For true end-to-end delay (now()-max(event_time)), add a custom_query to main.tf against a known ingestion table. Verified metric name against live agent check.",
+      "window": "15m",
+      "for": "10m",
+      "severity": "WARNING",
+      "auto_resolve": "20m",
+      "thresholds": {
+        "critical": "0"
+      },
+      "annotations": {
+        "summary": "ClickHouse Ingestion Delay",
+        "description": "ClickHouse has delayed INSERT queries — back-pressure may be causing ingestion delay exceeding SLA."
+      },
+      "datadog": {
+        "query": "max(last_{{window}}):max:clickhouse.query.insert.delayed{kube_cluster_name:{{cluster_name}}} > {{threshold}}",
+        "notify": true,
+        "message": "ClickHouse on cluster {{kube_cluster_name.name}} has delayed INSERT queries for 10+ minutes. Investigate ingestion pipeline back-pressure."
+      }
+    },
+    {
+      "alert": "clickhouse-ingestion-slow",
+      "_comment": "P2: minor ingestion slowdown — insert row rate slightly below baseline. clickhouse.table.insert.row.total delta over 15m below a threshold indicates a slowdown not yet causing delays. The threshold (rows per 15m window) must be calibrated per environment; placeholder is 50. Verified metric name against live agent check.",
+      "window": "15m",
+      "for": "15m",
+      "severity": "WARNING",
+      "auto_resolve": "30m",
+      "thresholds": {
+        "warning": "50",
+        "critical": "10"
+      },
+      "annotations": {
+        "summary": "ClickHouse Ingestion Slowdown",
+        "description": "ClickHouse insert row rate is running below the expected baseline — minor slowdown, not yet at SLA breach. Threshold needs env-specific calibration."
+      },
+      "datadog": {
+        "query": "sum(last_{{window}}):sum:clickhouse.table.insert.row.total{kube_cluster_name:{{cluster_name}}}.as_count() < {{threshold}}",
+        "notify": true,
+        "message": "ClickHouse on cluster {{kube_cluster_name.name}} insert rate is below the minor slowdown threshold. No immediate action required but monitor for escalation."
+      }
+    },
+    {
+      "alert": "clickhouse-write-failures",
+      "_comment": "P0: any insert/write failure. clickhouse.log.messages.error.total is a monotonic counter for all ClickHouse error-level log messages — not insert-specific, but the most direct write-failure signal in the standard integration without a custom_query. For a targeted signal, add a custom_query against system.query_log WHERE type='ExceptionBeforeStart' AND query_kind='Insert' to main.tf. Threshold of 0 means any new error triggers. Verified metric name against live agent check.",
+      "window": "5m",
+      "for": "1m",
+      "severity": "CRITICAL",
+      "auto_resolve": "10m",
+      "thresholds": {
+        "critical": "0"
+      },
+      "annotations": {
+        "summary": "ClickHouse Write Failures",
+        "description": "ClickHouse is logging errors — possible insert/write failures. Investigate immediately."
+      },
+      "datadog": {
+        "query": "sum(last_{{window}}):sum:clickhouse.log.messages.error.total{kube_cluster_name:{{cluster_name}}}.as_count() > {{threshold}}",
+        "notify": true,
+        "message": "ClickHouse on cluster {{kube_cluster_name.name}} is logging errors. Check system.query_log for insert/write failures."
+      }
+    }
+  ]
+}

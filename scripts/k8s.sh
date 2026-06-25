@@ -16,6 +16,8 @@
 #   install           First install — helmfile sync (installs ALL releases). Auto-diffs first.
 #   upgrade           Routine upgrade — helmfile apply (only changed). Auto-diffs first.
 #   delete            Uninstall — helmfile destroy (type-to-confirm)
+#   diagnose          Capture a failure artifact (failing releases + unhealthy pods + verdict) to
+#                     -o/--out-dir (default ~/sandbox-run/debug/<ts>); summary.json + bundle. Exits 0.
 #   template          Render manifests locally (append `-- --debug` to pass flags to helm)
 #   status            Show release state: `helm ls -A`, then optionally the TUI or web dashboard
 #   kubeconfig        Authenticate to the cloud and (re)fetch cluster kubeconfig (alias: auth)
@@ -32,6 +34,12 @@
 #                           / .k8s.conf / helmfile default). With -C, resolves within that channel.
 #   -C, --channel <stable|nightly>  Set ARTIFACTS_CHANNEL -> releases/<channel>/<-a|latest>-artifacts.yaml.
 #                           Omit to use a local artifacts.yaml or stable/latest. See k8s/releases/VERSIONING.md.
+#   -o, --out-dir <dir>     diagnose: where to write the bundle (default ~/sandbox-run/debug/<ts>).
+#   Deploy-default overrides (opt-in; unset ⇒ prod defaults; prod never passes these):
+#       --no-atomic           install/upgrade: don't roll back on failure (keep failed pods to diagnose).
+#       --no-wait             install/upgrade: don't wait for resources to become ready.
+#       --deploy-timeout <s>  install/upgrade: helm per-release timeout in seconds (default 1200).
+#       --diagnose-on-fail    install/upgrade: auto-run `diagnose` if the deploy fails.
 #       --tui                 status: open the helm-tui terminal UI (`helm tui`).
 #       --dashboard           status: open the helm-dashboard web UI (`helm dashboard`).
 #   kubeconfig options (resolved from iac/values/secrets.env + provider.yaml when omitted):
@@ -70,7 +78,9 @@ source "$REPO_ROOT/scripts/lib/cli.sh"
 # --- arg parsing (supports -x, --x, and --x=value) -------------------------
 SUBCMD=""; RELEASE=""; FILTER=""; ASSUME_YES=0; DRYRUN=0
 STATUS_TUI=0; STATUS_DASH=0; PASSTHRU=()
-CLI_VDIR=""; CLI_ENV=""; CLI_ARTIFACTS=""; CLI_CHANNEL=""
+CLI_VDIR=""; CLI_ENV=""; CLI_ARTIFACTS=""; CLI_CHANNEL=""; CLI_OUTDIR=""
+# Helm-default overrides (opt-in; unset ⇒ helmfile's prod defaults verbatim) + diagnose-on-fail.
+HF_ATOMIC_OVERRIDE=""; HF_WAIT_OVERRIDE=""; HF_TIMEOUT_OVERRIDE=""; DIAGNOSE_ON_FAIL=0
 CLI_CLOUD=""; CLUSTER=""; PROJECT=""; REGION_F=""; ZONE_F=""; RESOURCE_GROUP=""; DO_LOGIN=0; NO_TF=0
 usage() { cli::usage "$0"; }
 die() { cli::die "$@"; }   # ❌-prefixed to stderr, exit 2 (shared lib; preserves prior exit code)
@@ -89,6 +99,13 @@ while [[ $# -gt 0 ]]; do
     --artifacts-version=*)  CLI_ARTIFACTS="${1#*=}"; shift;;
     -C|--channel) CLI_CHANNEL="${2:?--channel needs a value}"; shift 2;;
     --channel=*)  CLI_CHANNEL="${1#*=}"; shift;;
+    -o|--out-dir) CLI_OUTDIR="${2:?--out-dir needs a value}"; shift 2;;
+    --out-dir=*)  CLI_OUTDIR="${1#*=}"; shift;;
+    --no-atomic)      HF_ATOMIC_OVERRIDE="false"; shift;;
+    --no-wait)        HF_WAIT_OVERRIDE="false"; shift;;
+    --deploy-timeout) HF_TIMEOUT_OVERRIDE="${2:?--deploy-timeout needs a value (seconds)}"; shift 2;;
+    --deploy-timeout=*) HF_TIMEOUT_OVERRIDE="${1#*=}"; shift;;
+    --diagnose-on-fail) DIAGNOSE_ON_FAIL=1; shift;;
     --tui)        STATUS_TUI=1; shift;;
     --dashboard)  STATUS_DASH=1; shift;;
     -c|--cloud)   CLI_CLOUD="${2:?--cloud needs a value}"; shift 2;;
@@ -175,14 +192,26 @@ hf() {  # <diff|sync|apply|destroy|template> [extra args...]
   local -a cmd=(helmfile -f "$HELMFILE" "${SEL[@]}" "$verb" "$@" "${PASSTHRU[@]}")
   local ctx="env=${ENV_NAME:-<auto>}"; [[ -n "$ARTIFACTS_VERSION" ]] && ctx+=" ARTIFACTS_VERSION=$ARTIFACTS_VERSION"
   [[ -n "$ARTIFACTS_CHANNEL" ]] && ctx+=" ARTIFACTS_CHANNEL=$ARTIFACTS_CHANNEL"
+  [[ -n "$HF_ATOMIC_OVERRIDE" ]] && ctx+=" atomic=$HF_ATOMIC_OVERRIDE"
+  [[ -n "$HF_WAIT_OVERRIDE" ]] && ctx+=" wait=$HF_WAIT_OVERRIDE"
+  [[ -n "$HF_TIMEOUT_OVERRIDE" ]] && ctx+=" timeout=$HF_TIMEOUT_OVERRIDE"
   echo "+ (cd $VALUES_DIR && ${cmd[*]})   [$ctx]"
   [[ "$DRYRUN" -eq 1 ]] && { echo "  (dry-run: not executed)"; return 0; }
+  # Drop helmfile's cached charts so OCI charts are re-pulled fresh: a stale/partial entry
+  # (e.g. an interrupted pull) otherwise fails the run with a confusing chart/connection error.
+  # Best-effort — never let cleanup fail the verb.
+  local hf_cache="${HELMFILE_CACHE_HOME:-${XDG_CACHE_HOME:-$HOME/.cache}/helmfile}"
+  echo "+ rm -rf $hf_cache   (clear helmfile chart cache)"
+  rm -rf "$hf_cache" 2>/dev/null || true
   # Export the ABSOLUTE values dir: helmfile resolves `readFile` in helmfile.yaml.gotmpl relative to
   # the helmfile's own directory (k8s/), not this CWD — so a relative "." can't find provider.yaml
   # when the values dir lives elsewhere. An absolute path resolves correctly regardless of CWD.
   ( cd "$BASE" && export HELMFILE_VALUES_DIR="$BASE"; \
     [[ -n "$ARTIFACTS_VERSION" ]] && export ARTIFACTS_VERSION; \
     [[ -n "$ARTIFACTS_CHANNEL" ]] && export ARTIFACTS_CHANNEL; \
+    [[ -n "$HF_ATOMIC_OVERRIDE" ]] && export HF_ATOMIC="$HF_ATOMIC_OVERRIDE"; \
+    [[ -n "$HF_WAIT_OVERRIDE" ]] && export HF_WAIT="$HF_WAIT_OVERRIDE"; \
+    [[ -n "$HF_TIMEOUT_OVERRIDE" ]] && export HF_TIMEOUT="$HF_TIMEOUT_OVERRIDE"; \
     "${cmd[@]}" )
 }
 
@@ -202,14 +231,65 @@ cmd_config() {
   [[ -f "$CONF" ]] || echo "(nothing persisted yet — run: k8s.sh config -d k8s/helm-values -e prod)"
 }
 
+# Fail closed if no cluster is reachable, so helm never silently falls back to its
+# localhost:8080 default (every release then fails in 0s with "kubernetes cluster
+# unreachable"). Read-only guard only — POPULATING the kubeconfig is the caller's
+# responsibility (cloud clusters: `make k8s -- kubeconfig`; the microk8s sandbox: its setup).
+# Probe with `helm` (the binary helmfile actually uses, always present where this runs), NOT
+# kubectl — on a microk8s sandbox kubectl is only a shell alias and absent non-interactively.
+ensure_kubeconfig() {
+  [[ "$DRYRUN" -eq 1 ]] && return 0
+  helm ls -A >/dev/null 2>&1 \
+    || die "helm cannot reach the cluster (KUBECONFIG=${KUBECONFIG:-<unset; using ~/.kube/config>}); refusing to run helmfile — ensure the kubeconfig is populated for this shell." 1
+}
+
 cmd_change() {  # <sync|apply> with auto-diff + confirm
   local verb="$1" label="$2"
+  ensure_kubeconfig
   if [[ "$ASSUME_YES" -ne 1 && "$DRYRUN" -ne 1 ]]; then
     echo "-- diff preview before $label --"
     set +e; hf diff; set -e
     confirm "Proceed with $label?" || die "aborted"
   fi
-  hf "$verb"
+  # Plain path: no opt-in diagnose-on-fail (or a dry-run) ⇒ behave exactly as before.
+  if [[ "$DIAGNOSE_ON_FAIL" -ne 1 || "$DRYRUN" -eq 1 ]]; then
+    hf "$verb"; return $?
+  fi
+  # Opt-in path: stream AND capture so a failure can be diagnosed with the error tail in hand.
+  local log; log="$(mktemp 2>/dev/null || echo "/tmp/k8s-change.$$.log")"
+  local rc=0
+  set +e; hf "$verb" 2>&1 | tee "$log"; rc="${PIPESTATUS[0]}"; set -e
+  if [[ "$rc" -ne 0 ]]; then
+    echo "❌ $label failed (exit $rc) — capturing diagnostics…" >&2
+    run_diagnose "$log" "$rc" || true
+  fi
+  rm -f "$log" 2>/dev/null || true
+  return "$rc"
+}
+
+# Run the diagnose collector for the current release/env scope. Shared by the --diagnose-on-fail
+# auto-trigger (cmd_change) and the explicit `diagnose` verb. Always best-effort.
+run_diagnose() {  # [error_log] [exit_code]
+  local errlog="${1:-}" rc="${2:-}"
+  resolve_env
+  local outdir="${CLI_OUTDIR:-$HOME/sandbox-run/debug/$(date -u +%Y%m%d-%H%M%S)}"
+  local cmdstr="make k8s -- ${SUBCMD}${RELEASE:+ -l $RELEASE}${ENV_NAME:+ -e $ENV_NAME}"
+  # Only forward --release for a bare chart name (no '=' label) the collector can turn into <chart>-<env>.
+  local rel_arg=""; [[ -n "$RELEASE" && "$RELEASE" != *=* ]] && rel_arg="$RELEASE"
+  echo "+ k8s-diagnose.sh --out-dir $outdir${rel_arg:+ --release $rel_arg}${ENV_NAME:+ --env $ENV_NAME}"
+  [[ "$DRYRUN" -eq 1 ]] && { echo "  (dry-run: not executed)"; return 0; }
+  bash "$REPO_ROOT/scripts/k8s-diagnose.sh" \
+    --out-dir "$outdir" \
+    ${rel_arg:+--release "$rel_arg"} \
+    ${ENV_NAME:+--env "$ENV_NAME"} \
+    --command "$cmdstr" \
+    ${rc:+--exit-code "$rc"} \
+    ${errlog:+--error-log "$errlog"}
+}
+
+cmd_diagnose() {  # capture a failure artifact on demand (no deploy)
+  ensure_kubeconfig
+  run_diagnose "" ""
 }
 
 cmd_delete() {
@@ -382,6 +462,7 @@ case "$SUBCMD" in
   install)           k8s_stamped k8s-install cmd_change sync "install (helmfile sync)";;
   upgrade)           cmd_change apply "upgrade (helmfile apply)";;
   delete|destroy)    cmd_delete;;
+  diagnose)          cmd_diagnose;;
   template)          hf template;;
   status|ls)         cmd_status;;
   kubeconfig|auth)   k8s_stamped kubeconfig cmd_kubeconfig;;

@@ -239,6 +239,28 @@ make k8s -- upgrade -d /path/to/values  # point at a different values directory
 make k8s -- upgrade -l clickhouse     # → helmfile -l name=clickhouse-<env> apply
 ```
 
+### Selecting a Stack (evalm8 / router / both)
+
+The platform ships two stacks: the **router** ecosystem (router-controller, route-selector,
+selector-training, evaluator, clickhouse, kafka, superset, and so on) and the **evalm8** stack
+(evalm8 apps with their temporal, lakefs, and argilla datastores and operators). `external-secrets`,
+`mysql`, and persistent storage are shared and always deploy.
+
+The selection comes solely from the `stack` key in `provider.yaml`, which terraform writes the same
+way it writes `deployment_mode` (the IaC that writes it lands as a separate PR). When the key is
+absent the helmfile keeps the prior default and deploys every chart. When it is set to `evalm8` or
+`router`, only that stack's namespace groups plus the always-shared charts deploy. There is no env
+var or CLI flag: the value is a property of the provisioned cluster, so any `install`/`upgrade`/`diff`
+against that cluster deploys the stack it was provisioned for.
+
+```yaml
+# provider.yaml (written by terraform)
+stack: evalm8        # evalm8 | router | both. Omit the key entirely to deploy all services.
+```
+
+`external-secrets`, `mysql`, and persistent storage are shared and always deploy regardless of the
+stack.
+
 ### Preview Changes
 
 ```bash
