@@ -8,7 +8,7 @@ variable "environment" {
 variable "input" {
   description = "Secrets input: all divyam_* secret values (from TF_VAR_* or Terragrunt)."
   type = object({
-    evalm8_enabled                      = optional(bool, false)
+    evalm8_enabled                       = optional(bool, false)
     divyam_lakefs_access_key_id          = optional(string, "")
     divyam_lakefs_secret_access_key      = optional(string, "")
     divyam_lakefs_auth_encrypt_key       = optional(string, "")
@@ -18,20 +18,20 @@ variable "input" {
     divyam_evalm8_jwt_secret             = optional(string, "")
     divyam_evalm8_encryption_key         = optional(string, "")
     divyam_evalm8_admin_password         = optional(string, "")
-    divyam_db_root_password             = optional(string)
-    divyam_db_user_name                 = optional(string)
-    divyam_db_password                  = string
-    divyam_clickhouse_user_name         = optional(string, "default")
-    divyam_clickhouse_password          = optional(string, "")
-    divyam_superset_pg_password         = optional(string)
-    divyam_superset_password = optional(string)
-    divyam_jwt_secret_key              = string
-    divyam_provider_keys_encryption_key = string
-    divyam_openai_billing_admin_api_key = optional(string, "")
-    divyam_artifactory_docker_auth     = optional(string, "")
-    divyam_router_admin_password        = optional(string, "")
-    divyam_deployment_id                = optional(string, "")
-    divyam_deployment_api_key           = optional(string, "")
+    divyam_db_root_password              = optional(string)
+    divyam_db_user_name                  = optional(string)
+    divyam_db_password                   = string
+    divyam_clickhouse_user_name          = optional(string, "default")
+    divyam_clickhouse_password           = optional(string, "")
+    divyam_superset_pg_password          = optional(string)
+    divyam_superset_password             = optional(string)
+    divyam_jwt_secret_key                = string
+    divyam_provider_keys_encryption_key  = string
+    divyam_openai_billing_admin_api_key  = optional(string, "")
+    divyam_artifactory_docker_auth       = optional(string, "")
+    divyam_router_admin_password         = optional(string, "")
+    divyam_deployment_id                 = optional(string, "")
+    divyam_deployment_api_key            = optional(string, "")
     # Azure only: used by Kafka to Blob storage consumer. Omit or null for GCP.
     router_requests_logs_storage_account_connection_string = optional(string)
   })

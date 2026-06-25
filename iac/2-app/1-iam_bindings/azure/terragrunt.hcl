@@ -31,21 +31,24 @@ locals {
   # From defaults.hcl: storage account name for router-requests-logs; AKS cluster name. Fetched from Azure in Terraform via data sources.
   router_logs_storage_account_name = try(one([for s in local.root.divyam_object_storages : s.storage_account_name if s.type == "router-requests-logs"]), null)
   aks_cluster_name                 = try(local.root.k8s.name, null)
+  # Plan fallback: when the object_storage unit has no state yet, derive the lakeFS storage account
+  # name directly from values so the evalm8 IAM path still validates under local-backend sandbox runs.
+  evalm8_lakefs_storage_account_name = try(one([for s in try(local.root.evalm8_object_storages, []) : s.storage_account_name if s.type == "lakefs-data"]), null)
 }
 
 inputs = {
-  env_name                       = local.root.env_name
-  resource_group_name            = local.root.resource_scope.name
-  location                       = local.root.region
-  environment                    = local.root.env_name
-  common_tags                    = try(include.root.inputs.common_tags, {})
-  tag_globals                    = try(include.root.inputs.tag_globals, {})
+  env_name            = local.root.env_name
+  resource_group_name = local.root.resource_scope.name
+  location            = local.root.region
+  environment         = local.root.env_name
+  common_tags         = try(include.root.inputs.common_tags, {})
+  tag_globals         = try(include.root.inputs.tag_globals, {})
   tag_context = {
     resource_name = local.root.deployment_prefix
   }
-  azure_key_vault_id                  = dependency.divyam_secrets.outputs.key_vault_id
-  router_logs_storage_account_name    = local.router_logs_storage_account_name
+  azure_key_vault_id                 = dependency.divyam_secrets.outputs.key_vault_id
+  router_logs_storage_account_name   = local.router_logs_storage_account_name
   aks_cluster_name                   = local.aks_cluster_name
   stack                              = try(local.root.stack, "both")
-  evalm8_lakefs_storage_account_name = try(local.root.stack, "both") != "router" ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_storage_account_name, null) : null
+  evalm8_lakefs_storage_account_name = try(local.root.stack, "both") != "router" ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_storage_account_name, local.evalm8_lakefs_storage_account_name) : null
 }

@@ -2,7 +2,7 @@
 # Single variable "input" so callers pass one object (no repetition in Azure/GCP).
 
 locals {
-  env   = coalesce(var.environment, "dev")
+  env          = coalesce(var.environment, "dev")
   db_user_name = coalesce(var.input.divyam_db_user_name, "divyam-${local.env}")
 }
 
@@ -31,8 +31,8 @@ locals {
   divyam_db_root_password       = (var.input.divyam_db_root_password != null && var.input.divyam_db_root_password != "") ? var.input.divyam_db_root_password : random_password.random_db_root_password[0].result
   clickhouse_user               = coalesce(var.input.divyam_clickhouse_user_name, "default")
   # coalesce(null, "") fails in Terraform, so use a conditional that makes the empty string a valid default
-  clickhouse_password           = var.input.divyam_clickhouse_password != null ? var.input.divyam_clickhouse_password : ""
-  openai_key                    = var.input.divyam_openai_billing_admin_api_key != null ? var.input.divyam_openai_billing_admin_api_key : ""
+  clickhouse_password = var.input.divyam_clickhouse_password != null ? var.input.divyam_clickhouse_password : ""
+  openai_key          = var.input.divyam_openai_billing_admin_api_key != null ? var.input.divyam_openai_billing_admin_api_key : ""
 }
 
 # Evalm8 secret values, gated by evalm8_enabled.
@@ -112,22 +112,22 @@ locals {
 locals {
   secrets = merge(
     {
-    "divyam-db-root-password"              = local.divyam_db_root_password
-    "divyam-db-password"                   = var.input.divyam_db_password
-    "divyam-db-user-name"                  = local.db_user_name
-    "divyam-analytics-db-user-name"        = local.clickhouse_user
-    "divyam-analytics-db-password"         = local.clickhouse_password
-    "divyam-superset-pg-password"          = local.superset_pg_password
-    "divyam-superset-pg-superset-password" = local.superset_pg_superset_password
-    "divyam-jwt-secret-key"                = var.input.divyam_jwt_secret_key
-    "divyam-provider-keys-encryption-key"  = var.input.divyam_provider_keys_encryption_key
-    "divyam-openai-billing-admin-api-key"  = local.openai_key
-    "divyam-artifactory-docker-auth"       = var.input.divyam_artifactory_docker_auth
-    "divyam-router-admin-password"         = var.input.divyam_router_admin_password
-    "divyam-deployment-id"                 = var.input.divyam_deployment_id
-    "divyam-deployment-api-key"            = var.input.divyam_deployment_api_key
+      "divyam-db-root-password"              = local.divyam_db_root_password
+      "divyam-db-password"                   = var.input.divyam_db_password
+      "divyam-db-user-name"                  = local.db_user_name
+      "divyam-analytics-db-user-name"        = local.clickhouse_user
+      "divyam-analytics-db-password"         = local.clickhouse_password
+      "divyam-superset-pg-password"          = local.superset_pg_password
+      "divyam-superset-pg-superset-password" = local.superset_pg_superset_password
+      "divyam-jwt-secret-key"                = var.input.divyam_jwt_secret_key
+      "divyam-provider-keys-encryption-key"  = var.input.divyam_provider_keys_encryption_key
+      "divyam-openai-billing-admin-api-key"  = local.openai_key
+      "divyam-artifactory-docker-auth"       = var.input.divyam_artifactory_docker_auth
+      "divyam-router-admin-password"         = var.input.divyam_router_admin_password
+      "divyam-deployment-id"                 = var.input.divyam_deployment_id
+      "divyam-deployment-api-key"            = var.input.divyam_deployment_api_key
 
-    "divyam-billing-secrets" = <<-EOT
+      "divyam-billing-secrets" = <<-EOT
       llm_keys:
         OpenAI:
           billing_api_key: "${local.openai_key}"

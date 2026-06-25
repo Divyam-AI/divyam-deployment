@@ -1,6 +1,6 @@
 # Merged view of all storage accounts (created + looked up) for outputs
 locals {
-  all_storage_account_ids   = merge(
+  all_storage_account_ids = merge(
     { for k, v in azurerm_storage_account.this : k => v.id },
     { for k, v in data.azurerm_storage_account.existing : k => v.id }
   )
@@ -30,7 +30,7 @@ output "storage_account_names" {
 
 output "container_names" {
   description = "List of all storage container names (created + looked up)."
-  value       = concat(
+  value = concat(
     [for v in azurerm_storage_container.container : v.name],
     [for v in data.azurerm_storage_container.existing : v.name]
   )

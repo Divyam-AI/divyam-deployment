@@ -59,7 +59,7 @@ locals {
   # Exclude bucket scopes when the matching bucket name is not set (defaults or optional).
   role_bindings_flat_filtered = [
     for rb in local.role_bindings_flat :
-    rb if (rb.scope != "storage_bucket" || var.router_logs_bucket_name != null)
+    rb if(rb.scope != "storage_bucket" || var.router_logs_bucket_name != null)
     && (rb.scope != "lakefs_bucket" || var.evalm8_lakefs_bucket_name != null)
   ]
 

@@ -41,7 +41,7 @@ output "bucket_name_list" {
 
 # Backward compatibility: storage identified by type "router-requests-logs" (router_requests_logs_storage_key).
 locals {
-  router_requests_logs_keys = var.router_requests_logs_storage_key != null ? [for k in keys(local.all_bucket_ids) : k if startswith(k, "${var.router_requests_logs_storage_key}/")] : []
+  router_requests_logs_keys      = var.router_requests_logs_storage_key != null ? [for k in keys(local.all_bucket_ids) : k if startswith(k, "${var.router_requests_logs_storage_key}/")] : []
   router_requests_logs_first_key = length(local.router_requests_logs_keys) > 0 ? local.router_requests_logs_keys[0] : null
 }
 

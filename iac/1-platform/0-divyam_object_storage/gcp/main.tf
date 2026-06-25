@@ -1,6 +1,6 @@
 locals {
   to_create = { for k, v in var.buckets : k => v if try(v.create, true) }
-  to_lookup  = { for k, v in var.buckets : k => v if !try(v.create, true) }
+  to_lookup = { for k, v in var.buckets : k => v if !try(v.create, true) }
 
   # Flat set of buckets for create: "account_key/bucket_name" -> { account_key, bucket_name }
   buckets_flat_created = length(local.to_create) > 0 ? merge([

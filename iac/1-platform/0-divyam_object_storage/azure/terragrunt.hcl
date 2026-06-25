@@ -8,7 +8,7 @@ terraform {
 }
 
 locals {
-  root     = include.root.locals.merged
+  root = include.root.locals.merged
   # Subnet names from defaults.hcl: vnet.subnet and vnet.app_gw_subnet are single objects with .name.
   vnet_subnet_names = [local.root.vnet.subnet.name]
   # Evalm8 lakeFS storage is gated by stack in defaults.hcl, empty list for a router-only deployment.
@@ -40,7 +40,7 @@ inputs = merge(
     router_requests_logs_storage_key = local.router_requests_logs_storage_key
     evalm8_lakefs_storage_key        = local.evalm8_lakefs_storage_key
     vnet_name                        = local.root.vnet.name
-    vnet_resource_group_name        = local.root.vnet.scope_name
+    vnet_resource_group_name         = local.root.vnet.scope_name
     vnet_subnet_names                = local.vnet_subnet_names
     common_tags                      = try(local.root.common_tags, {})
     tag_globals                      = try(include.root.inputs.tag_globals, {})
