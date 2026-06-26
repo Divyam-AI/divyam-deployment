@@ -120,3 +120,69 @@ superset-ingress:
 external-secrets-operator:
   chart:
     version: 0.10.5
+
+# evalm8 stack
+
+argilla:
+  chart:
+    version: 0.1.3
+
+argilla-ingress:
+  chart:
+    version: 0.1.1
+
+evalm8-server:
+  chart:
+    version: 0.1.3
+
+evalm8-ui:
+  chart:
+    version: 0.1.3
+
+evalm8-wfs:
+  chart:
+    version: 0.1.3
+
+evalm8-ingress:
+  chart:
+    version: 0.1.3
+
+cloudnative-pg-operator:
+  chart:
+    version: 0.2.3
+
+opensearch-operator:
+  chart:
+    version: 0.2.3
+
+redis-operator:
+  chart:
+    version: 0.24.102
+
+temporal-postgres:
+  chart:
+    version: 0.1.3
+
+lakefs-postgres:
+  chart:
+    version: 0.1.3
+
+argilla-postgres:
+  chart:
+    version: 0.1.3
+
+argilla-opensearch:
+  chart:
+    version: 0.1.3
+
+argilla-redis:
+  chart:
+    version: 0.1.3
+
+temporal:
+  chart:
+    version: 0.1.3
+
+lakefs:
+  chart:
+    version: 0.1.3
