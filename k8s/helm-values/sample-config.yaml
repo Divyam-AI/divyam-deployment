@@ -119,9 +119,8 @@ evalm8-ingress:
       domain:
         evalm8: ""        # required per env: "evalm8.<env>.divyam.local"
 
-# Argilla owns its own ingress (annotation UI, backend :6900). Gated per provider
-# and per env. The worker stays internal.
-argilla:
+# argilla-ingress: Argilla annotation UI/API (backend :6900). Separate ingress chart, gated per provider and per env. The worker stays internal.
+argilla-ingress:
   values:
     ingress:
       deploy: true
