@@ -16,7 +16,7 @@ divyam-router-controller:
     version: 0.1.179
   values:
     image:
-      tag: "0.1.201"
+      tag: "0.1.202"
 
 divyam-route-selector:
   chart:
