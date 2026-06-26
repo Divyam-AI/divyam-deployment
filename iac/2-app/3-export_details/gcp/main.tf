@@ -33,6 +33,9 @@ monitoring:
 
 EOT
 
+  # evalm8 lakeFS bucket lines, emitted under platform.gcp only when set (stack not router).
+  evalm8_block = trimspace(var.evalm8_lakefs_bucket) != "" ? "    evalm8:\n      lakefs:\n        bucket: \"${var.evalm8_lakefs_bucket}\"" : ""
+
   platform_block = <<-EOT
 # Global config and platform provider (GCP)
 # Combined with resources.yaml and artifacts.yaml via helmfile
@@ -46,9 +49,10 @@ ${local.custom_tags_block}
     secretsProjectId: "${var.project_id}"
     storage_configs:
       bucket: "${var.storage_bucket}"
-
+${local.evalm8_block}
 clusterDomain: "${var.cluster_domain}"
 deployment_mode: "${var.deployment_mode}"
+stack: "${var.stack}"
 
 imagePullSecretConfig:
   enabled: ${var.image_pull_secret_enabled}

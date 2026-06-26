@@ -5,6 +5,7 @@
 module "service_accounts" {
   source   = "../common"
   env_name = var.env_name
+  stack    = var.stack
 }
 
 ############################################
@@ -28,6 +29,7 @@ locals {
   scope_ids = {
     project        = var.project_id
     storage_bucket = var.router_logs_bucket_name
+    lakefs_bucket  = var.evalm8_lakefs_bucket_name
   }
 
   sa_role_pairs = flatten([
@@ -54,10 +56,11 @@ locals {
     ]
   ])
 
-  # Exclude storage_bucket scope when bucket name is not set (defaults or optional).
+  # Exclude bucket scopes when the matching bucket name is not set (defaults or optional).
   role_bindings_flat_filtered = [
     for rb in local.role_bindings_flat :
-    rb if rb.scope != "storage_bucket" || var.router_logs_bucket_name != null
+    rb if(rb.scope != "storage_bucket" || var.router_logs_bucket_name != null)
+    && (rb.scope != "lakefs_bucket" || var.evalm8_lakefs_bucket_name != null)
   ]
 
   _sep = "::"
@@ -115,6 +118,21 @@ resource "google_storage_bucket_iam_member" "bucket_roles" {
   }
 
   bucket = local.scope_ids.storage_bucket
+  role   = each.value.role
+  member = "serviceAccount:${google_service_account.identities[each.value.sa_name].email}"
+}
+
+############################################
+# lakeFS Bucket IAM Bindings (evalm8)
+############################################
+
+resource "google_storage_bucket_iam_member" "lakefs_bucket_roles" {
+  for_each = {
+    for k, v in local.role_binding_map :
+    k => v if v.scope == "lakefs_bucket"
+  }
+
+  bucket = local.scope_ids.lakefs_bucket
   role   = each.value.role
   member = "serviceAccount:${google_service_account.identities[each.value.sa_name].email}"
 }

@@ -26,6 +26,19 @@ locals {
     }
 
     # -----------------------------------
+    # lakeFS blob storage writer (GCS, evalm8 lakeFS bucket)
+    # Bound to the evalm8 lakeFS bucket scope, separate from the router-logs bucket.
+    # -----------------------------------
+    lakefs_blob_writer = {
+      role_bindings = [
+        {
+          scope = "lakefs_bucket"
+          role  = "roles/storage.objectAdmin"
+        }
+      ]
+    }
+
+    # -----------------------------------
     # Blob storage reader (GCS)
     # -----------------------------------
     blob_reader = {

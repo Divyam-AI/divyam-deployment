@@ -15,6 +15,13 @@ data "azurerm_storage_account" "router_logs" {
   resource_group_name  = var.resource_group_name
 }
 
+# Look up the evalm8 lakeFS storage account in Azure by name (from the object_storage unit).
+data "azurerm_storage_account" "evalm8_lakefs" {
+  count                = (var.evalm8_lakefs_storage_account_name != null && var.evalm8_lakefs_storage_account_name != "") ? 1 : 0
+  name                 = var.evalm8_lakefs_storage_account_name
+  resource_group_name  = var.resource_group_name
+}
+
 # Look up AKS cluster in Azure by name (from defaults.hcl k8s.name) to get OIDC issuer URL.
 data "azurerm_kubernetes_cluster" "aks" {
   count               = (var.aks_cluster_name != null && var.aks_cluster_name != "") ? 1 : 0
@@ -24,6 +31,7 @@ data "azurerm_kubernetes_cluster" "aks" {
 
 locals {
   router_logs_storage_account_id = (var.router_logs_storage_account_name != null && var.router_logs_storage_account_name != "") ? data.azurerm_storage_account.router_logs[0].id : var.router_logs_storage_account_id
+  evalm8_lakefs_storage_account_id = (var.evalm8_lakefs_storage_account_name != null && var.evalm8_lakefs_storage_account_name != "") ? data.azurerm_storage_account.evalm8_lakefs[0].id : var.evalm8_lakefs_storage_account_id
   aks_oidc_issuer_url           = (var.aks_cluster_name != null && var.aks_cluster_name != "" && length(data.azurerm_kubernetes_cluster.aks) > 0) ? data.azurerm_kubernetes_cluster.aks[0].oidc_issuer_url : null
 }
 
@@ -34,6 +42,7 @@ locals {
 module "service_accounts" {
   source   = "../common"
   env_name = var.env_name
+  stack    = var.stack
 }
 
 ############################################
@@ -47,9 +56,10 @@ locals {
   service_account_ids = toset(keys(local.service_accounts))
 
   scope_ids = {
-    resource_group  = data.azurerm_resource_group.selected.id
-    storage_account = local.router_logs_storage_account_id
-    key_vault       = var.azure_key_vault_id
+    resource_group         = data.azurerm_resource_group.selected.id
+    storage_account        = local.router_logs_storage_account_id
+    lakefs_storage_account = local.evalm8_lakefs_storage_account_id
+    key_vault              = var.azure_key_vault_id
   }
 
   sa_role_assignments = flatten([
@@ -76,10 +86,11 @@ locals {
     ]
   ])
 
-  # Exclude storage_account scope when storage account ID is not available (name not in defaults or lookup failed).
+  # Exclude storage scopes when the matching storage account ID is not available (name not set or lookup failed).
   role_assignments_flat_filtered = [
     for ra in local.role_assignments_flat :
-    ra if ra.scope != "storage_account" || local.router_logs_storage_account_id != null
+    ra if (ra.scope != "storage_account" || local.router_logs_storage_account_id != null)
+    && (ra.scope != "lakefs_storage_account" || local.evalm8_lakefs_storage_account_id != null)
   ]
 
   _sep = "::"

@@ -18,3 +18,15 @@ variable "router_logs_bucket_name" {
   type        = string
   default     = null
 }
+
+variable "stack" {
+  description = "Divyam stack selector (evalm8, router, both). Gates the evalm8 service accounts in the common registry."
+  type        = string
+  default     = "both"
+}
+
+variable "evalm8_lakefs_bucket_name" {
+  description = "GCS bucket name for the evalm8 lakeFS store (from the object_storage unit). Optional, when null the lakefs_bucket IAM bindings are skipped."
+  type        = string
+  default     = null
+}
