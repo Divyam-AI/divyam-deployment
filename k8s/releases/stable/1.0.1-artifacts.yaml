@@ -12,7 +12,7 @@ chartBasePath: "oci://asia-south1-docker.pkg.dev/prod-benchmarking/divyam-public
 
 divyam-router-controller:
   chart:
-    version: 0.1.179
+    version: 0.1.184
   values:
     image:
       tag: "0.1.202"
