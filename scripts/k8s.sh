@@ -246,6 +246,12 @@ ensure_kubeconfig() {
 cmd_change() {  # <sync|apply> with auto-diff + confirm
   local verb="$1" label="$2"
   ensure_kubeconfig
+  # On apply, skip helm-diff for releases being newly installed.
+  # A brand-new release whose CRD comes from another release in the same run cannot be server-dry-run diffed before that operator installs, so the diff aborts with "no matches for kind" (lakefs-postgres needs the cloudnative-pg-operator CRD).
+  # needs still orders the sync so the operator installs first, which makes the skipped install-time diff safe.
+  # sync has no diff phase, so the flag applies only to apply.
+  local -a verb_extra=()
+  [[ "$verb" == apply ]] && verb_extra+=(--skip-diff-on-install)
   if [[ "$ASSUME_YES" -ne 1 && "$DRYRUN" -ne 1 ]]; then
     echo "-- diff preview before $label --"
     set +e; hf diff; set -e
@@ -253,12 +259,12 @@ cmd_change() {  # <sync|apply> with auto-diff + confirm
   fi
   # Plain path: no opt-in diagnose-on-fail (or a dry-run) ⇒ behave exactly as before.
   if [[ "$DIAGNOSE_ON_FAIL" -ne 1 || "$DRYRUN" -eq 1 ]]; then
-    hf "$verb"; return $?
+    hf "$verb" "${verb_extra[@]}"; return $?
   fi
   # Opt-in path: stream AND capture so a failure can be diagnosed with the error tail in hand.
   local log; log="$(mktemp 2>/dev/null || echo "/tmp/k8s-change.$$.log")"
   local rc=0
-  set +e; hf "$verb" 2>&1 | tee "$log"; rc="${PIPESTATUS[0]}"; set -e
+  set +e; hf "$verb" "${verb_extra[@]}" 2>&1 | tee "$log"; rc="${PIPESTATUS[0]}"; set -e
   if [[ "$rc" -ne 0 ]]; then
     echo "❌ $label failed (exit $rc) — capturing diagnostics…" >&2
     run_diagnose "$log" "$rc" || true

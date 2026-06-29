@@ -415,3 +415,6 @@ charts:
   evalm8-ingress:
     values: {}
 
+  argilla-ingress:
+    values: {}
+
