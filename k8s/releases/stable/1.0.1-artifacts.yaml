@@ -133,14 +133,20 @@ argilla-ingress:
 evalm8-server:
   chart:
     version: 0.1.4
+  image:
+    tag: "0.1.3"
 
 evalm8-ui:
   chart:
     version: 0.1.4
+  image:
+    tag: "0.1.3"
 
 evalm8-wfs:
   chart:
     version: 0.1.4
+  image:
+    tag: "0.1.3"
 
 evalm8-ingress:
   chart:
@@ -152,7 +158,7 @@ cloudnative-pg-operator:
 
 opensearch-operator:
   chart:
-    version: 0.2.4
+    version: 0.2.5
 
 redis-operator:
   chart:
@@ -172,11 +178,11 @@ argilla-postgres:
 
 argilla-opensearch:
   chart:
-    version: 0.1.4
+    version: 0.1.5
 
 argilla-redis:
   chart:
-    version: 0.1.4
+    version: 0.1.5
 
 temporal:
   chart:
