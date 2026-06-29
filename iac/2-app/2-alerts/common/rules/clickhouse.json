@@ -93,7 +93,7 @@
     },
     {
       "alert": "clickhouse-write-failures",
-      "_comment": "P0: any insert/write failure. clickhouse.log.messages.error.total is a monotonic counter for all ClickHouse error-level log messages — not insert-specific, but the most direct write-failure signal in the standard integration without a custom_query. For a targeted signal, add a custom_query against system.query_log WHERE type='ExceptionBeforeStart' AND query_kind='Insert' to main.tf. Threshold of 0 means any new error triggers. Verified metric name against live agent check.",
+      "_comment": "P0: failed INSERT queries. Uses clickhouse.inserts.failed, emitted by a custom_query gated on monitoring.metrics.writeFailureQuery.enabled in divyam-helm-charts/charts/clickhouse (COUNT of system.query_log rows with query_kind='Insert' and type IN ExceptionBeforeStart/ExceptionWhileProcessing over the trailing 5m); 0 when healthy. Replaces the previous clickhouse.log.messages.error.total query, which thresholded a CUMULATIVE GAUGE of all error-level log messages — its value is >0 as soon as any error is ever logged (e.g. benign startup Keeper/network errors), so the monitor fired permanently and never measured new/insert-specific failures. Threshold 0 = any insert failure in the window; max() (not .as_count()) since the SQL already windows the count.",
       "window": "5m",
       "for": "1m",
       "severity": "CRITICAL",
@@ -103,12 +103,12 @@
       },
       "annotations": {
         "summary": "ClickHouse Write Failures",
-        "description": "ClickHouse is logging errors — possible insert/write failures. Investigate immediately."
+        "description": "ClickHouse INSERT queries are failing (system.query_log insert exceptions in the last 5m). Investigate immediately — ingestion/billing data may be lost."
       },
       "datadog": {
-        "query": "sum(last_{{window}}):sum:clickhouse.log.messages.error.total{kube_cluster_name:{{cluster_name}}}.as_count() > {{threshold}}",
+        "query": "max(last_{{window}}):max:clickhouse.inserts.failed{kube_cluster_name:{{cluster_name}}} > {{threshold}}",
         "notify": true,
-        "message": "ClickHouse on cluster {{kube_cluster_name.name}} is logging errors. Check system.query_log for insert/write failures."
+        "message": "ClickHouse on cluster {{kube_cluster_name.name}} has failed INSERT queries in the last 5 minutes. Check system.query_log WHERE query_kind='Insert' AND type LIKE 'Exception%' for the failing inserts."
       }
     }
   ]
