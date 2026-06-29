@@ -1,8 +1,8 @@
 locals {
   key_vault_uri = "https://${var.key_vault_name}.vault.azure.net/"
   # Expose rendered common tags in provider.yaml under platform.custom_tags for downstream helm values.
-  # Do not yamlencode() the whole map here: when interpolated into the heredoc, multi-line yamlencode output
-  # can mis-indent (first map entry flush-left). Emit one indented line per key; jsonencode() values are valid YAML scalars.
+  # Do not yamlencode() the whole map here. When interpolated into the heredoc, multi-line yamlencode output can mis-indent the first map entry flush-left.
+  # Emit one indented line per key. jsonencode() values are valid YAML scalars.
   custom_tags_block = length(local.rendered_tags) > 0 ? join("\n", concat(
     ["  custom_tags:"],
     [for k in sort(keys(local.rendered_tags)) : format("    %s: %s", k, jsonencode(local.rendered_tags[k]))]
@@ -37,8 +37,9 @@ monitoring:
 
 EOT
 
-  # evalm8 lakeFS storage lines, emitted under platform.azure only when set (stack not router).
-  evalm8_block = trimspace(var.evalm8_lakefs_storage_account) != "" ? "    evalm8:\n      lakefs:\n        storage_account: \"${var.evalm8_lakefs_storage_account}\"\n        container: \"${var.evalm8_lakefs_container}\"" : ""
+  # lakeFS objectStorage block, emitted top-level only when set (stack not router).
+  # The helmfile forwards this into the lakefs chart objectStorage. type is the lakefs_blockstore selector.
+  lakefs_block = trimspace(var.evalm8_lakefs_storage_account) != "" ? "lakefs:\n  objectStorage:\n    type: \"${var.lakefs_blockstore}\"\n    azure:\n      account: \"${var.evalm8_lakefs_storage_account}\"\n      container: \"${var.evalm8_lakefs_container}\"" : ""
 
   platform_block = <<-EOT
 # Global config and platform provider (Azure)
@@ -54,7 +55,6 @@ ${local.custom_tags_block}
     storage_configs:
       container: "${var.storage_container}"
       storage_account: "${var.storage_account}"
-${local.evalm8_block}
     wif:
       tenantID: "${var.tenant_id}"
       clientIdMap:
@@ -77,6 +77,7 @@ imagePullSecretConfig:
 deployment_mode: "${var.deployment_mode}"
 stack: "${var.stack}"
 clusterDomain: "${var.cluster_domain}"
+${local.lakefs_block}
 
 EOT
 

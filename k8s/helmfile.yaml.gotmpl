@@ -263,6 +263,15 @@ repositories:
 -}}
 
 {{/*
+  Charts that receive the lakeFS objectStorage from provider.yaml. Terraform writes the chosen
+  blockstore and bucket under top-level `lakefs.objectStorage`, the helmfile forwards it verbatim
+  so objectStorage.type is the single source of truth (chart honors it rather than guessing).
+*/}}
+{{- $chartsWithObjectStorage := dict
+  "lakefs"  true
+-}}
+
+{{/*
   Charts whose values.yaml defines a top-level `monitoring` key — merged from
   provider.yaml `monitoring` (when present) with per-chart resources values
   (chart wins on overlap). If provider.yaml omits `monitoring`, only chart values apply.
@@ -562,7 +571,7 @@ releases:
 
     {{- $chartVals := $cfg.values | default dict }}
     {{- $omitProviderKeys := false }}
-    {{- if or (hasKey $chartsWithProviderIngress $name) (hasKey $chartsWithProviderMonitoring $name) (hasKey $chartsWithProviderSecrets $name) }}
+    {{- if or (hasKey $chartsWithProviderIngress $name) (hasKey $chartsWithProviderMonitoring $name) (hasKey $chartsWithProviderSecrets $name) (hasKey $chartsWithObjectStorage $name) }}
     {{- $omitProviderKeys = true }}
     {{- end }}
     {{- if $omitProviderKeys }}
@@ -575,6 +584,9 @@ releases:
     {{- end }}
     {{- if hasKey $chartsWithProviderSecrets $name }}
     {{- $valsBody = omit $valsBody "secrets" }}
+    {{- end }}
+    {{- if and (hasKey $chartsWithObjectStorage $name) (hasKey $global "lakefs") }}
+    {{- $valsBody = omit $valsBody "objectStorage" }}
     {{- end }}
     {{- if $valsBody }}
     - {{ toYaml $valsBody | nindent 6 }}
@@ -597,6 +609,12 @@ releases:
     {{- $mergedSecrets := merge (index $values.global "secrets" | default dict) (index $chartVals "secrets" | default dict) }}
     - secrets:
       {{ $mergedSecrets | toYaml | nindent 8 }}
+    {{- end }}
+
+    {{- if and (hasKey $chartsWithObjectStorage $name) (hasKey $global "lakefs") }}
+    {{- $mergedObjectStorage := merge (dig "lakefs" "objectStorage" dict $global) (index $chartVals "objectStorage" | default dict) }}
+    - objectStorage:
+      {{ $mergedObjectStorage | toYaml | nindent 8 }}
     {{- end }}
 
     {{- if and (eq $name "divyam-persistent-storage") ($settings.storage_class) }}

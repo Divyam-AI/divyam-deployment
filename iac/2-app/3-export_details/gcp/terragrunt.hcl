@@ -1,5 +1,5 @@
 # Export details (GCP): generates provider.yaml for helmfile with platform-specific configuration.
-# Values from defaults.hcl; storage bucket from divyam_object_storage; databases from cloudsql (when created).
+# Values from defaults.hcl, storage bucket from divyam_object_storage, databases from cloudsql (when created).
 
 include "root" {
   path   = find_in_parent_folders("root.hcl")
@@ -47,8 +47,8 @@ locals {
   cloudsql_created = try(local.cloudsql_cfg.create, false)
 
   storage_bucket = try(one([for s in local.root.divyam_object_storages : s.container_name if s.type == "router-requests-logs"]), "")
-  # Plan fallback: when the object_storage unit has no state yet, derive the lakeFS bucket name
-  # directly from values so provider.yaml still validates under local-backend sandbox runs.
+  # Plan fallback: when the object_storage unit has no state yet, derive the lakeFS bucket name from values.
+  # This keeps provider.yaml validating under local-backend sandbox runs.
   evalm8_lakefs_bucket = try(one([for s in try(local.root.evalm8_object_storages, []) : s.container_name if s.type == "lakefs-data"]), "")
 
   # Same contract as Azure: divyam_load_balancer.private_dns_zone + dns_records (see 1-platform/0-app_gw). Legacy FQDN keys remain a fallback.
@@ -76,6 +76,7 @@ inputs = {
   storage_bucket              = try(dependency.divyam_object_storage.outputs.router_requests_logs_bucket_name, local.storage_bucket)
   stack                       = try(local.root.stack, "both")
   evalm8_lakefs_bucket        = try(local.root.stack, "both") != "router" ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_bucket_name, local.evalm8_lakefs_bucket) : ""
+  lakefs_blockstore           = try(local.root.stack, "both") != "router" ? try(local.root.lakefs_blockstore, "gcs") : ""
   cluster_domain              = try(local.export_cfg.cluster_domain, "")
   ingress_deploy              = true
   ingress_external            = try(local.lb_cfg.public, false)

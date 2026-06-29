@@ -16,6 +16,10 @@ locals {
   # It also gates the evalm8-only cloud resources (the new charts' secret-manager keys and the lakeFS object storage) so a router-only deployment does not provision them.
   stack             = get_env("STACK", "both")
 
+  # lakeFS blockstore backend, written into provider.yaml like stack and percolated by the helmfile into the lakefs chart objectStorage.type.
+  # Valid values are gcs, azure, s3, local. Defaults to the cloud native object store. Override with LAKEFS_BLOCKSTORE for a minio sandbox.
+  lakefs_blockstore = get_env("LAKEFS_BLOCKSTORE", local.cloud_provider == "azure" ? "azure" : "gcs")
+
   deployment_mode = "onprem"  # Set value to "managed" | "onprem"
 
   deployment_prefix = (
@@ -148,7 +152,7 @@ locals {
     type                 = "lakefs-data"                                        # Identifies this storage as the lakeFS data store
     scope_name           = "${local.resource_scope}"                            # Azure Resource Group or GCP Project
     storage_account_name = "${replace(local.deployment_prefix, "-", "")}lakefs" # Full Azure storage account name (no dashes). Not for GCP, used for grouping
-    container_name       = "${replace(local.deployment_prefix, "-", "")}lakefs" # Azure Container or GCP Bucket
+    container_name       = "divyam-lakefs-${local.env_name}"                    # GCP bucket name and Azure container name for the lakeFS data store
   }] : []
 
   # -- Secrets ---

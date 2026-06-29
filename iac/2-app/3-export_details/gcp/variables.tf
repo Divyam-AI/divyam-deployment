@@ -21,7 +21,13 @@ variable "stack" {
 }
 
 variable "evalm8_lakefs_bucket" {
-  description = "GCS bucket name for the evalm8 lakeFS store. Written under platform.gcp so the lakefs chart resolves objectStorage. Empty when stack is router."
+  description = "GCS bucket name for the evalm8 lakeFS store. Written into the top-level lakefs.objectStorage block so the lakefs chart resolves it. Empty when stack is router."
+  type        = string
+  default     = ""
+}
+
+variable "lakefs_blockstore" {
+  description = "lakeFS blockstore backend written into provider.yaml lakefs.objectStorage.type, percolated by the helmfile into the lakefs chart. One of gcs, s3, local. Empty when stack is router."
   type        = string
   default     = ""
 }

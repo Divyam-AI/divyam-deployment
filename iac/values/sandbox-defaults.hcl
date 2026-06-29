@@ -139,7 +139,7 @@ locals {
     type                 = "lakefs-data"
     scope_name           = "${local.resource_scope}"
     storage_account_name = "${replace(local.deployment_prefix, "-", "")}lakefs"
-    container_name       = "${replace(local.deployment_prefix, "-", "")}lakefs"
+    container_name       = "divyam-lakefs-${local.env_name}"
   }] : []
 
   # -- Secrets ---

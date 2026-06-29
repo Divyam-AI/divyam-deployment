@@ -1,6 +1,5 @@
 # Export details (Azure): generates provider.yaml for helmfile with platform-specific configuration.
-# Depends on: divyam_secrets (Key Vault name), iam_bindings (WIF client IDs),
-#             divyam_object_storage (storage details), cloudsql (MySQL details when created).
+# Depends on divyam_secrets (Key Vault name), iam_bindings (WIF client IDs), divyam_object_storage (storage details), and cloudsql (MySQL details when created).
 
 include "root" {
   path   = find_in_parent_folders("root.hcl")
@@ -77,8 +76,8 @@ locals {
   key_vault_name    = try(local.root.divyam_secrets.store_name, "")
   storage_account   = try(one([for s in local.root.divyam_object_storages : s.storage_account_name if s.type == "router-requests-logs"]), "")
   storage_container = try(one([for s in local.root.divyam_object_storages : s.container_name if s.type == "router-requests-logs"]), "")
-  # Plan fallback: when the object_storage unit has no state yet, derive the lakeFS storage directly
-  # from values so provider.yaml still validates under local-backend sandbox runs.
+  # Plan fallback: when the object_storage unit has no state yet, derive the lakeFS storage from values.
+  # This keeps provider.yaml validating under local-backend sandbox runs.
   evalm8_lakefs_storage_account = try(one([for s in try(local.root.evalm8_object_storages, []) : s.storage_account_name if s.type == "lakefs-data"]), "")
   evalm8_lakefs_container       = try(one([for s in try(local.root.evalm8_object_storages, []) : s.container_name if s.type == "lakefs-data"]), "")
 
@@ -110,6 +109,7 @@ inputs = {
   stack                         = try(local.root.stack, "both")
   evalm8_lakefs_storage_account = try(local.root.stack, "both") != "router" ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_storage_account_name, local.evalm8_lakefs_storage_account) : ""
   evalm8_lakefs_container       = try(local.root.stack, "both") != "router" ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_container_name, local.evalm8_lakefs_container) : ""
+  lakefs_blockstore             = try(local.root.stack, "both") != "router" ? try(local.root.lakefs_blockstore, "azure") : ""
   tenant_id                     = get_env("ARM_TENANT_ID", "")
   wif_client_id_map = {
     "divyam-router-controller"      = try(dependency.iam_bindings.outputs.uai_client_ids["router-controller-${local.env}-sa_uai_client_id"], "")

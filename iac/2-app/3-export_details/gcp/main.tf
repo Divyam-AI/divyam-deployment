@@ -1,8 +1,8 @@
 
 locals {
   # Expose rendered common tags in provider.yaml under platform.custom_tags for downstream helm values.
-  # Do not yamlencode() the whole map here: when interpolated into the heredoc, multi-line yamlencode output
-  # can mis-indent (first map entry flush-left). Emit one indented line per key; jsonencode() values are valid YAML scalars.
+  # Do not yamlencode() the whole map here. When interpolated into the heredoc, multi-line yamlencode output can mis-indent the first map entry flush-left.
+  # Emit one indented line per key. jsonencode() values are valid YAML scalars.
   custom_tags_block = length(local.rendered_tags) > 0 ? join("\n", concat(
     ["  custom_tags:"],
     [for k in sort(keys(local.rendered_tags)) : format("    %s: %s", k, jsonencode(local.rendered_tags[k]))]
@@ -33,8 +33,9 @@ monitoring:
 
 EOT
 
-  # evalm8 lakeFS bucket lines, emitted under platform.gcp only when set (stack not router).
-  evalm8_block = trimspace(var.evalm8_lakefs_bucket) != "" ? "    evalm8:\n      lakefs:\n        bucket: \"${var.evalm8_lakefs_bucket}\"" : ""
+  # lakeFS objectStorage block, emitted top-level only when set (stack not router).
+  # The helmfile forwards this into the lakefs chart objectStorage. type is the lakefs_blockstore selector.
+  lakefs_block = trimspace(var.evalm8_lakefs_bucket) != "" ? "lakefs:\n  objectStorage:\n    type: \"${var.lakefs_blockstore}\"\n    gcs:\n      bucket: \"${var.evalm8_lakefs_bucket}\"" : ""
 
   platform_block = <<-EOT
 # Global config and platform provider (GCP)
@@ -49,10 +50,10 @@ ${local.custom_tags_block}
     secretsProjectId: "${var.project_id}"
     storage_configs:
       bucket: "${var.storage_bucket}"
-${local.evalm8_block}
 clusterDomain: "${var.cluster_domain}"
 deployment_mode: "${var.deployment_mode}"
 stack: "${var.stack}"
+${local.lakefs_block}
 
 imagePullSecretConfig:
   enabled: ${var.image_pull_secret_enabled}

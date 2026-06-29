@@ -27,13 +27,19 @@ variable "stack" {
 }
 
 variable "evalm8_lakefs_storage_account" {
-  description = "Azure storage account name for the evalm8 lakeFS store. Written under platform.azure so the lakefs chart resolves objectStorage. Empty when stack is router."
+  description = "Azure storage account name for the evalm8 lakeFS store. Written into the top-level lakefs.objectStorage block so the lakefs chart resolves it. Empty when stack is router."
   type        = string
   default     = ""
 }
 
 variable "evalm8_lakefs_container" {
-  description = "Azure container name for the evalm8 lakeFS store. Written under platform.azure so the lakefs chart resolves objectStorage. Empty when stack is router."
+  description = "Azure container name for the evalm8 lakeFS store. Written into the top-level lakefs.objectStorage block so the lakefs chart resolves it. Empty when stack is router."
+  type        = string
+  default     = ""
+}
+
+variable "lakefs_blockstore" {
+  description = "lakeFS blockstore backend written into provider.yaml lakefs.objectStorage.type, percolated by the helmfile into the lakefs chart. One of azure, s3, local. Empty when stack is router."
   type        = string
   default     = ""
 }
