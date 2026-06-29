@@ -263,15 +263,6 @@ repositories:
 -}}
 
 {{/*
-  Charts that receive the lakeFS objectStorage from provider.yaml. Terraform writes the chosen
-  blockstore and bucket under top-level `lakefs.objectStorage`, the helmfile forwards it verbatim
-  so objectStorage.type is the single source of truth (chart honors it rather than guessing).
-*/}}
-{{- $chartsWithObjectStorage := dict
-  "lakefs"  true
--}}
-
-{{/*
   Charts whose values.yaml defines a top-level `monitoring` key — merged from
   provider.yaml `monitoring` (when present) with per-chart resources values
   (chart wins on overlap). If provider.yaml omits `monitoring`, only chart values apply.
@@ -569,9 +560,29 @@ releases:
     - deployment_mode: {{ $deploymentMode | quote }}
     {{- end }}
 
+    {{- /* Map the evalm8.storage block from provider.yaml to the lakefs chart objectStorage, the chart single source of truth. */}}
+    {{- /* provider.yaml uses the platform-block vocabulary (provider GCP|PVC|AZURE|S3), the chart uses type gcs|local|azure|s3. */}}
+    {{- /* An absent block leaves the chart default of local, so terraform decides the backend per environment. */}}
+    {{- if eq $name "lakefs" }}
+    {{- $storage := (index $values.global "evalm8" | default dict).storage | default dict }}
+    {{- if $storage.provider }}
+    {{- $sp := $storage.provider | upper }}
+    {{- $os := dict "type" "local" }}
+    {{- if eq $sp "GCP" }}
+    {{- $os = dict "type" "gcs" "gcs" (dict "bucket" (((index $storage "gcp" | default dict).storage_configs | default dict).bucket | default "")) }}
+    {{- else if eq $sp "S3" }}
+    {{- $os = dict "type" "s3" "s3" (dict "bucket" (((index $storage "s3" | default dict).storage_configs | default dict).bucket | default "") "region" (((index $storage "s3" | default dict).storage_configs | default dict).region | default "")) }}
+    {{- else if eq $sp "AZURE" }}
+    {{- $os = dict "type" "azure" "azure" (dict "account" (((index $storage "azure" | default dict).storage_configs | default dict).account | default "") "container" (((index $storage "azure" | default dict).storage_configs | default dict).container | default "")) }}
+    {{- end }}
+    - objectStorage:
+      {{ $os | toYaml | nindent 8 }}
+    {{- end }}
+    {{- end }}
+
     {{- $chartVals := $cfg.values | default dict }}
     {{- $omitProviderKeys := false }}
-    {{- if or (hasKey $chartsWithProviderIngress $name) (hasKey $chartsWithProviderMonitoring $name) (hasKey $chartsWithProviderSecrets $name) (hasKey $chartsWithObjectStorage $name) }}
+    {{- if or (hasKey $chartsWithProviderIngress $name) (hasKey $chartsWithProviderMonitoring $name) (hasKey $chartsWithProviderSecrets $name) }}
     {{- $omitProviderKeys = true }}
     {{- end }}
     {{- if $omitProviderKeys }}
@@ -584,9 +595,6 @@ releases:
     {{- end }}
     {{- if hasKey $chartsWithProviderSecrets $name }}
     {{- $valsBody = omit $valsBody "secrets" }}
-    {{- end }}
-    {{- if and (hasKey $chartsWithObjectStorage $name) (hasKey $global "lakefs") }}
-    {{- $valsBody = omit $valsBody "objectStorage" }}
     {{- end }}
     {{- if $valsBody }}
     - {{ toYaml $valsBody | nindent 6 }}
@@ -609,12 +617,6 @@ releases:
     {{- $mergedSecrets := merge (index $values.global "secrets" | default dict) (index $chartVals "secrets" | default dict) }}
     - secrets:
       {{ $mergedSecrets | toYaml | nindent 8 }}
-    {{- end }}
-
-    {{- if and (hasKey $chartsWithObjectStorage $name) (hasKey $global "lakefs") }}
-    {{- $mergedObjectStorage := merge (dig "lakefs" "objectStorage" dict $global) (index $chartVals "objectStorage" | default dict) }}
-    - objectStorage:
-      {{ $mergedObjectStorage | toYaml | nindent 8 }}
     {{- end }}
 
     {{- if and (eq $name "divyam-persistent-storage") ($settings.storage_class) }}

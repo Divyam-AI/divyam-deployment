@@ -109,7 +109,7 @@ inputs = {
   stack                         = try(local.root.stack, "both")
   evalm8_lakefs_storage_account = try(local.root.stack, "both") != "router" ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_storage_account_name, local.evalm8_lakefs_storage_account) : ""
   evalm8_lakefs_container       = try(local.root.stack, "both") != "router" ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_container_name, local.evalm8_lakefs_container) : ""
-  lakefs_blockstore             = try(local.root.stack, "both") != "router" ? try(local.root.lakefs_blockstore, "azure") : ""
+  evalm8_storage_provider       = try(local.root.stack, "both") != "router" ? try(local.root.evalm8_storage_provider, "AZURE") : ""
   tenant_id                     = get_env("ARM_TENANT_ID", "")
   wif_client_id_map = {
     "divyam-router-controller"      = try(dependency.iam_bindings.outputs.uai_client_ids["router-controller-${local.env}-sa_uai_client_id"], "")

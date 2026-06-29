@@ -76,7 +76,7 @@ inputs = {
   storage_bucket              = try(dependency.divyam_object_storage.outputs.router_requests_logs_bucket_name, local.storage_bucket)
   stack                       = try(local.root.stack, "both")
   evalm8_lakefs_bucket        = try(local.root.stack, "both") != "router" ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_bucket_name, local.evalm8_lakefs_bucket) : ""
-  lakefs_blockstore           = try(local.root.stack, "both") != "router" ? try(local.root.lakefs_blockstore, "gcs") : ""
+  evalm8_storage_provider     = try(local.root.stack, "both") != "router" ? try(local.root.evalm8_storage_provider, "GCP") : ""
   cluster_domain              = try(local.export_cfg.cluster_domain, "")
   ingress_deploy              = true
   ingress_external            = try(local.lb_cfg.public, false)
