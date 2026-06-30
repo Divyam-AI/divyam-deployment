@@ -37,9 +37,9 @@ monitoring:
 
 EOT
 
-  # evalm8.storage block for provider.yaml, emitted top-level only when set (stack not router).
-  # Mirrors the platform-block vocabulary. The helmfile maps it to the lakefs chart objectStorage.
-  evalm8_storage_block = trimspace(var.evalm8_lakefs_storage_account) != "" ? "evalm8:\n  storage:\n    provider: \"${var.evalm8_storage_provider}\"\n    azure:\n      storage_configs:\n        account: \"${var.evalm8_lakefs_storage_account}\"\n        container: \"${var.evalm8_lakefs_container}\"" : ""
+  # evalm8 lakeFS storage for provider.yaml, emitted under platform only when set (stack not router).
+  # type is the storage backend (pvc or blob on Azure). The helmfile maps it to the lakefs chart objectStorage.
+  evalm8_storage_block = trimspace(var.evalm8_lakefs_storage_account) != "" ? "  evalm8:\n    storage:\n      type: \"${var.evalm8_storage_type}\"\n      account: \"${var.evalm8_lakefs_storage_account}\"\n      container: \"${var.evalm8_lakefs_container}\"" : ""
 
   platform_block = <<-EOT
 # Global config and platform provider (Azure)
@@ -59,6 +59,7 @@ ${local.custom_tags_block}
       tenantID: "${var.tenant_id}"
       clientIdMap:
 ${local.wif_client_id_lines}
+${local.evalm8_storage_block}
 
 ingress:
   deploy: ${var.ingress_deploy}
@@ -77,7 +78,6 @@ imagePullSecretConfig:
 deployment_mode: "${var.deployment_mode}"
 stack: "${var.stack}"
 clusterDomain: "${var.cluster_domain}"
-${local.evalm8_storage_block}
 
 EOT
 

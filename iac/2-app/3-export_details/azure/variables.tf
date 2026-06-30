@@ -38,8 +38,8 @@ variable "evalm8_lakefs_container" {
   default     = ""
 }
 
-variable "evalm8_storage_provider" {
-  description = "evalm8 lakeFS storage backend written into provider.yaml evalm8.storage.provider, mapped by the helmfile to the lakefs chart objectStorage type. One of AZURE, PVC, S3. Empty when stack is router."
+variable "evalm8_storage_type" {
+  description = "evalm8 lakeFS storage backend written into provider.yaml platform.evalm8.storage.type, mapped by the helmfile to the lakefs chart objectStorage type. One of pvc, blob, s3. Empty when stack is router."
   type        = string
   default     = ""
 }

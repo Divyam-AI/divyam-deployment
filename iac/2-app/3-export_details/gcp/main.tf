@@ -33,9 +33,9 @@ monitoring:
 
 EOT
 
-  # evalm8.storage block for provider.yaml, emitted top-level only when set (stack not router).
-  # Mirrors the platform-block vocabulary. The helmfile maps it to the lakefs chart objectStorage.
-  evalm8_storage_block = trimspace(var.evalm8_lakefs_bucket) != "" ? "evalm8:\n  storage:\n    provider: \"${var.evalm8_storage_provider}\"\n    gcp:\n      storage_configs:\n        bucket: \"${var.evalm8_lakefs_bucket}\"" : ""
+  # evalm8 lakeFS storage for provider.yaml, emitted under platform only when set (stack not router).
+  # type is the storage backend (pvc or gcs on GCP). The helmfile maps it to the lakefs chart objectStorage.
+  evalm8_storage_block = trimspace(var.evalm8_lakefs_bucket) != "" ? "  evalm8:\n    storage:\n      type: \"${var.evalm8_storage_type}\"\n      bucket: \"${var.evalm8_lakefs_bucket}\"" : ""
 
   platform_block = <<-EOT
 # Global config and platform provider (GCP)
@@ -50,10 +50,10 @@ ${local.custom_tags_block}
     secretsProjectId: "${var.project_id}"
     storage_configs:
       bucket: "${var.storage_bucket}"
+${local.evalm8_storage_block}
 clusterDomain: "${var.cluster_domain}"
 deployment_mode: "${var.deployment_mode}"
 stack: "${var.stack}"
-${local.evalm8_storage_block}
 
 imagePullSecretConfig:
   enabled: ${var.image_pull_secret_enabled}

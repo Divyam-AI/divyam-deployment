@@ -559,20 +559,20 @@ releases:
     - deployment_mode: {{ $deploymentMode | quote }}
     {{- end }}
 
-    {{- /* Map the evalm8.storage block from provider.yaml to the lakefs chart objectStorage, the chart single source of truth. */}}
-    {{- /* provider.yaml uses the platform-block vocabulary (provider GCP|PVC|AZURE|S3), the chart uses type gcs|local|azure|s3. */}}
+    {{- /* Map platform.evalm8.storage from provider.yaml to the lakefs chart objectStorage, the chart single source of truth. */}}
+    {{- /* Cloud comes from platform.provider. The type vocabulary pvc|gcs|s3|blob maps to the chart type local|gcs|s3|azure. */}}
     {{- /* An absent block leaves the chart default of local, so terraform decides the backend per environment. */}}
     {{- if eq $name "lakefs" }}
-    {{- $storage := (index $values.global "evalm8" | default dict).storage | default dict }}
-    {{- if $storage.provider }}
-    {{- $sp := $storage.provider | upper }}
+    {{- $storage := dig "platform" "evalm8" "storage" dict $values.global }}
+    {{- $st := dig "type" "" $storage | lower }}
+    {{- if $st }}
     {{- $os := dict "type" "local" }}
-    {{- if eq $sp "GCP" }}
-    {{- $os = dict "type" "gcs" "gcs" (dict "bucket" (((index $storage "gcp" | default dict).storage_configs | default dict).bucket | default "")) }}
-    {{- else if eq $sp "S3" }}
-    {{- $os = dict "type" "s3" "s3" (dict "bucket" (((index $storage "s3" | default dict).storage_configs | default dict).bucket | default "") "region" (((index $storage "s3" | default dict).storage_configs | default dict).region | default "")) }}
-    {{- else if eq $sp "AZURE" }}
-    {{- $os = dict "type" "azure" "azure" (dict "account" (((index $storage "azure" | default dict).storage_configs | default dict).account | default "") "container" (((index $storage "azure" | default dict).storage_configs | default dict).container | default "")) }}
+    {{- if eq $st "gcs" }}
+    {{- $os = dict "type" "gcs" "gcs" (dict "bucket" (dig "bucket" "" $storage)) }}
+    {{- else if eq $st "s3" }}
+    {{- $os = dict "type" "s3" "s3" (dict "bucket" (dig "bucket" "" $storage) "region" (dig "region" "" $storage)) }}
+    {{- else if eq $st "blob" }}
+    {{- $os = dict "type" "azure" "azure" (dict "account" (dig "account" "" $storage) "container" (dig "container" "" $storage)) }}
     {{- end }}
     - objectStorage:
       {{ $os | toYaml | nindent 8 }}

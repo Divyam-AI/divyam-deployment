@@ -16,9 +16,9 @@ locals {
   # It also gates the evalm8-only cloud resources (the new charts' secret-manager keys and the lakeFS object storage) so a router-only deployment does not provision them.
   stack             = get_env("STACK", "both")
 
-  # evalm8 lakeFS storage backend, written into provider.yaml evalm8.storage.provider and mapped by the helmfile to the lakefs chart objectStorage.type.
-  # Valid values are GCP, AZURE, PVC, S3. Defaults to the cloud native store. Override with EVALM8_STORAGE_PROVIDER for an in-cluster PVC or minio S3 backend.
-  evalm8_storage_provider = get_env("EVALM8_STORAGE_PROVIDER", upper(local.cloud_provider))
+  # evalm8 lakeFS storage backend, written into provider.yaml platform.evalm8.storage.type and mapped by the helmfile to the lakefs chart objectStorage.type.
+  # Valid values are pvc, gcs, s3, blob. Defaults to the cloud native store. Override with EVALM8_STORAGE_TYPE for an in-cluster PVC or minio S3 backend.
+  evalm8_storage_type = get_env("EVALM8_STORAGE_TYPE", local.cloud_provider == "azure" ? "blob" : "gcs")
 
   deployment_mode = "onprem"  # Set value to "managed" | "onprem"
 
