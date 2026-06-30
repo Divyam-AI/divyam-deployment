@@ -149,3 +149,17 @@ resource "google_service_account_iam_member" "workload_identity" {
 
   member = "serviceAccount:${var.project_id}.svc.id.goog[${each.value.namespace}/${each.key}]"
 }
+
+############################################
+# lakeFS SA self-impersonation for GCS pre-signed URLs (signBlob), see issue #90.
+# Identified by the lakefs_blob_writer role, so it follows the lakeFS SA and is empty for a router-only stack.
+# Grants serviceAccountTokenCreator on itself so lakeFS can call the IAM Credentials signBlob API under Workload Identity.
+############################################
+
+resource "google_service_account_iam_member" "lakefs_sign_blob" {
+  for_each = toset([for name, sa in local.service_accounts : name if contains(sa.roles, "lakefs_blob_writer")])
+
+  service_account_id = google_service_account.identities[each.value].name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:${google_service_account.identities[each.value].email}"
+}
