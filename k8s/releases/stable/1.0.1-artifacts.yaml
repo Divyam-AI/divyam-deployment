@@ -133,20 +133,23 @@ argilla-ingress:
 evalm8-server:
   chart:
     version: 0.1.4
-  image:
-    tag: "0.1.3"
+  values:
+    image:
+      tag: "0.1.3"
 
 evalm8-ui:
   chart:
     version: 0.1.4
-  image:
-    tag: "0.1.3"
+  values:
+    image:
+      tag: "0.1.3"
 
 evalm8-wfs:
   chart:
-    version: 0.1.4
-  image:
-    tag: "0.1.3"
+    version: 0.1.5
+  values:
+    image:
+      tag: "0.1.3"
 
 evalm8-ingress:
   chart:
@@ -166,7 +169,7 @@ redis-operator:
 
 temporal-postgres:
   chart:
-    version: 0.1.4
+    version: 0.1.5
 
 lakefs-postgres:
   chart:
@@ -182,12 +185,12 @@ argilla-opensearch:
 
 argilla-redis:
   chart:
-    version: 0.1.5
+    version: 0.1.6
 
 temporal:
   chart:
-    version: 0.1.4
+    version: 0.1.5
 
 lakefs:
   chart:
-    version: 0.1.4
+    version: 0.1.5
