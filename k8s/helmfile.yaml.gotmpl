@@ -559,6 +559,8 @@ releases:
     - deployment_mode: {{ $deploymentMode | quote }}
     {{- end }}
 
+    {{- /* lakeFS reads its blockstore backend directly from the platform.evalm8.storage block above, no translation needed here. */}}
+
     {{- $chartVals := $cfg.values | default dict }}
     {{- $omitProviderKeys := false }}
     {{- if or (hasKey $chartsWithProviderIngress $name) (hasKey $chartsWithProviderMonitoring $name) (hasKey $chartsWithProviderSecrets $name) }}

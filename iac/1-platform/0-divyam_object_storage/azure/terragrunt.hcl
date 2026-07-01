@@ -8,10 +8,11 @@ terraform {
 }
 
 locals {
-  root     = include.root.locals.merged
+  root = include.root.locals.merged
   # Subnet names from defaults.hcl: vnet.subnet and vnet.app_gw_subnet are single objects with .name.
   vnet_subnet_names = [local.root.vnet.subnet.name]
-  storages = try(local.root.divyam_object_storages, [])
+  # Evalm8 lakeFS storage is gated by stack in defaults.hcl, empty list for a router-only deployment.
+  storages = concat(try(local.root.divyam_object_storages, []), try(local.root.evalm8_object_storages, []))
   # Group by storage_account_name; each distinct storage_account_name -> one account (full name from config) and container names.
   storage_accounts = length(local.storages) > 0 ? {
     for name in distinct([for s in local.storages : s.storage_account_name]) :
@@ -25,6 +26,8 @@ locals {
   scope_name = local.root.resource_scope.name
   # Key in storage_accounts whose type is "router-requests-logs" (for backward-compat outputs).
   router_requests_logs_storage_key = try([for k, v in local.storage_accounts : k if v.type == "router-requests-logs"][0], null)
+  # Key in storage_accounts whose type is lakefs-data, the evalm8 lakeFS data store, for the evalm8_lakefs outputs.
+  evalm8_lakefs_storage_key = try([for k, v in local.storage_accounts : k if v.type == "lakefs-data"][0], null)
 }
 
 # Pass divyam_object_storage config from defaults + tagging. Subnet IDs are looked up in Azure using vnet.name + vnet.subnet.name and vnet.app_gw_subnet.name.
@@ -35,8 +38,9 @@ inputs = merge(
     resource_group_name              = local.scope_name
     storage_accounts                 = local.storage_accounts
     router_requests_logs_storage_key = local.router_requests_logs_storage_key
+    evalm8_lakefs_storage_key        = local.evalm8_lakefs_storage_key
     vnet_name                        = local.root.vnet.name
-    vnet_resource_group_name        = local.root.vnet.scope_name
+    vnet_resource_group_name         = local.root.vnet.scope_name
     vnet_subnet_names                = local.vnet_subnet_names
     common_tags                      = try(local.root.common_tags, {})
     tag_globals                      = try(include.root.inputs.tag_globals, {})

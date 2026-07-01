@@ -5,20 +5,11 @@
 locals {
   # Can replace these with actual values
   cloud_provider    = get_env("CLOUD_PROVIDER","azure") 
-  env_name          = get_env("ENV","prod")
+  env_name          = get_env("ENV","sandbox")  # default store for the IaC env (decoupled from the sandbox cluster --env-name); safe "sandbox" default avoids ever defaulting onto the real "prod" env in the same subscription
   org_name          = get_env("ORG_NAME", "")
-  region            = get_env("REGION","centralindia")
-  zone              = get_env("ZONE","centralindia-1")
-
-  # Stack selector: which Divyam stack this deployment provisions and deploys.
-  # Allowed values are "evalm8", "router", or "both" (the default).
-  # 3-export_details writes this into provider.yaml (like deployment_mode), so the helmfile deploys the same stack this infra was provisioned for.
-  # It also gates the evalm8-only cloud resources (the new charts' secret-manager keys and the lakeFS object storage) so a router-only deployment does not provision them.
+  region            = get_env("REGION", local.cloud_provider == "gcp" ? "asia-south1" : "centralindia")
+  zone              = get_env("ZONE",   local.cloud_provider == "gcp" ? "asia-south1-a" : "centralindia-1")
   stack             = get_env("STACK", "both")
-
-  # evalm8 lakeFS storage backend, written into provider.yaml platform.evalm8.storage.type and mapped by the helmfile to the lakefs chart objectStorage.type.
-  # Valid values are pvc, gcs, s3, blob. Defaults to the cloud native store. Override with EVALM8_STORAGE_TYPE for an in-cluster PVC or minio S3 backend.
-  evalm8_storage_type = get_env("EVALM8_STORAGE_TYPE", local.cloud_provider == "azure" ? "blob" : "gcs")
 
   deployment_mode = "onprem"  # Set value to "managed" | "onprem"
 
@@ -48,7 +39,8 @@ locals {
 # Azure: resource_group_name | GCP: project_id
   resource_scope = {
     create          = false   # If this is set to false, edit the name below to the resource name that is to be used for setting up Divyam.
-    name            = "divyam-bkt-preprod-rg"
+    # Azure: resource group | GCP: project id (datadog/native monitoring use this as the google provider project)
+    name            = local.cloud_provider == "gcp" ? "pre-production-project" : "divyam-bkt-preprod-rg"
     # name            = "${local.deployment_prefix}-rg"
     # Get it from https://portal.azure.com/#view/Microsoft_Azure_Billing/SubscriptionsBladeV2 or https://console.cloud.google.com/billing/
     billing_account = get_env("BILLING_ACCOUNT", "") # BILLING_ACCOUNT is required if create is true
@@ -75,7 +67,7 @@ locals {
     address_space   = ["10.1.0.0/16"]
     subnet          = { create = false, subnet_ip = "10.1.0.0/21", name = "divyam-ckt-dev-subnet" } # (2048 IPs)
     # subnet          = { create = true, subnet_ip = "10.0.0.0/21", name = "${local.deployment_prefix}-subnet" } # (2048 IPs)
-    app_gw_subnet   = { create = false, subnet_ip = "10.1.8.0/26", name = "divyam-ckt-dev-subnet-app-gw" } # (64 IPs) - Required for Azure App Gateway or GCP proxy-only (min /26)    
+    app_gw_subnet   = { create = false, subnet_ip = "10.0.8.0/26", name = "divyam-ckt-dev-subnet-app-gw" } # (64 IPs) - SURVIVOR of the first bringup (outlives the sandbox; foundation local state dies with the VM) -> create=false = lookup on re-bringup. Within reused VNet divyam-ckt-dev-vnet (10.0.0.0/16); matches LB private IP 10.0.8.10. Required for Azure App Gateway or GCP proxy-only (min /26)
     # app_gw_subnet   = { create = true, subnet_ip = "10.0.8.0/26", name = "${local.deployment_prefix}-subnet-app-gw" } # (64 IPs) - Required for Azure App Gateway or GCP proxy-only (min /26)
     # GCP only: enable Shared VPC host and attach service projects (ignored by Azure)
     # Azure: shared_vpc_host = true peers this VNet to remote VNets whose ARM IDs are in service_project_ids.
@@ -123,7 +115,7 @@ locals {
   # Override here if needed (e.g. storage_account_name, container_name for Azure).
   # local_state: when true, state is stored locally only (no cloud bucket/container created or used).
   tfstate = {
-    create         = true # If this is set to false, edit the below values that is to be used for setting up Divyam.
+    create         = false # SURVIVOR: the state store outlives teardown by design (holds 1-platform/2-app remote state) -> lookup on re-bringup. Set true only for a first-ever bringup.
     local_state    = false
     region         = "${local.region}"
     zone           = "${local.zone}"
@@ -142,23 +134,18 @@ locals {
     container_name       = "${replace(local.deployment_prefix, "-", "")}container" # Azure Container or GCP Bucket
   }]
 
-  # --- Evalm8 Data (lakeFS object storage) ---
-  # Only provisioned when the evalm8 stack is in scope (stack != "router"). Empty for a router-only deployment.
-  # Mirrors the divyam_object_storages element shape. type = "lakefs-data" identifies the lakeFS data store.
-  # storage_account_name groups this into its own Azure storage account, kept distinct from the router account.
-  # On GCP storage_account_name is only a grouping key, container_name is the GCS bucket name.
   evalm8_object_storages = local.stack != "router" ? [{
-    create               = true # If this is set to false, edit the below values that is to be used for setting up Divyam.
-    type                 = "lakefs-data"                                        # Identifies this storage as the lakeFS data store
-    scope_name           = "${local.resource_scope}"                            # Azure Resource Group or GCP Project
-    storage_account_name = "${replace(local.deployment_prefix, "-", "")}lakefs" # Full Azure storage account name (no dashes). Not for GCP, used for grouping
-    container_name       = "divyam-lakefs-${local.env_name}"                    # GCP bucket name and Azure container name for the lakeFS data store
+    create               = true
+    type                 = "lakefs-data"
+    scope_name           = "${local.resource_scope}"
+    storage_account_name = "${replace(local.deployment_prefix, "-", "")}lakefs"
+    container_name       = "divyam-lakefs-${local.env_name}"
   }] : []
 
   # -- Secrets ---
   divyam_secrets = {
     # If this is set to false, edit the below values that is to be used for setting up Divyam.
-    create_vault   = true   # Azure only: if false, use store_name to look up existing Key Vault
+    create_vault   = true   # Keep TF managing the vault even across teardowns: it is purge-protected (soft-delete survivor), and the azurerm provider auto-recovers a soft-deleted vault on create — re-applying ALSO restores the access policies that recovery drops. On a re-bringup where the vault is already active but absent from state, import it once: make iac -- import -l 2-app.0-divyam_secrets -- 'azurerm_key_vault.this[0]' <vault ARM id>. Azure only: if false, use store_name to look up existing Key Vault
     create_secrets = true   # if false, do not create or update secrets in the vault
     scope_name     = "${local.resource_scope.name}"       # Azure Resource Group or GCP Project
     store_name     = "${local.deployment_prefix}-vault"   # Azure Key Vault name (create or lookup).  Not required for GCP
@@ -257,41 +244,20 @@ locals {
     }
 
     observability = {
-      enable_logs         = true
-      # Maximum retention: GCP _Default bucket = 3650 days; Azure Log Analytics = 730 days (capped in 1-k8s / 2-monitoring).
+      enable_logs         = false
+      # Maximum retention: GCP _Default bucket = 3650 days; Azure Log Analytics = 730 days (capped in 1-k8s).
       logs_retention_days = 30
-      enable_metrics      = true
+      enable_metrics      = false
     }
 
     # Upgrade cadence: Azure = automatic_channel_upgrade (stable|rapid|patch|node-image), GCP = release_channel (REGULAR|RAPID|STABLE). Set per cloud.
     release_channel = local.cloud_provider == "azure" ? "stable" : "REGULAR"
 
-    # When true, enables 1-platform/3-bastion-kubectl-setup (run setup-kubectl on bastion after cluster exists). Bastion must have been created with bastion.configure_kubectl so the script exists.
+    # When true, enables 1-platform/2-bastion-kubectl-setup (run setup-kubectl on bastion after cluster exists). Bastion must have been created with bastion.configure_kubectl so the script exists.
     setup_kubectl_on_bastion = false
   }
 
-  # --- Platform monitoring (1-platform/2-monitoring) ---
-  monitoring = {
-    create   = true
-    provider = "cloud_native"
-
-    native = {
-      enable_logs    = true
-      enable_metrics = true
-      logs_retention_days = 30
-      manage_project_log_bucket = true
-
-      create_amw = true
-      azure_monitor_workspace_name = null
-      azure_monitor_workspace_id   = null
-      grafana_endpoint             = null
-
-      gcp_project_id   = null
-      gmp_cluster_name = null
-    }
-  }
-
-  # --- Datadog (optional; 1-platform/2-monitoring/datadog when enabled) ---
+  # --- Datadog ---
   # When enabled:
   # - set registry to your Datadog site (for example: datadoghq.com, datadoghq.eu, ap1.datadoghq.com)
   # - set env to the deployment environment tag to be sent to Datadog
@@ -300,12 +266,10 @@ locals {
   # - exclude_namespaces_logs and exclude_namespaces_metrics are additive granular lists
   #   appended to the shared exclude_namespaces list.
   datadog = {
-    enabled  = false
+    enabled  = true
     site = "ap1.datadoghq.com"
     registry = "asia.gcr.io/datadoghq"
-    env      = "dev"  # Datadog Agent env tag only (2-monitoring/datadog). Monitors use env_name via monitor_env.
-    # monitor_env = null  # optional override for monitor env: tag; default = env_name (e.g. prod)
-    # custom_cluster_name = null  # when k8s.create = false; must match {{cluster_name}} in 2-alerts rules
+    env      = "dev"
     exclude_namespaces = [
       "default",
       "kube-system",
@@ -319,27 +283,11 @@ locals {
   }
 
   alerts = {
-    create       = false
-    enabled      = false
-    exclude_list = []
+    create         = true
+    enabled        = true
+    exclude_list   = []
 
-    # Pager / Zenduty-style webhook URLs. Every CRITICAL alert fires to every URL in
-    # this list. The list is the only notification config — there is no per-channel
-    # routing. Empty strings are filtered out by the modules.
-    # Provide as a single comma-separated env var (NOTIFICATION_WEBHOOK_URLS) or
-    # populate individual entries from env.
-    webhook_urls = compact(split(",", get_env("NOTIFICATION_WEBHOOK_URLS", "")))
-
-    # Datadog only: auto-configure webhook custom JSON payload (Zenduty-friendly default).
-    webhook_custom_payload_enabled = true
-    # Optional override; null = default payload with $ALERT_ID, $EVENT_TITLE, $TEXT_ONLY_MSG, etc.
-    # webhook_custom_payload = { alert_id = "$ALERT_ID", title = "$EVENT_TITLE", ... }
-    webhook_custom_payload = null
-
-    # Datadog monitors only (when datadog.enabled = true)
-    notify_no_data    = true
-    no_data_timeframe = 15
-    renotify_interval = 30
+    webhook_urls = compact(split(",", get_env("NOTIFICATION_WEBHOOK_URLS", "https://events.zenduty.com/integration/vv0kf/datadog/7dc86014-263d-4909-b105-24362786a97b/")))
   }
 
 #################### Application ##########################
