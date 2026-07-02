@@ -295,3 +295,15 @@ items, pauses, and verifies them before resuming** (see the `divyam-platform-eng
 - Always `make k8s -- diff` before `upgrade`; `install` (`sync`) only for the first install.
 - Alert-query changes should be re-proven (deploy → simulate via `test/alert-sim/*.yaml` → Zenduty
   check with `scripts/zenduty.py`) before declaring done.
+- **Metric names must be verified against live collector output** before writing any alert query —
+  never assume names from docs or training data, and never assume they carry across monitoring
+  providers (Datadog / kube-prometheus / cloud-native managed Prometheus each expose their own
+  namespaces, tags/labels, and prefixes for the same underlying signal). Query whatever the active
+  provider actually emits, then grep for the relevant keywords (insert, error, write, lag, disk, etc.)
+  to confirm exact names before referencing them in a rule:
+  - **Datadog**: `kubectl -n datadog exec <agent-pod> -c agent -- agent check <integration> 2>&1 | grep '"metric"' | sort -u`
+  - **kube-prometheus / managed Prometheus**: query the Prometheus/Thanos API
+    (`.../api/v1/label/__name__/values`) or `curl` a target's `/metrics` endpoint, then filter.
+  When a metric is provider-specific (e.g. Datadog `kubernetes.io.persistentvolumeclaim.*` is
+  GKE-only; kube-state-metrics uses `kube_persistentvolumeclaim_*`), gate or template the rule per
+  provider rather than hard-coding one provider's name.
