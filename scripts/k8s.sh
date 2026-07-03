@@ -246,15 +246,17 @@ ensure_kubeconfig() {
 cmd_change() {  # <sync|apply> with auto-diff + confirm
   local verb="$1" label="$2"
   ensure_kubeconfig
-  # On apply, skip helm-diff for releases being newly installed.
-  # A brand-new release whose CRD comes from another release in the same run cannot be server-dry-run diffed before that operator installs, so the diff aborts with "no matches for kind" (lakefs-postgres needs the cloudnative-pg-operator CRD).
-  # needs still orders the sync so the operator installs first, which makes the skipped install-time diff safe.
-  # sync has no diff phase, so the flag applies only to apply.
+  # On diff-driven paths, skip helm-diff for releases being newly installed.
+  # A brand-new release whose CRD comes from another release in the same run cannot be
+  # server-dry-run diffed before that operator installs, so the diff aborts with "no
+  # matches for kind". needs still orders the sync/apply so the operator installs first,
+  # which makes the skipped install-time diff safe. sync itself has no diff phase.
+  local -a diff_extra=(--skip-diff-on-install)
   local -a verb_extra=()
-  [[ "$verb" == apply ]] && verb_extra+=(--skip-diff-on-install)
+  [[ "$verb" == apply ]] && verb_extra+=("${diff_extra[@]}")
   if [[ "$ASSUME_YES" -ne 1 && "$DRYRUN" -ne 1 ]]; then
     echo "-- diff preview before $label --"
-    set +e; hf diff; set -e
+    set +e; hf diff "${diff_extra[@]}"; set -e
     confirm "Proceed with $label?" || die "aborted"
   fi
   # Plain path: no opt-in diagnose-on-fail (or a dry-run) ⇒ behave exactly as before.
@@ -464,7 +466,7 @@ k8s_stamped() {  # <step> <cmd...> — subshell so an inner `die`/exit still lan
 
 case "$SUBCMD" in
   config)            cmd_config;;
-  diff)              hf diff;;
+  diff)              hf diff --skip-diff-on-install;;
   install)           k8s_stamped k8s-install cmd_change sync "install (helmfile sync)";;
   upgrade)           cmd_change apply "upgrade (helmfile apply)";;
   delete|destroy)    cmd_delete;;
