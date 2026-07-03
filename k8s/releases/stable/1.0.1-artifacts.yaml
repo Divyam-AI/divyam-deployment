@@ -127,36 +127,32 @@ superset-postgres:
 
 argilla:
   chart:
-    version: 0.1.5
-
-argilla-ingress:
-  chart:
-    version: 0.1.2
+    version: 0.1.6
 
 evalm8-server:
   chart:
-    version: 0.1.4
+    version: 0.1.5
   values:
     image:
       tag: "0.1.3"
 
 evalm8-ui:
   chart:
-    version: 0.1.4
+    version: 0.1.5
   values:
     image:
       tag: "0.1.3"
 
 evalm8-wfs:
   chart:
-    version: 0.1.5
+    version: 0.1.6
   values:
     image:
       tag: "0.1.3"
 
 evalm8-ingress:
   chart:
-    version: 0.1.4
+    version: 0.1.5
 
 cloudnative-pg-operator:
   chart:
