@@ -16,7 +16,7 @@ altinity-clickhouse-operator:
 
 clickhouse:
   chart:
-    version: 0.2.87
+    version: 0.2.88
 
 divyam-control-plane-exporter:
   chart:
@@ -89,7 +89,7 @@ infinity:
 
 kafka-cluster:
   chart:
-    version: 0.1.93
+    version: 0.1.94
 
 kafka-connect:
   chart:
