@@ -90,9 +90,16 @@ resource "random_id" "evalm8_encryption_key" {
 # Initial admin password for the evalm8 bootstrap owner account.
 # The evalm8-server bootstrap that consumes this is not wired yet, see issue #66.
 resource "random_password" "evalm8_admin_password" {
-  count   = var.input.evalm8_enabled ? 1 : 0
-  length  = 24
-  special = true
+  count       = var.input.evalm8_enabled ? 1 : 0
+  length      = 15
+  lower       = true
+  upper       = true
+  numeric     = true
+  special     = true
+  min_lower   = 1
+  min_upper   = 1
+  min_numeric = 1
+  min_special = 1
 }
 
 locals {

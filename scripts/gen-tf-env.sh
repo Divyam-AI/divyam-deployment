@@ -101,7 +101,7 @@ umask 077
   echo "export TF_VAR_divyam_argilla_default_user_password=$(rand 24)"
   echo "export TF_VAR_divyam_evalm8_jwt_secret=$(rand 48)"
   echo "export TF_VAR_divyam_evalm8_encryption_key=$(LC_ALL=C tr -dc 'a-f0-9' </dev/urandom | head -c 64)"
-  echo "export TF_VAR_divyam_evalm8_admin_password=$(rand 24)"
+  echo "export TF_VAR_divyam_evalm8_admin_password="
   echo
 
   echo "# --- identifiers (non-secret; defaults match the IaC, override if needed) ---"
