@@ -152,7 +152,7 @@ locals {
     type                 = "lakefs-data"                                        # Identifies this storage as the lakeFS data store
     scope_name           = "${local.resource_scope}"                            # Azure Resource Group or GCP Project
     storage_account_name = "${replace(local.deployment_prefix, "-", "")}lakefs" # Full Azure storage account name (no dashes). Not for GCP, used for grouping
-    container_name       = "divyam-lakefs-${local.env_name}"                    # GCP bucket name and Azure container name for the lakeFS data store
+    container_name       = "${replace(local.deployment_prefix, "-", "")}lakefs" # GCP bucket name and Azure container name for the lakeFS data store
   }] : []
 
   # -- Secrets ---
