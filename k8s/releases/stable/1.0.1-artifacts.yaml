@@ -10,147 +10,149 @@ release:
 
 chartBasePath: "oci://asia-south1-docker.pkg.dev/prod-benchmarking/divyam-public-helm-as1"
 
+altinity-clickhouse-operator:
+  chart:
+    version: 0.24.98
+
+clickhouse:
+  chart:
+    version: 0.2.88
+
+divyam-control-plane-exporter:
+  chart:
+    version: 0.2.16
+  values:
+    image:
+      tag: "0.1.22"
+
+divyam-db-upgrades:
+  chart:
+    version: 0.1.16
+  values:
+    image:
+      tag: "0.0.19"
+
+divyam-e2e-test-runner:
+  chart:
+    version: 0.1.14
+  values:
+    image:
+      tag: "0.0.11"
+
+divyam-evaluator:
+  chart:
+    version: 0.2.16
+  values:
+    image:
+      tag: "0.1.63"
+
+divyam-persistent-storage:
+  chart:
+    version: 0.2.12
+
+divyam-redis:
+  chart:
+    version: 0.1.14
+
+divyam-route-selector:
+  chart:
+    version: 0.1.13
+  values:
+    image:
+      tag: "0.1.77"
+
 divyam-router-controller:
   chart:
-    version: 0.1.184
+    version: 0.1.185
   values:
     image:
       tag: "0.1.202"
 
-divyam-route-selector:
-  chart:
-    version: 0.1.9
-  values:
-    image:
-      tag: "0.1.69"
-
-divyam-evaluator:
-  chart:
-    version: 0.2.12
-  values:
-    image:
-      tag: "0.1.62"
-
-divyam-selector-training:
-  chart:
-    version: 0.0.44
-  values:
-    image:
-      tag: "0.0.107"
-
-divyam-control-plane-exporter:
-  chart:
-    version: 0.2.12
-  values:
-    image:
-      tag: "0.1.20"
-
-divyam-db-upgrades:
-  chart:
-    version: 0.1.11
-  values:
-    image:
-      tag: "0.0.16"
-
-divyam-e2e-test-runner:
-  chart:
-    version: 0.1.9
-  values:
-    image:
-      tag: "0.0.6"
-
-infinity:
-  chart:
-    subPath: infinity
-    version: 0.0.106
-  values:
-    image:
-      tag: "0.0.76-trt-onnx"
-
-qdrant:
-  chart:
-    subPath: qdrant
-    version: 2.0.105
-
-altinity-clickhouse-operator:
-  chart:
-    version: 0.24.94
-
-clickhouse:
-  chart:
-    version: 0.2.83
-
-strimzi-kafka-operator:
-  chart:
-    version: 0.45.97
-
-kafka-cluster:
-  chart:
-    version: 0.1.89
-
-kafka-connect:
-  chart:
-    version: 0.1.61
-
-otel-collector:
+divyam-router-controller-ingress:
   chart:
     version: 0.1.12
 
-mysql:
+divyam-selector-training:
   chart:
-    version: 0.2.13
-
-divyam-redis:
-  chart:
-    version: 0.1.10
-
-superset:
-  chart:
-    version: 0.15.9
-
-superset-postgres:
-  chart:
-    version: 0.1.9
-
-superset-ingress:
-  chart:
-    version: 0.0.74
+    version: 0.0.48
+  values:
+    image:
+      tag: "0.0.111"
 
 external-secrets-operator:
   chart:
-    version: 0.10.5
+    version: 2.3.0
+
+infinity:
+  chart:
+    version: 0.0.110
+
+kafka-cluster:
+  chart:
+    version: 0.1.94
+
+kafka-connect:
+  chart:
+    version: 0.1.65
+
+mysql:
+  chart:
+    version: 0.2.17
+
+otel-collector:
+  chart:
+    version: 0.1.16
+
+qdrant:
+  chart:
+    version: 2.0.109
+
+strimzi-kafka-operator:
+  chart:
+    version: 0.45.101
+
+superset:
+  chart:
+    version: 0.15.13
+
+superset-ingress:
+  chart:
+    version: 0.0.78
+
+superset-postgres:
+  chart:
+    version: 0.1.13
 
 # evalm8 stack
 
 argilla:
   chart:
-    version: 0.1.4
-
-argilla-ingress:
-  chart:
-    version: 0.1.2
+    version: 0.1.6
 
 evalm8-server:
   chart:
-    version: 0.1.4
-  image:
-    tag: "0.1.3"
+    version: 0.1.5
+  values:
+    image:
+      tag: "0.1.3"
 
 evalm8-ui:
   chart:
-    version: 0.1.4
-  image:
-    tag: "0.1.3"
+    version: 0.1.5
+  values:
+    image:
+      tag: "0.1.3"
 
 evalm8-wfs:
   chart:
-    version: 0.1.4
-  image:
-    tag: "0.1.3"
+    version: 0.1.6
+  values:
+    image:
+      tag: "0.1.3"
 
 evalm8-ingress:
   chart:
-    version: 0.1.4
+    version: 0.1.5
 
 cloudnative-pg-operator:
   chart:
@@ -166,7 +168,7 @@ redis-operator:
 
 temporal-postgres:
   chart:
-    version: 0.1.4
+    version: 0.1.5
 
 lakefs-postgres:
   chart:
@@ -182,12 +184,12 @@ argilla-opensearch:
 
 argilla-redis:
   chart:
-    version: 0.1.5
+    version: 0.1.6
 
 temporal:
   chart:
-    version: 0.1.4
+    version: 0.1.5
 
 lakefs:
   chart:
-    version: 0.1.4
+    version: 0.1.5
