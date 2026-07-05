@@ -15,3 +15,9 @@ releases:
     build-id: "manually seeded"
     seq: 1
     # stopgap: body re-purposed byte-for-byte from stable/1.0.0 until the real nightly pipeline lands.
+  - version: "1.0.1-nightly.20260705.1"
+    channel: nightly
+    base: "1.0.1"
+    created: "2026-07-05T15:02:19Z"
+    build_id: "f0757563-c219-4a02-b05a-36f065a8fbb2"
+    seq: 1
