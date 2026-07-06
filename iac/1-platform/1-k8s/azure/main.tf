@@ -170,6 +170,16 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
     }
   }
 
+  # Managed Prometheus addon: flips azureMonitorProfile.metrics.enabled=true and rolls out the
+  # ama-metrics scrapers + azmonitoring.coreos.com CRDs. Routing (Azure Monitor Workspace + DCR +
+  # association) is owned by 1-platform/2-monitoring/native. Unlike `az aks update`, this block does
+  # NOT auto-create a DCR, so it does not conflict with that module's DCR.
+  dynamic "monitor_metrics" {
+    for_each = var.create && var.enable_metrics_collection ? { "enabled" = true } : {}
+
+    content {}
+  }
+
   tags = local.rendered_tags_cluster
 
   lifecycle {

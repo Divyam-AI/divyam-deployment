@@ -119,6 +119,7 @@ inputs = {
   image_pull_secret_enabled = try(local.export_cfg.image_pull_secret_enabled, true)
   monitoring_enabled        = local.monitoring_enabled
   monitoring_provider       = local.monitoring_provider
+  stack                     = try(local.root.stack, "")
   output_path               = "${local.repo_root}/${try(local.export_cfg.output_dir, "k8s/values")}/provider.yaml"
 
   ingress_deploy             = true

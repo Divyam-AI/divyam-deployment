@@ -33,11 +33,16 @@ monitoring:
 
 EOT
 
+  # Stack selector consumed by k8s/helmfile.yaml.gotmpl (evalm8 | router | both). Emitted only when
+  # set; an absent key makes helmfile deploy every stack (its documented default). This replaces the
+  # previously-manual `stack: router` edit that each regen used to wipe.
+  stack_block = trimspace(var.stack) != "" ? "stack: ${var.stack}\n\n" : ""
+
   platform_block = <<-EOT
 # Global config and platform provider (GCP)
 # Combined with resources.yaml and artifacts.yaml via helmfile
 
-environment: ${var.environment}
+${local.stack_block}environment: ${var.environment}
 ${local.monitoring_block}
 platform:
   provider: GCP
