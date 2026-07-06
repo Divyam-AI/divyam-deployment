@@ -33,3 +33,9 @@ releases:
     created: "2026-07-06T01:58:36Z"
     build_id: "64d197bd-0132-4ff5-99ff-56325a7ac7f3"
     seq: 1
+  - version: "1.0.1-nightly.20260706.2"
+    channel: nightly
+    base: "1.0.1"
+    created: "2026-07-06T21:55:41Z"
+    build_id: "91014a7b-9475-43b9-9d23-05f07c7e2858"
+    seq: 2
