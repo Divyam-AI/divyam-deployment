@@ -70,18 +70,18 @@ divyam-router-controller:
 
 divyam-router-controller-ingress:
   chart:
-    version: 0.1.12
+    version: 0.1.13
 
 divyam-selector-training:
   chart:
-    version: 0.0.48
+    version: 0.0.49
   values:
     image:
       tag: "0.0.114"
 
 external-secrets-operator:
   chart:
-    version: 2.3.0
+    version: 2.7.0
 
 infinity:
   chart:
@@ -134,21 +134,21 @@ evalm8-server:
     version: 0.1.5
   values:
     image:
-      tag: "0.1.3"
+      tag: "0.1.4"
 
 evalm8-ui:
   chart:
     version: 0.1.5
   values:
     image:
-      tag: "0.1.3"
+      tag: "0.1.4"
 
 evalm8-wfs:
   chart:
     version: 0.1.6
   values:
     image:
-      tag: "0.1.3"
+      tag: "0.1.4"
 
 evalm8-ingress:
   chart:
