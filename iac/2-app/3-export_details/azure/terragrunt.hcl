@@ -130,7 +130,7 @@ inputs = {
     "evalm8-wfs"    = try(dependency.iam_bindings.outputs.uai_client_ids["evalm8-wfs-${local.env}-sa_uai_client_id"], "")
   }
   cluster_domain            = try(local.export_cfg.cluster_domain, "")
-  image_pull_secret_enabled = try(local.export_cfg.image_pull_secret_enabled, true)
+  image_pull_secret_enabled = try(local.root.image_pull_secret_enabled, true)
   monitoring_enabled        = local.monitoring_enabled
   monitoring_provider       = local.monitoring_provider
   output_path               = "${local.repo_root}/${try(local.export_cfg.output_dir, "k8s/values")}/provider.yaml"

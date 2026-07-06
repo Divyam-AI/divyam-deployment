@@ -35,11 +35,11 @@ locals {
   tfstate = { create = false, local_state = true, bucket_name = "custom-tfstate", region = local.region, zone = local.zone, scope_name = local.resource_scope.name }
 
   k8s = {
-    create = false
-    name   = "custom-k8s"
+    create                 = false
+    name                   = "custom-k8s"
     kubernetes_version     = "1.34"
     node_provisioning_mode = "Auto"
-    node_pools = { default = { instance_type = "e2-standard-4", spot_instance = false, auto_scaling = false, count = 1 }, additional = {} }
+    node_pools             = { default = { instance_type = "e2-standard-4", spot_instance = false, auto_scaling = false, count = 1 }, additional = {} }
     observability = {
       enable_logs    = false
       enable_metrics = false
@@ -58,12 +58,12 @@ locals {
   }
 
   datadog = {
-    enabled              = true
-    site                 = "ap1.datadoghq.com"       # must match API key org site
-    registry             = "asia.gcr.io/datadoghq"
-    env                  = local.env_name
-    custom_cluster_name  = "custom-k8s"
-    exclude_namespaces   = ["kube-system"]
+    enabled                    = true
+    site                       = "ap1.datadoghq.com" # must match API key org site
+    registry                   = "asia.gcr.io/datadoghq"
+    env                        = local.env_name
+    custom_cluster_name        = "custom-k8s"
+    exclude_namespaces         = ["kube-system"]
     exclude_namespaces_logs    = []
     exclude_namespaces_metrics = []
   }
@@ -71,23 +71,25 @@ locals {
   iam_bindings = { create = false }
 
   alerts = {
-    create       = true
-    enabled      = true
-    exclude_list = []
-    webhook_urls = compact(split(",", get_env("NOTIFICATION_WEBHOOK_URLS", "")))
+    create                         = true
+    enabled                        = true
+    exclude_list                   = []
+    webhook_urls                   = compact(split(",", get_env("NOTIFICATION_WEBHOOK_URLS", "")))
     webhook_custom_payload_enabled = true
     webhook_custom_payload         = null
-    notify_no_data    = true
-    no_data_timeframe = 15
-    renotify_interval = 30
+    notify_no_data                 = true
+    no_data_timeframe              = 15
+    renotify_interval              = 30
   }
+
+  # Private-registry image-pull auth (deployment-wide): create + inject the docker-auth secret.
+  image_pull_secret_enabled = false
 
   export_details = {
-    cluster_domain            = ""
-    image_pull_secret_enabled = false
-    output_dir                = "k8s/helm-values"
+    cluster_domain = ""
+    output_dir     = "k8s/helm-values"
   }
 
-  cloudsql = { create = false, instance_name = "${local.deployment_prefix}-cloudsql" }
+  cloudsql          = { create = false, instance_name = "${local.deployment_prefix}-cloudsql" }
   outputs_file_path = "outputs/outputs-${local.deployment_prefix}.yaml"
 }

@@ -129,7 +129,6 @@ locals {
       "divyam-jwt-secret-key"                = var.input.divyam_jwt_secret_key
       "divyam-provider-keys-encryption-key"  = var.input.divyam_provider_keys_encryption_key
       "divyam-openai-billing-admin-api-key"  = local.openai_key
-      "divyam-artifactory-docker-auth"       = var.input.divyam_artifactory_docker_auth
       "divyam-router-admin-password"         = var.input.divyam_router_admin_password
       "divyam-deployment-id"                 = var.input.divyam_deployment_id
       "divyam-deployment-api-key"            = var.input.divyam_deployment_api_key
@@ -149,6 +148,11 @@ locals {
     # Azure only: Kafka to Blob storage consumer reads this from Key Vault. Not set for GCP.
     var.input.router_requests_logs_storage_account_connection_string != null ? {
       "router-requests-logs-storage-account-connection-string" = var.input.router_requests_logs_storage_account_connection_string
+    } : {},
+    # Private-registry pull secret: created only when image_pull_secret_enabled (any cloud).
+    # variables.tf validates the value is non-empty when the flag is on, so no empty-payload version.
+    var.input.image_pull_secret_enabled ? {
+      "divyam-artifactory-docker-auth" = var.input.divyam_artifactory_docker_auth
     } : {},
     # Evalm8 vault keys, TF-generated. Empty unless the evalm8 stack is in scope.
     local.evalm8_secrets

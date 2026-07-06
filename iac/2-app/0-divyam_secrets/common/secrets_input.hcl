@@ -4,6 +4,10 @@ locals {
   env            = get_env("ENV", "")
   # Evalm8 secrets are provisioned only when the evalm8 stack is in scope.
   stack = get_env("STACK", "both")
+  # Deployment-wide image-pull auth flag from the values file (single source: root.hcl merged locals).
+  # Only one root.hcl exists above this file, so find_in_parent_folders is unambiguous.
+  root                      = read_terragrunt_config(find_in_parent_folders("root.hcl")).locals.merged
+  image_pull_secret_enabled = try(local.root.image_pull_secret_enabled, false)
   secrets_input = merge(
     {
       # Gate for the evalm8 secret keys.
@@ -32,9 +36,12 @@ locals {
       divyam_router_admin_password = get_env("TF_VAR_divyam_router_admin_password")
       divyam_deployment_id         = get_env("TF_VAR_divyam_deployment_id")
       divyam_deployment_api_key    = get_env("TF_VAR_divyam_deployment_api_key")
+      # Deployment-wide: gates creation of the private-registry pull secret (any cloud).
+      image_pull_secret_enabled = local.image_pull_secret_enabled
     },
-    # Azure only: Artifactory Docker auth for container registry. Omit for GCP.
-    # Env var holds a file path. Read its contents so the secret value is stored in the secret manager.
-    local.cloud_provider == "azure" ? { divyam_artifactory_docker_auth = file(get_env("TF_VAR_divyam_artifactory_docker_auth")) } : {}
+    # Private-registry Docker auth: read the cred file (path in TF_VAR_divyam_artifactory_docker_auth)
+    # only when the pull secret is enabled — for ANY cloud (Azure, or GCP with a cross-project GAR).
+    # get_env has no default here, so it fails loudly if the flag is on but the path is unset.
+    local.image_pull_secret_enabled ? { divyam_artifactory_docker_auth = file(get_env("TF_VAR_divyam_artifactory_docker_auth")) } : {}
   )
 }
