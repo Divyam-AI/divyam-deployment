@@ -160,13 +160,20 @@ locals {
     }
   }
 
+  # A rule yields a Prometheus expression only if its template is non-empty. Datadog-only rules
+  # (a `datadog.query` but no structured `query` and no `expr`) render an empty PromQL body — these
+  # must NOT be emitted, mirroring how dd_monitors below skips rules with an empty Datadog query.
+  # (Azure's azurerm_monitor_alert_prometheus_rule_group rejects an empty `expression`.)
+  prom_has_expr = { for r in local.rules : r.alert => trimspace(local.expr_tmpl[r.alert]) != "" }
+
   # ---- Prometheus output: multi-tier expansion ------------------------------
-  # Primary tier (critical threshold) is always emitted; a warning tier is appended only when
-  # the rule declares both neutral thresholds. range(0|1) keeps both branches list-typed so the
-  # ternary unifies (tuples of differing length do not).
+  # Primary tier (critical threshold) is emitted for every rule that yields an expr; a warning tier
+  # is appended only when the rule declares both neutral thresholds. range(0|1) keeps both branches
+  # list-typed so the ternary unifies (tuples of differing length do not).
   prom_expanded = flatten([
     for r in local.rules : concat(
       [
+        for _ in range(local.prom_has_expr[r.alert] ? 1 : 0) :
         merge(local.common[r.alert], {
           alert    = r.alert
           expr     = local.thr_crit[r.alert] != null ? replace(local.expr_tmpl[r.alert], "{{threshold}}", local.thr_crit[r.alert]) : local.expr_tmpl[r.alert]
@@ -174,7 +181,7 @@ locals {
         })
       ],
       [
-        for _ in range(local.has_warn[r.alert] ? 1 : 0) :
+        for _ in range(local.prom_has_expr[r.alert] && local.has_warn[r.alert] ? 1 : 0) :
         merge(local.common[r.alert], {
           alert    = "${r.alert}-warning"
           expr     = replace(local.expr_tmpl[r.alert], "{{threshold}}", local.thr_warn[r.alert])

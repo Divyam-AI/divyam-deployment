@@ -82,7 +82,7 @@ resource "azurerm_dashboard_grafana" "grafana" {
   name                  = local.grafana_name
   resource_group_name   = var.resource_group_name
   location              = var.location
-  grafana_major_version = 11
+  grafana_major_version = var.grafana_major_version
 
   azure_monitor_workspace_integrations {
     resource_id = local.amw_id
