@@ -93,6 +93,16 @@ variable "monitoring_provider" {
   default     = ""
 }
 
+variable "stack" {
+  description = "Which chart stack helmfile deploys, written to provider.yaml as top-level `stack`: evalm8 | router | both. Empty omits the key (helmfile then deploys all stacks)."
+  type        = string
+  default     = ""
+  validation {
+    condition     = contains(["", "evalm8", "router", "both"], var.stack)
+    error_message = "stack must be one of: evalm8, router, both (or empty to omit the key)."
+  }
+}
+
 variable "output_path" {
   description = "Absolute path for the generated provider.yaml file."
   type        = string
