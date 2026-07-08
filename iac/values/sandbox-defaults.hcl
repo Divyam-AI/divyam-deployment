@@ -119,7 +119,7 @@ locals {
     local_state    = false
     region         = "${local.region}"
     zone           = "${local.zone}"
-    scope_name     = "${local.resource_scope}"                              # Azure Resource Group or GCP Project
+    scope_name     = "${local.resource_scope.name}"                              # Azure Resource Group or GCP Project
     storage_name   = "storage"                                              # Azure Storage Account or GCP - empty
     bucket_name    = "${replace(local.deployment_prefix, "-", "")}tfstate" # Azure container + storage account name; GCP bucket name
   }

@@ -8,7 +8,7 @@
 locals {
   # Can replace these with actual values
   cloud_provider    = get_env("CLOUD_PROVIDER", "gcp")
-  env_name          = "pre-prod"
+  env_name          = "preprod"
   org_name          = ""
   region            = local.cloud_provider == "azure" ? "southindia" : "asia-south1"
   zone              = local.cloud_provider == "azure" ? "southindia-1" : "asia-south1-c"
@@ -112,7 +112,7 @@ locals {
     local_state    = true                        # true = local backend only; false = use remote backend (GCS/Azure)
     region         = "${local.region}"
     zone           = "${local.zone}"
-    scope_name     = "${local.resource_scope}"                              # Azure Resource Group or GCP Project
+    scope_name     = "${local.resource_scope.name}"                              # Azure Resource Group or GCP Project
     storage_name   = "storage"                                              # Azure Storage Account or GCP - empty
     bucket_name    = "${replace(local.deployment_prefix, "-", "")}tfstate" # Azure container + storage account name; GCP bucket name
   }
