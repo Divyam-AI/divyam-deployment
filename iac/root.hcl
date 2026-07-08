@@ -70,6 +70,9 @@ EOT
 
   merged = merge(local.default_locals, local.cloud_locals)
 
+  # tfstate.scope_name overrides resource_scope.name for the state bucket's project/RG (create=false lookups).
+  tfstate_scope_name = coalesce(try(local.merged.tfstate.scope_name, null), local.merged.resource_scope.name)
+
   # --- Naming guard (fail-fast at parse; mirrors scripts/iac.sh validate_naming) ------------------
   # deployment_prefix = "divyam-[<org>-]<env>". Azure Storage Accounts and Key Vaults cap names at 24
   # chars; the tightest derived name is the Key Vault "<deployment_prefix>-vault". ENV must be in the
@@ -128,7 +131,7 @@ EOT
     common_tags = try(local.merged.common_tags, {})
     tag_globals = {
       environment    = local.merged.env_name
-      resource_group = local.merged.resource_scope.name
+      resource_group = local.tfstate_scope_name
       region         = local.merged.region
       org            = local.merged.org_name
     }
@@ -140,13 +143,13 @@ EOT
   }
   _tfstate_repo_root_cloud = {
     gcp = {
-      project_id   = local.merged.resource_scope.name
+      project_id   = local.tfstate_scope_name
       location     = local.merged.region
       environment  = local.merged.env_name
       bucket_name  = local.merged.tfstate.bucket_name
     }
     azure = {
-      resource_group_name      = local.merged.resource_scope.name
+      resource_group_name      = local.tfstate_scope_name
       location                 = local.merged.region
       environment              = local.merged.env_name
       storage_account_name     = local.merged.tfstate.bucket_name
@@ -188,7 +191,7 @@ remote_state {
     { prefix = "${local.merged.cloud_provider}/${local._checked_deployment_prefix}/${local._values_basename}/${local.merged.region}/${path_relative_to_include()}" }
   ) : merge(
     {
-      resource_group_name  = local.merged.resource_scope.name
+      resource_group_name  = local.tfstate_scope_name
       storage_account_name = local.merged.tfstate.bucket_name
       container_name       = local.merged.tfstate.bucket_name
     },
