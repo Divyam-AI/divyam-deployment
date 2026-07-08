@@ -106,7 +106,6 @@ inputs = {
   key_vault_name                = try(dependency.divyam_secrets.outputs.key_vault_name, local.key_vault_name)
   storage_account               = try(dependency.divyam_object_storage.outputs.router_requests_logs_storage_account_name, local.storage_account)
   storage_container             = try(one(dependency.divyam_object_storage.outputs.router_requests_logs_container_names), local.storage_container)
-  stack                         = try(local.root.stack, "both")
   evalm8_lakefs_storage_account = try(local.root.stack, "both") != "router" ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_storage_account_name, local.evalm8_lakefs_storage_account) : ""
   evalm8_lakefs_container       = try(local.root.stack, "both") != "router" ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_container_name, local.evalm8_lakefs_container) : ""
   evalm8_storage_type           = try(local.root.stack, "both") != "router" ? try(local.root.evalm8_storage_type, "blob") : ""
@@ -133,6 +132,7 @@ inputs = {
   image_pull_secret_enabled = try(local.root.image_pull_secret_enabled, true)
   monitoring_enabled        = local.monitoring_enabled
   monitoring_provider       = local.monitoring_provider
+  stack                     = try(local.root.stack, "")
   output_path               = "${local.repo_root}/${try(local.export_cfg.output_dir, "k8s/values")}/provider.yaml"
 
   ingress_deploy              = true

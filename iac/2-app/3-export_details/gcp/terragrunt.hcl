@@ -74,7 +74,6 @@ inputs = {
   environment                 = local.env
   project_id                  = local.root.resource_scope.name
   storage_bucket              = try(dependency.divyam_object_storage.outputs.router_requests_logs_bucket_name, local.storage_bucket)
-  stack                       = try(local.root.stack, "both")
   evalm8_lakefs_bucket        = try(local.root.stack, "both") != "router" ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_bucket_name, local.evalm8_lakefs_bucket) : ""
   evalm8_storage_type         = try(local.root.stack, "both") != "router" ? try(local.root.evalm8_storage_type, "gcs") : ""
   cluster_domain              = try(local.export_cfg.cluster_domain, "")
@@ -83,12 +82,13 @@ inputs = {
   router_ingress_domain       = local.router_ingress_fqdn
   dashboard_ingress_domain    = local.dashboard_ingress_fqdn
   controlplane_ingress_domain = local.controlplane_ingress_fqdn
-  deployment_mode             = local.deployment_mode
-  lb_enabled                  = local.lb_enabled
-  image_pull_secret_enabled   = try(local.root.image_pull_secret_enabled, false)
-  monitoring_enabled          = local.monitoring_enabled
-  monitoring_provider         = local.monitoring_provider
-  output_path                 = "${local.repo_root}/${try(local.export_cfg.output_dir, "k8s/values")}/provider.yaml"
+  deployment_mode           = local.deployment_mode
+  lb_enabled                = local.lb_enabled
+  image_pull_secret_enabled = try(local.root.image_pull_secret_enabled, false)
+  monitoring_enabled        = local.monitoring_enabled
+  monitoring_provider       = local.monitoring_provider
+  stack                     = try(local.root.stack, "")
+  output_path               = "${local.repo_root}/${try(local.export_cfg.output_dir, "k8s/values")}/provider.yaml"
 
   cloudsql_created = local.cloudsql_created
   mysql_host       = local.cloudsql_created ? (try(dependency.cloudsql.outputs.private_ip_address, null) == null ? "" : dependency.cloudsql.outputs.private_ip_address) : ""

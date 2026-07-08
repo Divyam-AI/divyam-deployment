@@ -15,3 +15,33 @@ releases:
     build-id: "manually seeded"
     seq: 1
     # stopgap: body re-purposed byte-for-byte from stable/1.0.0 until the real nightly pipeline lands.
+  - version: "1.0.1-nightly.20260705.1"
+    channel: nightly
+    base: "1.0.1"
+    created: "2026-07-05T15:02:19Z"
+    build_id: "f0757563-c219-4a02-b05a-36f065a8fbb2"
+    seq: 1
+  - version: "1.0.1-nightly.20260705.2"
+    channel: nightly
+    base: "1.0.1"
+    created: "2026-07-05T18:38:12Z"
+    build_id: "6126ea1e-f078-45a3-9992-cee52fbb8f62"
+    seq: 2
+  - version: "1.0.1-nightly.20260706.1"
+    channel: nightly
+    base: "1.0.1"
+    created: "2026-07-06T01:58:36Z"
+    build_id: "64d197bd-0132-4ff5-99ff-56325a7ac7f3"
+    seq: 1
+  - version: "1.0.1-nightly.20260706.2"
+    channel: nightly
+    base: "1.0.1"
+    created: "2026-07-06T21:55:41Z"
+    build_id: "91014a7b-9475-43b9-9d23-05f07c7e2858"
+    seq: 2
+  - version: "1.0.1-nightly.20260707.1"
+    channel: nightly
+    base: "1.0.1"
+    created: "2026-07-07T21:52:23Z"
+    build_id: "dfdc22da-5ed5-457b-ac48-5d88f04572f9"
+    seq: 1

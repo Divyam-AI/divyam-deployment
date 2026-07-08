@@ -41,11 +41,15 @@ EOT
   # type is the storage backend (pvc or blob on Azure). The helmfile maps it to the lakefs chart objectStorage.
   evalm8_storage_block = trimspace(var.evalm8_lakefs_storage_account) != "" ? "  evalm8:\n    storage:\n      type: \"${var.evalm8_storage_type}\"\n      account: \"${var.evalm8_lakefs_storage_account}\"\n      container: \"${var.evalm8_lakefs_container}\"" : ""
 
+  # Stack selector consumed by k8s/helmfile.yaml.gotmpl (evalm8 | router | both). Emitted only when set.
+  # An absent key makes helmfile deploy every stack (its documented default). This replaces the manual stack edit that each regen used to wipe.
+  stack_block = trimspace(var.stack) != "" ? "stack: ${var.stack}\n\n" : ""
+
   platform_block = <<-EOT
 # Global config and platform provider (Azure)
 # Combined with resources.yaml and artifacts.yaml via helmfile
 
-environment: ${var.environment}
+${local.stack_block}environment: ${var.environment}
 ${local.monitoring_block}
 platform:
   provider: AZURE
@@ -76,7 +80,6 @@ imagePullSecretConfig:
   enabled: ${var.image_pull_secret_enabled}
 
 deployment_mode: "${var.deployment_mode}"
-stack: "${var.stack}"
 clusterDomain: "${var.cluster_domain}"
 
 EOT

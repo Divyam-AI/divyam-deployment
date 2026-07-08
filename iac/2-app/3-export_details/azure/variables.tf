@@ -20,12 +20,6 @@ variable "storage_account" {
   default     = ""
 }
 
-variable "stack" {
-  description = "Divyam stack selector written into provider.yaml so the helmfile deploys the same stack this infra was provisioned for."
-  type        = string
-  default     = "both"
-}
-
 variable "evalm8_lakefs_storage_account" {
   description = "Azure storage account name for the evalm8 lakeFS store. Written under evalm8.storage.azure.storage_configs.account so the helmfile resolves the lakefs chart objectStorage. Empty when stack is router."
   type        = string
@@ -145,6 +139,16 @@ variable "monitoring_provider" {
   description = "Optional monitoring provider written to provider.yaml (for example: datadog)."
   type        = string
   default     = ""
+}
+
+variable "stack" {
+  description = "Which chart stack helmfile deploys, written to provider.yaml as top-level `stack`: evalm8 | router | both. Empty omits the key (helmfile then deploys all stacks)."
+  type        = string
+  default     = ""
+  validation {
+    condition     = contains(["", "evalm8", "router", "both"], var.stack)
+    error_message = "stack must be one of: evalm8, router, both (or empty to omit the key)."
+  }
 }
 
 variable "output_path" {
