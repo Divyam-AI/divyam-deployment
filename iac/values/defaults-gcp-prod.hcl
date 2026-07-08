@@ -379,9 +379,9 @@ locals {
               conform_action       = "allow"
               exceed_action        = "deny(429)"
               enforce_on_key       = "ALL"
-              rate_limit_threshold = { count = 100, interval_sec = 60 }
-              ban_duration_sec     = 600
-              ban_threshold        = { count = 200, interval_sec = 300 }
+              rate_limit_threshold = { count = 1000, interval_sec = 60 }
+              ban_duration_sec     = 300
+              ban_threshold        = { count = 5000, interval_sec = 120 }
             }
           },
           {
