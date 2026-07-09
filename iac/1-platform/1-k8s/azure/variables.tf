@@ -117,6 +117,18 @@ variable "enable_metrics_collection" {
   default     = true
 }
 
+variable "metrics_annotations_allowed" {
+  description = "Comma-separated Kubernetes annotation keys surfaced on the managed Prometheus kube_pod/service labels metric (monitor_metrics.annotations_allowed). Null = Azure default (none)."
+  type        = string
+  default     = null
+}
+
+variable "metrics_labels_allowed" {
+  description = "Comma-separated Kubernetes label keys surfaced on the managed Prometheus kube_pod/service labels metric (monitor_metrics.labels_allowed). Null = Azure default (none)."
+  type        = string
+  default     = null
+}
+
 variable "logs_retention_days" {
   description = "Retention in days for the Log Analytics workspace (AKS logs). Azure max = 730; values above 730 are capped at 730."
   type        = number

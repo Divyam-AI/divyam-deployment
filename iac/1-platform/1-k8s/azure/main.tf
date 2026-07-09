@@ -177,7 +177,10 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
   dynamic "monitor_metrics" {
     for_each = var.create && var.enable_metrics_collection ? { "enabled" = true } : {}
 
-    content {}
+    content {
+      annotations_allowed = var.metrics_annotations_allowed
+      labels_allowed      = var.metrics_labels_allowed
+    }
   }
 
   tags = local.rendered_tags_cluster
