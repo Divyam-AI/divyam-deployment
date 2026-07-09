@@ -14,6 +14,18 @@ variable "storage_bucket" {
   default     = ""
 }
 
+variable "evalm8_lakefs_bucket" {
+  description = "GCS bucket name for the evalm8 lakeFS store. Written under evalm8.storage.gcp.storage_configs.bucket so the helmfile resolves the lakefs chart objectStorage. Empty when stack is router."
+  type        = string
+  default     = ""
+}
+
+variable "evalm8_storage_type" {
+  description = "evalm8 lakeFS storage backend written into provider.yaml platform.evalm8.storage.type, mapped by the helmfile to the lakefs chart objectStorage type. One of pvc, gcs, s3. Empty when stack is router."
+  type        = string
+  default     = ""
+}
+
 variable "cluster_domain" {
   description = "Cluster domain for cross-cluster DNS. Leave empty for in-cluster."
   type        = string

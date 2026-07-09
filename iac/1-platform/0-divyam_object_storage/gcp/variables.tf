@@ -32,6 +32,12 @@ variable "router_requests_logs_storage_key" {
   default     = null
 }
 
+variable "evalm8_lakefs_storage_key" {
+  description = "Key in buckets that holds the evalm8 lakeFS data store, type lakefs-data. Used for the evalm8_lakefs_bucket_name output."
+  type        = string
+  default     = null
+}
+
 variable "storage_class" {
   description = "GCS storage class"
   type        = string

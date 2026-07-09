@@ -1,6 +1,6 @@
 locals {
   to_create = { for k, v in var.storage_accounts : k => v if try(v.create, true) }
-  to_lookup  = { for k, v in var.storage_accounts : k => v if !try(v.create, true) }
+  to_lookup = { for k, v in var.storage_accounts : k => v if !try(v.create, true) }
 
   # Subnet IDs: look up in Azure by vnet name + subnet names from config (vnet.subnets[].subnet_name). When subnet_names is empty, no network rules.
   subnet_ids = length(var.vnet_subnet_names) > 0 ? { for name in var.vnet_subnet_names : name => data.azurerm_subnet.vnet_subnets[name].id } : {}
@@ -43,11 +43,11 @@ data "azurerm_subnet" "vnet_subnets" {
 
 # --- Create path ---
 resource "azurerm_storage_account" "this" {
-  for_each             = local.to_create
-  name                 = each.value.name
-  resource_group_name  = var.resource_group_name
-  location             = var.location
-  account_tier         = var.account_tier
+  for_each                 = local.to_create
+  name                     = each.value.name
+  resource_group_name      = var.resource_group_name
+  location                 = var.location
+  account_tier             = var.account_tier
   account_replication_type = var.account_replication_type
 
   network_rules {
@@ -67,21 +67,21 @@ resource "azurerm_storage_account" "this" {
 }
 
 resource "azurerm_storage_container" "container" {
-  for_each           = local.containers_flat_created
-  name               = each.value.container_name
-  storage_account_id = azurerm_storage_account.this[each.value.account_key].id
+  for_each              = local.containers_flat_created
+  name                  = each.value.container_name
+  storage_account_id    = azurerm_storage_account.this[each.value.account_key].id
   container_access_type = "private"
 }
 
 # --- Lookup path (create = false): fetch existing account and containers from Azure ---
 data "azurerm_storage_account" "existing" {
-  for_each             = local.to_lookup
-  name                 = each.value.name
-  resource_group_name  = var.resource_group_name
+  for_each            = local.to_lookup
+  name                = each.value.name
+  resource_group_name = var.resource_group_name
 }
 
 data "azurerm_storage_container" "existing" {
-  for_each             = local.containers_flat_lookup
-  name                 = each.value.container_name
-  storage_account_id  = data.azurerm_storage_account.existing[each.value.account_key].id
+  for_each           = local.containers_flat_lookup
+  name               = each.value.container_name
+  storage_account_id = data.azurerm_storage_account.existing[each.value.account_key].id
 }

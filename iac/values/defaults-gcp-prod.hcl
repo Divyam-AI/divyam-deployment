@@ -1,17 +1,11 @@
 #-------------------------------------------------------------------------------------------------------------------------------
 # Note: when setting in any of the section create = false, edit the values in that section that is to be used to setup Divyam.
 #-------------------------------------------------------------------------------------------------------------------------------
-# PROFILE: this file is the **GCP preprod** profile (project pre-production-project, region asia-south1,
-# state bucket divyam-production-terraform-state-bucket). The filename is kept as `defaults.hcl` on
-# purpose: the Terragrunt state path embeds the values-file basename
-# (gcp/<deployment_prefix>/defaults/<region>/<unit>), so renaming it would fork all existing preprod
-# state. Prod uses values/defaults-gcp-prod.hcl.
-#-------------------------------------------------------------------------------------------------------------------------------
 
 locals {
   # Can replace these with actual values
   cloud_provider = get_env("CLOUD_PROVIDER", "gcp")
-  env_name       = get_env("ENV", "preprod")
+  env_name       = get_env("ENV", "prod")
   org_name       = get_env("ORG_NAME", "")
   region         = get_env("REGION", "asia-south1")
   zone           = get_env("ZONE", "asia-south1")
@@ -49,7 +43,7 @@ locals {
   # Azure: resource_group_name | GCP: project_id
   resource_scope = {
     create = false # If this is set to false, edit the name below to the resource name that is to be used for setting up Divyam.
-    name   = "pre-production-project"
+    name   = "divyam-production"
     # name            = "${local.deployment_prefix}-rg"
     # Get it from https://portal.azure.com/#view/Microsoft_Azure_Billing/SubscriptionsBladeV2 or https://console.cloud.google.com/billing/
     billing_account = get_env("BILLING_ACCOUNT", "") # BILLING_ACCOUNT is required if create is true
@@ -136,11 +130,11 @@ locals {
   #################### Platform ##########################
   # --- Divyam Data ---
   divyam_object_storages = [{
-    create               = false                                                 # Existing preprod router-logs bucket: look up, do not create.
+    create               = false                                                 # Existing prod router-logs bucket: look up, do not create.
     type                 = "router-requests-logs"                                # Identifies this storage for router-requests-logs
     scope_name           = "${local.resource_scope}"                             # Azure Resource Group or GCP Project
     storage_account_name = "${replace(local.deployment_prefix, "-", "")}storage" # Full Azure storage account name (no dashes). Not for GCP; used for grouping
-    container_name       = "divyam-preprod-gcs-router-raw-logs"                  # Real existing GCS bucket (router raw logs)
+    container_name       = "divyam-prod-gcs-router-raw-logs"                     # Real existing GCS bucket (router raw logs)
   }]
 
   # --- Evalm8 Data (lakeFS object storage) ---
@@ -153,7 +147,7 @@ locals {
     type                 = "lakefs-data"                                        # Identifies this storage as the lakeFS data store
     scope_name           = "${local.resource_scope}"                            # Azure Resource Group or GCP Project
     storage_account_name = "${replace(local.deployment_prefix, "-", "")}lakefs" # Full Azure storage account name (no dashes). Not for GCP, used for grouping
-    container_name       = "${replace(local.deployment_prefix, "-", "")}lakefs" # GCP bucket name and Azure container name for the lakeFS data store
+    container_name       = "${replace(local.deployment_prefix, "-", "")}lakefs" # Azure Container or GCP Bucket
   }] : []
 
   # -- Secrets ---
@@ -360,13 +354,45 @@ locals {
     output_dir     = "k8s/helm-values"
   }
 
-  # --- Ingress inputs (GKE-Ingress-referenced GCP resources: static IPs, managed SSL certs, Cloud Armor) ---
-  # Managed by 2-app/4-ingress_inputs. Empty by default; populate per env (see defaults-gcp-prod.hcl).
-  # The LB frontend (proxies/url-maps/backends/forwarding rules) is owned by the GKE ingress controller.
+  # --- Ingress inputs (GKE-Ingress-referenced GCP resources) — managed by 2-app/4-ingress_inputs ---
+  # evalm8 external endpoint (evalm8.divyam.ai). Router/dashboard inputs stay as-is for now
+  # (console/legacy); import them here later for uniform ownership. GKE Ingress/BackendConfig
+  # reference these by name; the LB frontend stays owned by the GKE ingress controller.
   ingress_inputs = {
-    static_ips           = []
-    ssl_certs            = []
-    cloud_armor_policies = []
+    static_ips = [
+      { name = "divyam-evalm8-prod-elb-static-ip" },
+    ]
+    ssl_certs = [
+      { name = "divyam-evalm8-prod-ssl-cert", domains = ["evalm8.divyam.ai"] },
+    ]
+    cloud_armor_policies = [
+      {
+        name        = "evalm8-ui-prod-cloud-armor-policy"
+        description = "Cloud Armor policy for evalm8 UI prod on GCP"
+        rules = [
+          {
+            priority      = 2000
+            action        = "rate_based_ban"
+            description   = "Rate limit rule"
+            src_ip_ranges = ["*"]
+            rate_limit = {
+              conform_action       = "allow"
+              exceed_action        = "deny(429)"
+              enforce_on_key       = "ALL"
+              rate_limit_threshold = { count = 1000, interval_sec = 60 }
+              ban_duration_sec     = 300
+              ban_threshold        = { count = 5000, interval_sec = 120 }
+            }
+          },
+          {
+            priority      = 2147483647
+            action        = "allow"
+            description   = "Default allow rule"
+            src_ip_ranges = ["*"]
+          },
+        ]
+      },
+    ]
   }
 
   # If not create, can setup mysql inside K8s. Default is inside K8s

@@ -1,22 +1,20 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: Apache-2.0
-# gen-tf-env.sh — generate the Terraform/Terragrunt config+secrets file the IaC reads.
+# This script generates the Terraform/Terragrunt config and secrets file the IaC reads.
 #
-# This repo's IaC reads ALL configuration via terragrunt `get_env(...)` (there are no .tfvars
-# files), so the standard way to feed it is the `TF_VAR_*` env-var convention plus the plain
-# config vars. This script writes that file as `iac/values/secrets.env`, kept next to the
-# VALUES_FILE (`iac/values/defaults.hcl`). `scripts/iac.sh` auto-sources it before running
-# terragrunt, so you never source it by hand.
+# This repo's IaC reads ALL configuration via terragrunt `get_env(...)`, there are no .tfvars files.
+# The standard way to feed it is the `TF_VAR_*` env-var convention plus the plain config vars.
+# This script writes that file as `iac/values/secrets.env`, kept next to the VALUES_FILE (`iac/values/defaults.hcl`).
+# `scripts/iac.sh` auto-sources it before running terragrunt, so you never source it by hand.
 #
-# It fills safe-to-randomize secrets with fresh random values, sets sensible config defaults,
-# and leaves real/externally-meaningful values (cloud creds, registry path, webhooks, vendor
-# keys) as PLACEHOLDERS for you to fill in — or passes them through if already exported.
+# It fills safe-to-randomize secrets with fresh random values and sets sensible config defaults.
+# It leaves real or externally-meaningful values (cloud creds, registry path, webhooks, vendor keys) as PLACEHOLDERS for you to fill in, or passes them through if already exported.
 # Real secrets are NEVER randomized.
 #
 # Usage:
 #   scripts/gen-tf-env.sh --cloud gcp --env dev [--region R] [--zone Z] [--out FILE] [--force]
 #
-# Then just run the workflow — iac.sh loads the file automatically:
+# Then just run the workflow, iac.sh loads the file automatically:
 #   ./scripts/iac.sh config -c gcp -e dev
 #   ./scripts/iac.sh plan -l 0-foundation
 #
@@ -59,8 +57,7 @@ uuid() { if command -v uuidgen >/dev/null; then uuidgen | tr 'A-Z' 'a-z'; else c
 # pass through an already-exported env var, else use the given default
 passthru() { local n="$1" d="${2:-}"; printf '%s' "${!n:-$d}"; }
 
-# REGION/ZONE: flag > exported env > cloud default. NOTE: the cloud defaults below are EXAMPLES
-# — edit them (or pass --region/--zone) for your deployment.
+# REGION/ZONE: flag > exported env > cloud default. The cloud defaults below are EXAMPLES, edit them or pass --region/--zone for your deployment.
 if [[ "$CLOUD" == gcp ]]; then def_region="asia-south1"; def_zone="asia-south1-c"
 else                           def_region="centralindia"; def_zone="centralindia-1"; fi
 REGION="${REGION_ARG:-$(passthru REGION "$def_region")}"
@@ -95,6 +92,16 @@ umask 077
   echo "export TF_VAR_divyam_router_admin_password=$(rand 20)"
   echo "export TF_VAR_divyam_jwt_secret_key=$(rand 48)"
   echo "export TF_VAR_divyam_provider_keys_encryption_key=$(rand 44)"
+  echo "# evalm8 stack (used when STACK != router). Set the login passwords to known values for a real deploy."
+  echo "export TF_VAR_divyam_lakefs_access_key_id=$(rand 20)"
+  echo "export TF_VAR_divyam_lakefs_secret_access_key=$(rand 40)"
+  echo "export TF_VAR_divyam_lakefs_auth_encrypt_key=$(rand 32)"
+  echo "export TF_VAR_divyam_argilla_api_key=$(rand 32)"
+  echo "export TF_VAR_divyam_argilla_auth_secret_key=$(rand 32)"
+  echo "export TF_VAR_divyam_argilla_default_user_password=$(rand 24)"
+  echo "export TF_VAR_divyam_evalm8_jwt_secret=$(rand 48)"
+  echo "export TF_VAR_divyam_evalm8_encryption_key=$(LC_ALL=C tr -dc 'a-f0-9' </dev/urandom | head -c 64)"
+  echo "export TF_VAR_divyam_evalm8_admin_password="
   echo
 
   echo "# --- identifiers (non-secret; defaults match the IaC, override if needed) ---"

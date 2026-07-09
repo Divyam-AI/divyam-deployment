@@ -18,6 +18,17 @@ locals {
       ]
     }
 
+    # lakeFS blob storage writer (evalm8 lakeFS container).
+    # Bound to the evalm8 lakeFS storage account scope, separate from the router-logs storage.
+    lakefs_blob_writer = {
+      role_assignments = [
+        {
+          scope                = "lakefs_storage_account"
+          role_definition_name = "Storage Blob Data Contributor"
+        }
+      ]
+    }
+
     blob_reader = {
       role_assignments = [
         {
