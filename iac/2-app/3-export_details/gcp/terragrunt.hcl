@@ -1,5 +1,5 @@
 # Export details (GCP): generates provider.yaml for helmfile with platform-specific configuration.
-# Values from defaults.hcl; storage bucket from divyam_object_storage; databases from cloudsql (when created).
+# Values from defaults.hcl, storage bucket from divyam_object_storage, databases from cloudsql (when created).
 
 include "root" {
   path   = find_in_parent_folders("root.hcl")
@@ -14,6 +14,7 @@ dependency "divyam_object_storage" {
   config_path = "${get_repo_root()}/iac/1-platform/0-divyam_object_storage/gcp"
   mock_outputs = {
     router_requests_logs_bucket_name = ""
+    evalm8_lakefs_bucket_name        = ""
   }
 }
 
@@ -30,35 +31,38 @@ locals {
   repo_root = get_repo_root()
   env       = local.root.env_name
 
-  export_cfg = try(local.root.export_details, {})
-  lb_cfg     = try(local.root.divyam_load_balancer, {})
-  datadog_cfg = try(local.root.datadog, {})
-  k8s_cfg     = try(local.root.k8s, {})
-  observability_cfg = try(local.k8s_cfg.observability, {})
-  deployment_mode = try(local.root.deployment_mode, "onprem")
-  lb_enabled      = try(local.lb_cfg.enabled, true)
-  datadog_enabled = try(local.datadog_cfg.enabled, false)
+  export_cfg            = try(local.root.export_details, {})
+  lb_cfg                = try(local.root.divyam_load_balancer, {})
+  datadog_cfg           = try(local.root.datadog, {})
+  k8s_cfg               = try(local.root.k8s, {})
+  observability_cfg     = try(local.k8s_cfg.observability, {})
+  deployment_mode       = try(local.root.deployment_mode, "onprem")
+  lb_enabled            = try(local.lb_cfg.enabled, true)
+  datadog_enabled       = try(local.datadog_cfg.enabled, false)
   observability_enabled = try(local.observability_cfg.enable_metrics, true)
-  monitoring_enabled = local.datadog_enabled || local.observability_enabled
-  monitoring_provider = local.datadog_enabled ? "datadog" : ""
+  monitoring_enabled    = local.datadog_enabled || local.observability_enabled
+  monitoring_provider   = local.datadog_enabled ? "datadog" : ""
 
   cloudsql_cfg     = try(local.root.cloudsql, {})
   cloudsql_created = try(local.cloudsql_cfg.create, false)
 
   storage_bucket = try(one([for s in local.root.divyam_object_storages : s.container_name if s.type == "router-requests-logs"]), "")
+  # Plan fallback: when the object_storage unit has no state yet, derive the lakeFS bucket name from values.
+  # This keeps provider.yaml validating under local-backend sandbox runs.
+  evalm8_lakefs_bucket = try(one([for s in try(local.root.evalm8_object_storages, []) : s.container_name if s.type == "lakefs-data"]), "")
 
   # Same contract as Azure: divyam_load_balancer.private_dns_zone + dns_records (see 1-platform/0-app_gw). Legacy FQDN keys remain a fallback.
   _private_dns_zone_name = trimspace(try(local.lb_cfg.private_dns_zone.name, ""))
   _api_label             = trimspace(try(local.lb_cfg.dns_records.api, "api"))
   _dashboard_label       = trimspace(try(local.lb_cfg.dns_records.dashboard, "dashboard"))
-  _controlplane_label = local.deployment_mode == "managed" ? trimspace(try(local.lb_cfg.dns_records.controlplane, "")) : ""
+  _controlplane_label    = local.deployment_mode == "managed" ? trimspace(try(local.lb_cfg.dns_records.controlplane, "")) : ""
 
   router_ingress_fqdn = (
     local._private_dns_zone_name != "" && local._api_label != ""
-    ) ? "${local._api_label}.${local._private_dns_zone_name}" : trimspace(try(local.lb_cfg.router_dns, ""))
+  ) ? "${local._api_label}.${local._private_dns_zone_name}" : trimspace(try(local.lb_cfg.router_dns, ""))
   dashboard_ingress_fqdn = (
     local._private_dns_zone_name != "" && local._dashboard_label != ""
-    ) ? "${local._dashboard_label}.${local._private_dns_zone_name}" : trimspace(try(local.lb_cfg.dashboard_dns, ""))
+  ) ? "${local._dashboard_label}.${local._private_dns_zone_name}" : trimspace(try(local.lb_cfg.dashboard_dns, ""))
   controlplane_ingress_fqdn = local.deployment_mode != "managed" ? "" : (
     local._private_dns_zone_name != "" && local._controlplane_label != ""
     ? "${local._controlplane_label}.${local._private_dns_zone_name}"
@@ -67,18 +71,20 @@ locals {
 }
 
 inputs = {
-  environment               = local.env
-  project_id                = local.root.resource_scope.name
-  storage_bucket            = try(dependency.divyam_object_storage.outputs.router_requests_logs_bucket_name, local.storage_bucket)
-  cluster_domain            = try(local.export_cfg.cluster_domain, "")
-  ingress_deploy            = true
-  ingress_external          = try(local.lb_cfg.public, false)
+  environment                 = local.env
+  project_id                  = local.root.resource_scope.name
+  storage_bucket              = try(dependency.divyam_object_storage.outputs.router_requests_logs_bucket_name, local.storage_bucket)
+  evalm8_lakefs_bucket        = try(local.root.stack, "both") != "router" ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_bucket_name, local.evalm8_lakefs_bucket) : ""
+  evalm8_storage_type         = try(local.root.stack, "both") != "router" ? try(local.root.evalm8_storage_type, "gcs") : ""
+  cluster_domain              = try(local.export_cfg.cluster_domain, "")
+  ingress_deploy              = true
+  ingress_external            = try(local.lb_cfg.public, false)
   router_ingress_domain       = local.router_ingress_fqdn
-  dashboard_ingress_domain  = local.dashboard_ingress_fqdn
+  dashboard_ingress_domain    = local.dashboard_ingress_fqdn
   controlplane_ingress_domain = local.controlplane_ingress_fqdn
-  deployment_mode          = local.deployment_mode
-  lb_enabled               = local.lb_enabled
-  image_pull_secret_enabled = try(local.export_cfg.image_pull_secret_enabled, false)
+  deployment_mode           = local.deployment_mode
+  lb_enabled                = local.lb_enabled
+  image_pull_secret_enabled = try(local.root.image_pull_secret_enabled, false)
   monitoring_enabled        = local.monitoring_enabled
   monitoring_provider       = local.monitoring_provider
   stack                     = try(local.root.stack, "")
@@ -88,7 +94,7 @@ inputs = {
   mysql_host       = local.cloudsql_created ? (try(dependency.cloudsql.outputs.private_ip_address, null) == null ? "" : dependency.cloudsql.outputs.private_ip_address) : ""
   mysql_port       = 3306
   # TO FIX: default value flowing 'divyam', fix it to flow 'divyam_$ENV'
-  mysql_database   = local.cloudsql_created ? try(dependency.cloudsql.outputs.database_name, "divyam_${local.env}") : "divyam_${local.env}"
+  mysql_database = local.cloudsql_created ? try(dependency.cloudsql.outputs.database_name, "divyam_${local.env}") : "divyam_${local.env}"
 
   common_tags = try(include.root.inputs.common_tags, {})
   tag_globals = try(include.root.inputs.tag_globals, {})

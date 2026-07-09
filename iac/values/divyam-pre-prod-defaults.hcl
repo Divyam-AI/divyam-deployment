@@ -8,7 +8,7 @@
 locals {
   # Can replace these with actual values
   cloud_provider    = get_env("CLOUD_PROVIDER", "gcp")
-  env_name          = "pre-prod"
+  env_name          = "preprod"
   org_name          = ""
   region            = local.cloud_provider == "azure" ? "southindia" : "asia-south1"
   zone              = local.cloud_provider == "azure" ? "southindia-1" : "asia-south1-c"
@@ -18,6 +18,12 @@ locals {
       "divyam-${local.org_name}-${local.env_name}" :
       "divyam-${local.env_name}"
   )
+
+  # Stack selector (evalm8 | router | both). Mirrors defaults.hcl, gates the evalm8-only cloud resources.
+  stack             = get_env("STACK", "both")
+
+  # evalm8 lakeFS storage backend, written into provider.yaml platform.evalm8.storage.type.
+  evalm8_storage_type = get_env("EVALM8_STORAGE_TYPE", local.cloud_provider == "azure" ? "blob" : "gcs")
 
   # Can set key -> value for tags to be applied for cloud entities
   common_tags       = {
@@ -106,7 +112,7 @@ locals {
     local_state    = true                        # true = local backend only; false = use remote backend (GCS/Azure)
     region         = "${local.region}"
     zone           = "${local.zone}"
-    scope_name     = "${local.resource_scope}"                              # Azure Resource Group or GCP Project
+    scope_name     = "${local.resource_scope.name}"                              # Azure Resource Group or GCP Project
     storage_name   = "storage"                                              # Azure Storage Account or GCP - empty
     bucket_name    = "${replace(local.deployment_prefix, "-", "")}tfstate" # Azure container + storage account name; GCP bucket name
   }
@@ -120,6 +126,16 @@ locals {
     storage_account_name = "divyam-preprod-storage"                               # Fixed key for GCP import (google_storage_bucket.this["divyam-preprod-storage/container_name"])
     container_name       = "divyam-preprod-gcs-router-raw-logs" # Azure Container or GCS Bucket
   }]
+
+  # Evalm8 lakeFS object storage, only provisioned when the evalm8 stack is in scope (stack != router).
+  # container_name is the GCS bucket name. The no-dash prefix helper resolves it to divyampreprodlakefs.
+  evalm8_object_storages = local.stack != "router" ? [{
+    create               = true
+    type                 = "lakefs-data"
+    scope_name           = "${local.resource_scope}"
+    storage_account_name = "${replace(local.deployment_prefix, "-", "")}lakefs"
+    container_name       = "${replace(local.deployment_prefix, "-", "")}lakefs"
+  }] : []
 
   # -- Secrets ---
   divyam_secrets = {

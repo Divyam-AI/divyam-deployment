@@ -1,0 +1,315 @@
+#-------------------------------------------------------------------------------------------------------------------------------
+# Note: when setting in any of the section create = false, edit the values in that section that is to be used to setup Divyam.
+#-------------------------------------------------------------------------------------------------------------------------------
+
+locals {
+  # Can replace these with actual values
+  cloud_provider    = get_env("CLOUD_PROVIDER","azure") 
+  env_name          = get_env("ENV","sandbox")  # default store for the IaC env (decoupled from the sandbox cluster --env-name); safe "sandbox" default avoids ever defaulting onto the real "prod" env in the same subscription
+  org_name          = get_env("ORG_NAME", "")
+  region            = get_env("REGION", local.cloud_provider == "gcp" ? "asia-south1" : "centralindia")
+  zone              = get_env("ZONE",   local.cloud_provider == "gcp" ? "asia-south1-a" : "centralindia-1")
+  stack             = get_env("STACK", "both")
+
+  deployment_mode = "onprem"  # Set value to "managed" | "onprem"
+
+  deployment_prefix = (
+    length(local.org_name) > 0 ?
+      "divyam-${local.org_name}-${local.env_name}" :
+      "divyam-${local.env_name}"
+  )
+
+  # Can set key -> value for tags to be applied for cloud entities
+  # GCP lables and values should contain lowercase letters, numeric characters, underscores, and dashes and cannot be longer than 63 characters each.
+  common_tags       = {
+    environment   = "divyam-env-#{environment}"
+    resource_name = "#{resource_name}"
+    new_tag = "new_value"
+  } 
+  # Can also use templates as value and will automatically replaced
+  # Standard template variables are defined as part of tag_globals in root.hcl
+  # { 
+  #   environment     = "#{environment}"
+  #   region          = "#{region}"
+  #   resource_tag    = "#{org_name}-#{resource_name}"
+  # }
+
+#################### Foundation ##########################
+# --- Resource Scope ---
+# Azure: resource_group_name | GCP: project_id
+  resource_scope = {
+    create          = false   # If this is set to false, edit the name below to the resource name that is to be used for setting up Divyam.
+    # Azure: resource group | GCP: project id (datadog/native monitoring use this as the google provider project)
+    name            = local.cloud_provider == "gcp" ? "pre-production-project" : "divyam-bkt-preprod-rg"
+    # name            = "${local.deployment_prefix}-rg"
+    # Get it from https://portal.azure.com/#view/Microsoft_Azure_Billing/SubscriptionsBladeV2 or https://console.cloud.google.com/billing/
+    billing_account = get_env("BILLING_ACCOUNT", "") # BILLING_ACCOUNT is required if create is true
+  }
+
+# --- APIs / Resource Providers (0-foundation/0-apis) ---
+# GCP: enable APIs; Azure: register resource providers. Set enabled = true; override apis (GCP) or provider_namespaces (Azure) here if needed.
+  apis = {
+    enabled = false
+  }
+
+# --- Virtual Network ---
+  # Azure: VNet | GCP: VPC (optionally Shared VPC host with service project attachments)
+  # When create = true (e.g. GCP): create network and subnets. When false: look up existing by name.
+  # GCP: set shared_vpc_host = true to enable this project as Shared VPC host; set service_project_ids = ["project-a","project-b"] to attach service projects.
+  vnet = {
+    create          = false  # If this is set to false, edit the below values that is to be used for setting up Divyam.
+    name            = "divyam-ckt-dev-vnet"
+    # name            = "${local.deployment_prefix}-vnet"
+    scope_name      = "az-bharath-dev" # Azure Resource Group or GCP Project where this vnet is to be created/present
+    # scope_name      = "${local.resource_scope.name}" # Azure Resource Group or GCP Project where this vnet is to be created/present
+    region          = "${local.region}"
+    zone            = "${local.zone}"
+    address_space   = ["10.1.0.0/16"]
+    subnet          = { create = false, subnet_ip = "10.1.0.0/21", name = "divyam-ckt-dev-subnet" } # (2048 IPs)
+    # subnet          = { create = true, subnet_ip = "10.0.0.0/21", name = "${local.deployment_prefix}-subnet" } # (2048 IPs)
+    app_gw_subnet   = { create = false, subnet_ip = "10.0.8.0/26", name = "divyam-ckt-dev-subnet-app-gw" } # (64 IPs) - SURVIVOR of the first bringup (outlives the sandbox; foundation local state dies with the VM) -> create=false = lookup on re-bringup. Within reused VNet divyam-ckt-dev-vnet (10.0.0.0/16); matches LB private IP 10.0.8.10. Required for Azure App Gateway or GCP proxy-only (min /26)
+    # app_gw_subnet   = { create = true, subnet_ip = "10.0.8.0/26", name = "${local.deployment_prefix}-subnet-app-gw" } # (64 IPs) - Required for Azure App Gateway or GCP proxy-only (min /26)
+    # GCP only: enable Shared VPC host and attach service projects (ignored by Azure)
+    # Azure: shared_vpc_host = true peers this VNet to remote VNets whose ARM IDs are in service_project_ids.
+    shared_vpc_host     = false
+    service_project_ids = []  # GCP: project IDs to attach; Azure: remote VNet ARM IDs to peer with
+  }
+
+  # --- NAT (egress) ---
+  # Azure: NAT Gateway + Public IP, associated to VNet subnets. GCP: Cloud NAT on Cloud Router for listed subnetworks.
+  # Lookup names: platform modules fetch nat_gateway_ip via data sources (Azure: public IP by name; GCP: router/nat by name). Names must match 0-foundation/2-nat or existing infra.
+  nat = {
+    create = false # If this is set to false, edit the below values that is to be used for setting up Divyam.
+    # resource_name_prefix = "az-bharath-dev"
+    # Azure: resource group where the existing NAT gateway and public IP live (only used when create = false).
+    # Leave unset or null to fall back to resource_scope.name.
+    nat_resource_group_name = "az-bharath-dev" # Resource group containing the existing NAT gateway
+    # Names for data-source lookup (1-platform resolves NAT IP from these; no dependency on 0-foundation).
+    nat_gateway_name   = "divyam-ckt-dev-nat-gateway"   # Azure: NAT gateway resource name
+    # nat_gateway_name   = "${local.deployment_prefix}-nat-gateway"   # Azure: NAT gateway resource name
+    nat_public_ip_name = "divyam-ckt-dev-nat-ip"       # Azure: public IP resource name (used to fetch IP)
+    # nat_public_ip_name = "${local.deployment_prefix}-nat-ip"       # Azure: public IP resource name (used to fetch IP)
+    # GCP: Cloud Router and NAT config names (for lookup if needed)
+    router_name     = "${local.deployment_prefix}-nat-router"
+    nat_config_name = "${local.deployment_prefix}-nat-config"
+  }
+
+  # --- Bastion ---
+  # Set create = true and override below. Cluster details for kubectl come from k8s section (no cloud-specific names).
+  bastion = {
+    create       = false # If this is set to false, edit the below values that is to be used for setting up Divyam.
+    bastion_name = "divyam-ckt-dev-bastion"
+    # bastion_name = "${local.deployment_prefix}-bastion"
+    bastion_resource_group_name = "az-bharath-dev" # Resource group containing the existing bastion VM and public IP
+    spot_instance = false
+    # configure_kubectl: use only when cluster is pre-created and only the bastion needs to be set up (installs kubectl + setup-kubectl script on bastion at create time).
+    # Once the cluster is created (1-platform), either run on the bastion: setup-kubectl, or set k8s.setup_kubectl_on_bastion = true to run it via Terraform.
+    # Azure: vnet_subnet_name, vm_size, admin_username, ssh_public_key_path. GCP: machine_type, tags.
+    vm_size = "Standard_B2s"
+  }
+
+# --- Blob / Object Storage ---
+# Azure: Resource Group -> Storage Account -> Container | GCP: Project -> GCS bucket(s)
+  # --- Terraform State Backend ---
+  # bucket_name: cloud-agnostic logical name for state store (Azure: container + storage account; GCP: bucket).
+  # Override here if needed (e.g. storage_account_name, container_name for Azure).
+  # local_state: when true, state is stored locally only (no cloud bucket/container created or used).
+  tfstate = {
+    create         = false # SURVIVOR: the state store outlives teardown by design (holds 1-platform/2-app remote state) -> lookup on re-bringup. Set true only for a first-ever bringup.
+    local_state    = false
+    region         = "${local.region}"
+    zone           = "${local.zone}"
+    scope_name     = "${local.resource_scope.name}"                              # Azure Resource Group or GCP Project
+    storage_name   = "storage"                                              # Azure Storage Account or GCP - empty
+    bucket_name    = "${replace(local.deployment_prefix, "-", "")}tfstate" # Azure container + storage account name; GCP bucket name
+  }
+
+#################### Platform ##########################
+  # --- Divyam Data ---
+  divyam_object_storages = [{
+    create               = true # If this is set to false, edit the below values that is to be used for setting up Divyam.
+    type                 = "router-requests-logs"                                  # Identifies this storage for router-requests-logs
+    scope_name           = "${local.resource_scope}"                               # Azure Resource Group or GCP Project
+    storage_account_name = "${replace(local.deployment_prefix, "-", "")}storage"   # Full Azure storage account name (no dashes). Not for GCP; used for grouping
+    container_name       = "${replace(local.deployment_prefix, "-", "")}container" # Azure Container or GCP Bucket
+  }]
+
+  evalm8_object_storages = local.stack != "router" ? [{
+    create               = true
+    type                 = "lakefs-data"
+    scope_name           = "${local.resource_scope}"
+    storage_account_name = "${replace(local.deployment_prefix, "-", "")}lakefs"
+    container_name       = "${replace(local.deployment_prefix, "-", "")}lakefs"
+  }] : []
+
+  # -- Secrets ---
+  divyam_secrets = {
+    # If this is set to false, edit the below values that is to be used for setting up Divyam.
+    create_vault   = true   # Keep TF managing the vault even across teardowns: it is purge-protected (soft-delete survivor), and the azurerm provider auto-recovers a soft-deleted vault on create — re-applying ALSO restores the access policies that recovery drops. On a re-bringup where the vault is already active but absent from state, import it once: make iac -- import -l 2-app.0-divyam_secrets -- 'azurerm_key_vault.this[0]' <vault ARM id>. Azure only: if false, use store_name to look up existing Key Vault
+    create_secrets = true   # if false, do not create or update secrets in the vault
+    scope_name     = "${local.resource_scope.name}"       # Azure Resource Group or GCP Project
+    store_name     = "${local.deployment_prefix}-vault"   # Azure Key Vault name (create or lookup).  Not required for GCP
+  }
+
+  # -- Load Balancer (static IP, DNS, TLS) ---
+  divyam_load_balancer = {
+    enabled = true
+    create_ip = true # If this is set to false, edit the below values that is to be used for setting up Divyam.
+    # Private IP (internal LB only): address and optional resource name.
+    ip               = "10.0.8.10"  # Reserved private IP in VNET app_gw_subnet (ignored when public = true)
+    private_ip_name  = "${local.deployment_prefix}-private-ip"  # Name for the private IP resource (e.g. GCP internal address)
+
+    public = false
+    create_public_ip = false  # When true and public = true, create new public IP; when false, use existing by public_ip_name    
+    public_ip_name  = "${local.deployment_prefix}-ip"  # Name for new public IP, or name of existing if create_public_ip = false
+
+    service_name         = "${local.deployment_prefix}-service"
+    backend_service_name = "${local.deployment_prefix}-service-backend"
+
+    tls_enabled     = false
+    create_ssl_cert = false  # Used only if tls_enabled is true. When false, use external cert (certificate_secret_id).
+    ssl_cert_name   = "${local.deployment_prefix}-lb-ssl-cert"
+
+    # DNS records in a single private zone (all names resolve to LB IP — public when public=true, private when false).
+    create_dns_records = true
+    private_dns_zone = {
+      # Set create=false to use an already-existing private DNS zone with this name.
+      create = true
+      name   = "${local.env_name}.divyam.local"
+    }
+    dns_records = {
+      # Relative labels inside private_dns_zone.name (final FQDN = "<label>.<zone>").
+      api          = "api"
+      dashboard    = "dashboard"
+      # controlplane must be non-empty when deployment_mode = "managed".
+      controlplane = "control"
+    }
+    # Additional VNets that should resolve this private DNS zone.
+    # Example: [{ name = "shared-vnet", resource_group_name = "network-rg" }]
+    dns_additional_calling_vnets = []
+
+    # Options: "Standard_v2" (no WAF, lower cost) or "WAF_v2" (WAF enabled, current default).
+    gateway_sku = "Standard_v2"
+
+    waf_enabled = false
+    create_waf  = false   # When true, create WAF/Cloud Armor policy in-module; when false and waf_enabled, fetch existing by waf_policy_name and attach
+    waf_policy_name = "${local.deployment_prefix}-waf"  # Name for created policy or name of existing to fetch when create_waf = false
+
+    # WAF deny/allow lists (applied when create_waf = true). Empty = no rule.
+    waf_deny_ip_ranges  = []  # IP/CIDR to block (e.g. ["203.0.113.0/24"])
+    waf_allow_ip_ranges = []  # If non-empty: only these IP/CIDR allowed (allowlist); still apply deny list first
+  }
+
+  # --- Azure Application Gateway Ingress Controller (AGIC) ---
+  agic = {
+    enabled            = true
+    helm_chart_version = "1.8.1"
+    namespace          = "kube-system"
+    # Defaults to "<k8s.name>-ingress-azure" when null.
+    release_name       = null
+    verbosity_level    = 3
+  }
+
+  # --- Kubernetes Cluster ---
+  # Cloud-agnostic schema; 1-platform/1-k8s/<cloud> maps from k8s. Region, vnet names come from root (not duplicated here).
+  k8s = {
+    create = true # If this is set to false, edit the below values that is to be used for setting up Divyam.
+    name   = "${local.deployment_prefix}-k8s-cluster"
+    kubernetes_version = "1.34"
+
+    # Use spot/preemptible nodes per pool (GKE: spot; AKS: priority Spot). Set spot_instance = true on each pool that should use spot.
+    # "Auto" = platform-managed nodes (Azure NAP, GKE Autopilot). "Manual" = explicit node pools / VM size.
+    node_provisioning_mode = "Auto" #"Manual"
+
+    # Optional AKS network ranges. Keep them non-overlapping with VNet/subnets.
+    # VNet: 10.0.0.0/16 | AKS subnet: 10.0.0.0/21 | App GW subnet: 10.0.8.0/26
+    service_cidr   = "170.20.0.0/16"
+    dns_service_ip = "170.20.0.10"
+    pod_cidr       = null
+
+    api_server_authorized_ip_ranges = []
+    
+    # NAP NodePool instance families/sizes (list). Override per environment as needed.
+    # cpu_instance_types = null
+    # gpu_instance_types = null
+
+    node_pools = {
+      default = {
+        instance_type = local.cloud_provider == "azure" ? "Standard_D4s_v3" : "e2-standard-4"
+        spot_instance = false           # system agent should not be spot
+        auto_scaling  = false
+        count        = 2
+      }
+      additional = {}
+    }
+
+    observability = {
+      enable_logs         = false
+      # Maximum retention: GCP _Default bucket = 3650 days; Azure Log Analytics = 730 days (capped in 1-k8s).
+      logs_retention_days = 30
+      enable_metrics      = false
+    }
+
+    # Upgrade cadence: Azure = automatic_channel_upgrade (stable|rapid|patch|node-image), GCP = release_channel (REGULAR|RAPID|STABLE). Set per cloud.
+    release_channel = local.cloud_provider == "azure" ? "stable" : "REGULAR"
+
+    # When true, enables 1-platform/2-bastion-kubectl-setup (run setup-kubectl on bastion after cluster exists). Bastion must have been created with bastion.configure_kubectl so the script exists.
+    setup_kubectl_on_bastion = false
+  }
+
+  # --- Datadog ---
+  # When enabled:
+  # - set registry to your Datadog site (for example: datadoghq.com, datadoghq.eu, ap1.datadoghq.com)
+  # - set env to the deployment environment tag to be sent to Datadog
+  # - export TF_VAR_datadog_api_key before running terragrunt
+  # - exclude_namespaces is always applied to both logs and metrics.
+  # - exclude_namespaces_logs and exclude_namespaces_metrics are additive granular lists
+  #   appended to the shared exclude_namespaces list.
+  datadog = {
+    enabled  = true
+    site = "ap1.datadoghq.com"
+    registry = "asia.gcr.io/datadoghq"
+    env      = "dev"
+    exclude_namespaces = [
+      "default",
+      "kube-system",
+    ]
+    exclude_namespaces_logs    = []
+    exclude_namespaces_metrics = []
+  }
+
+  iam_bindings = {
+    create = true
+  }
+
+  alerts = {
+    create         = true
+    enabled        = true
+    exclude_list   = []
+
+    webhook_urls = compact(split(",", get_env("NOTIFICATION_WEBHOOK_URLS", "https://events.zenduty.com/integration/vv0kf/datadog/7dc86014-263d-4909-b105-24362786a97b/")))
+  }
+
+#################### Application ##########################
+
+  # --- Export Details (provider.yaml for Helm) ---
+  # Generates k8s/values/provider.yaml consumed by helmfile. Cloud-specific values (Key Vault URI, WIF, GCS bucket)
+  # are pulled from other module outputs automatically; only shared settings need to be configured here.
+  # When cloudsql.create = true, database connection details are also included.
+  export_details = {
+    cluster_domain            = ""
+    image_pull_secret_enabled = local.cloud_provider == "azure" ? true : false
+    output_dir                = "k8s/helm-values"
+  }
+
+  # If not create, can setup mysql inside K8s. Default is inside K8s
+  cloudsql = {
+    create         = false
+    instance_name  = "${local.deployment_prefix}-cloudsql"
+  }
+
+  # --- Terraform outputs file for Helm ---
+  # Path (relative to repo root) with filename and extension. Use .yaml or .json for format.
+  # Dynamic placeholders (resolved from ENV/ORG_NAME when the script runs): ${local.deployment_prefix}, ${local.env_name}, ${local.org_name}
+  outputs_file_path = "outputs/outputs-${local.deployment_prefix}.yaml"
+}

@@ -20,24 +20,24 @@ locals {
     name   = "pre-production-project"
   }
 
-  apis  = { enabled = false }
-  vnet  = { create = false, name = "default", scope_name = "pre-production-project", region = local.region, zone = local.zone, address_space = ["10.0.0.0/16"], subnet = { create = false, name = "default" }, app_gw_subnet = { create = false, name = "proxy-only-subnet" }, shared_vpc_host = false, service_project_ids = [] }
-  nat   = { create = false, router_name = "sandbox-router", nat_config_name = "sandbox-nat" }
+  apis    = { enabled = false }
+  vnet    = { create = false, name = "default", scope_name = "pre-production-project", region = local.region, zone = local.zone, address_space = ["10.0.0.0/16"], subnet = { create = false, name = "default" }, app_gw_subnet = { create = false, name = "proxy-only-subnet" }, shared_vpc_host = false, service_project_ids = [] }
+  nat     = { create = false, router_name = "sandbox-router", nat_config_name = "sandbox-nat" }
   bastion = { create = false, bastion_name = "sandbox-bastion" }
   tfstate = { create = false, local_state = true, bucket_name = "sandbox-tfstate", region = local.region, zone = local.zone, scope_name = local.resource_scope.name }
 
   k8s = {
-    create = false
-    name   = "custom-k8s"
-    kubernetes_version = "1.34"
+    create                 = false
+    name                   = "custom-k8s"
+    kubernetes_version     = "1.34"
     node_provisioning_mode = "Auto"
-    node_pools = { default = { instance_type = "e2-standard-4", spot_instance = false, auto_scaling = false, count = 1 }, additional = {} }
+    node_pools             = { default = { instance_type = "e2-standard-4", spot_instance = false, auto_scaling = false, count = 1 }, additional = {} }
     observability = {
       enable_logs         = true
       enable_metrics      = true
       logs_retention_days = 7
     }
-    release_channel = "REGULAR"
+    release_channel          = "REGULAR"
     setup_kubectl_on_bastion = false
   }
 
@@ -59,23 +59,25 @@ locals {
   iam_bindings = { create = false }
 
   alerts = {
-    create       = true
-    enabled      = true
-    exclude_list = []
-    webhook_urls = compact(split(",", get_env("NOTIFICATION_WEBHOOK_URLS", "")))
+    create                         = true
+    enabled                        = true
+    exclude_list                   = []
+    webhook_urls                   = compact(split(",", get_env("NOTIFICATION_WEBHOOK_URLS", "")))
     webhook_custom_payload_enabled = true
     webhook_custom_payload         = null
-    notify_no_data    = true
-    no_data_timeframe = 15
-    renotify_interval = 30
+    notify_no_data                 = true
+    no_data_timeframe              = 15
+    renotify_interval              = 30
   }
+
+  # Private-registry image-pull auth (deployment-wide): create + inject the docker-auth secret.
+  image_pull_secret_enabled = false
 
   export_details = {
-    cluster_domain            = ""
-    image_pull_secret_enabled = false
-    output_dir                = "k8s/helm-values"
+    cluster_domain = ""
+    output_dir     = "k8s/helm-values"
   }
 
-  cloudsql = { create = false, instance_name = "${local.deployment_prefix}-cloudsql" }
+  cloudsql          = { create = false, instance_name = "${local.deployment_prefix}-cloudsql" }
   outputs_file_path = "outputs/outputs-${local.deployment_prefix}.yaml"
 }

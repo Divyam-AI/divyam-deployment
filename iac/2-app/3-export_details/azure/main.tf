@@ -1,8 +1,8 @@
 locals {
   key_vault_uri = "https://${var.key_vault_name}.vault.azure.net/"
   # Expose rendered common tags in provider.yaml under platform.custom_tags for downstream helm values.
-  # Do not yamlencode() the whole map here: when interpolated into the heredoc, multi-line yamlencode output
-  # can mis-indent (first map entry flush-left). Emit one indented line per key; jsonencode() values are valid YAML scalars.
+  # Do not yamlencode() the whole map here. When interpolated into the heredoc, multi-line yamlencode output can mis-indent the first map entry flush-left.
+  # Emit one indented line per key. jsonencode() values are valid YAML scalars.
   custom_tags_block = length(local.rendered_tags) > 0 ? join("\n", concat(
     ["  custom_tags:"],
     [for k in sort(keys(local.rendered_tags)) : format("    %s: %s", k, jsonencode(local.rendered_tags[k]))]
@@ -37,9 +37,12 @@ monitoring:
 
 EOT
 
-  # Stack selector consumed by k8s/helmfile.yaml.gotmpl (evalm8 | router | both). Emitted only when
-  # set; an absent key makes helmfile deploy every stack (its documented default). This replaces the
-  # previously-manual `stack: router` edit that each regen used to wipe.
+  # evalm8 lakeFS storage for provider.yaml, emitted under platform only when set (stack not router).
+  # type is the storage backend (pvc or blob on Azure). The helmfile maps it to the lakefs chart objectStorage.
+  evalm8_storage_block = trimspace(var.evalm8_lakefs_storage_account) != "" ? "  evalm8:\n    storage:\n      type: \"${var.evalm8_storage_type}\"\n      account: \"${var.evalm8_lakefs_storage_account}\"\n      container: \"${var.evalm8_lakefs_container}\"" : ""
+
+  # Stack selector consumed by k8s/helmfile.yaml.gotmpl (evalm8 | router | both). Emitted only when set.
+  # An absent key makes helmfile deploy every stack (its documented default). This replaces the manual stack edit that each regen used to wipe.
   stack_block = trimspace(var.stack) != "" ? "stack: ${var.stack}\n\n" : ""
 
   platform_block = <<-EOT
@@ -60,6 +63,7 @@ ${local.custom_tags_block}
       tenantID: "${var.tenant_id}"
       clientIdMap:
 ${local.wif_client_id_lines}
+${local.evalm8_storage_block}
 
 ingress:
   deploy: ${var.ingress_deploy}

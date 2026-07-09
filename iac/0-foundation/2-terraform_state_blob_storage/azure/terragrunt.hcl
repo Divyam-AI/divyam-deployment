@@ -33,7 +33,7 @@ locals {
   root = include.root.locals.merged
   inputs = merge(
     {
-      resource_group_name     = local.root.resource_scope.name
+      resource_group_name     = include.root.locals.tfstate_scope_name
       location                = local.root.region
       environment             = local.root.env_name
       common_tags             = try(local.root.common_tags, {})
