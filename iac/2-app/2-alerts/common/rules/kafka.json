@@ -26,7 +26,7 @@
       },
       "annotations": {
         "summary": "Kafka consumer lag exceeds SLA (P1)",
-        "description": "Consumer group lag has exceeded {{threshold}} messages for more than 10 minutes. Tune threshold to match your team's SLA."
+        "description": "Consumer group lag has exceeded 50000 messages for more than 10 minutes. Tune the threshold in kafka.json to match your team's SLA."
       }
     },
     {
@@ -49,7 +49,7 @@
       },
       "annotations": {
         "summary": "Kafka consumer lag growing steadily (P2)",
-        "description": "Consumer group lag is growing at more than {{threshold}} messages over 10 minutes, suggesting the consumer cannot keep up with the producer."
+        "description": "Consumer group lag is growing at more than 1000 messages over 10 minutes, suggesting the consumer cannot keep up with the producer."
       }
     },
     {

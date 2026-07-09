@@ -9,7 +9,8 @@
   "rules": [
     {
       "alert": "clickhouse-disk-usage-high",
-      "_comment": "Escape hatch: disk-used % is (total-free)/total — not expressible in the structured query IR. The clickhouse.disks.free_space / clickhouse.disks.total_space metrics are emitted by a custom_queries block in the Datadog ClickHouse check (1-platform/2-monitoring/.../datadog/common/main.tf), tagged with disk_name and kube_cluster_name.",
+      "_comment": "Datadog path: disk-used % via clickhouse.disks.free_space/total_space custom_queries (see datadog/common/main.tf). Prometheus path: ClickHouse's native /metrics endpoint exposes DiskUsed_default/DiskTotal_default as async metrics (ClickHouseAsyncMetrics_ prefix); disk name is baked into the metric name (single 'default' disk). Metric names verified live against system.asynchronous_metrics on 2026-07-07.",
+      "expr": "max by (pod) (ClickHouseAsyncMetrics_DiskUsed_default{namespace=\"clickhouse-{{env}}-ns\"} / ClickHouseAsyncMetrics_DiskTotal_default{namespace=\"clickhouse-{{env}}-ns\"} * 100) > {{threshold}}",
       "window": "15m",
       "for": "5m",
       "severity": "WARNING",
@@ -32,7 +33,8 @@
     },
     {
       "alert": "clickhouse-no-ingestion",
-      "_comment": "P0: complete ingestion halt — no rows inserted for 5 min. clickhouse.table.insert.row.total is a monotonic counter emitted by the standard Datadog ClickHouse integration; .as_count() gives the per-window delta so a zero delta means no rows inserted. Verified against live agent check output on the sandbox.",
+      "_comment": "P0: complete ingestion halt — no rows inserted for 5 min. Datadog path uses clickhouse.table.insert.row.total.as_count(). Prometheus path: ClickHouseProfileEvents_InsertedRows is a monotonic counter on the native /metrics endpoint; increase(...[5m]) summed across replicas gives cluster row deltas, so <1 means no inserts. Metric name verified live against system.events on 2026-07-07.",
+      "expr": "sum(increase(ClickHouseProfileEvents_InsertedRows{namespace=\"clickhouse-{{env}}-ns\"}[5m])) < {{threshold}}",
       "window": "5m",
       "for": "5m",
       "severity": "CRITICAL",
@@ -52,7 +54,8 @@
     },
     {
       "alert": "clickhouse-ingestion-delay",
-      "_comment": "P1: ingestion delay exceeds SLA — delayed inserts building up for 10+ min. clickhouse.query.insert.delayed counts INSERT queries currently queued/delayed due to back-pressure (e.g. max_insert_delay_ms). A sustained non-zero value signals pipeline back-pressure exceeding SLA. For true end-to-end delay (now()-max(event_time)), add a custom_query to main.tf against a known ingestion table. Verified metric name against live agent check.",
+      "_comment": "P1: ingestion delay exceeds SLA — delayed inserts building up for 10+ min. Datadog path uses clickhouse.query.insert.delayed. Prometheus path: ClickHouseMetrics_DelayedInserts is a current gauge on the native /metrics endpoint counting INSERTs queued/delayed by back-pressure (e.g. max_insert_delay_ms); sustained non-zero = SLA back-pressure. Metric name verified live against system.metrics on 2026-07-07.",
+      "expr": "max by (pod) (ClickHouseMetrics_DelayedInserts{namespace=\"clickhouse-{{env}}-ns\"}) > {{threshold}}",
       "window": "15m",
       "for": "10m",
       "severity": "WARNING",
@@ -72,7 +75,8 @@
     },
     {
       "alert": "clickhouse-ingestion-slow",
-      "_comment": "P2: minor ingestion slowdown — insert row rate slightly below baseline. clickhouse.table.insert.row.total delta over 15m below a threshold indicates a slowdown not yet causing delays. The threshold (rows per 15m window) must be calibrated per environment; placeholder is 50. Verified metric name against live agent check.",
+      "_comment": "P2: minor ingestion slowdown — insert row rate slightly below baseline. Datadog path uses clickhouse.table.insert.row.total. Prometheus path: increase(ClickHouseProfileEvents_InsertedRows[15m]) summed across replicas, below a per-env threshold, indicates a slowdown not yet causing delays. Threshold (rows per 15m) needs env calibration; placeholder warn 50 / crit 10. Metric name verified live against system.events on 2026-07-07.",
+      "expr": "sum(increase(ClickHouseProfileEvents_InsertedRows{namespace=\"clickhouse-{{env}}-ns\"}[15m])) < {{threshold}}",
       "window": "15m",
       "for": "15m",
       "severity": "WARNING",
@@ -93,7 +97,8 @@
     },
     {
       "alert": "clickhouse-write-failures",
-      "_comment": "P0: any insert/write failure. clickhouse.log.messages.error.total is a monotonic counter for all ClickHouse error-level log messages — not insert-specific, but the most direct write-failure signal in the standard integration without a custom_query. For a targeted signal, add a custom_query against system.query_log WHERE type='ExceptionBeforeStart' AND query_kind='Insert' to main.tf. Threshold of 0 means any new error triggers. Verified metric name against live agent check.",
+      "_comment": "P0: any insert/write failure. Datadog path uses clickhouse.log.messages.error.total. Prometheus path: ClickHouseProfileEvents_LogError is the native /metrics monotonic counter of all ClickHouse error-level log messages — not insert-specific, but the most direct write-failure signal without a custom query. increase(...[5m]) summed > 0 means any new error. NOTE: FailedInsertQuery/FailedQuery events do NOT appear until they fire (zero-count events are hidden), so LogError is the reliably-present signal; verified live against system.events on 2026-07-07.",
+      "expr": "sum(increase(ClickHouseProfileEvents_LogError{namespace=\"clickhouse-{{env}}-ns\"}[5m])) > {{threshold}}",
       "window": "5m",
       "for": "1m",
       "severity": "CRITICAL",

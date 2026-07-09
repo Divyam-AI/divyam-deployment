@@ -1,0 +1,32 @@
+{
+  "name": "superset",
+  "description": "Superset dashboard availability. Superset exposes no Datadog integration of its own (the chart wires statsd + /health, nothing to DD), so availability is derived from kube-state-metrics on the superset web Deployment. This is a low-urgency (P2) signal: a downed dashboard is recoverable and not user-data-impacting. NOTE: the generic kubernetes 'deployment-replica-mismatch' rule (k8s.json) also covers this Deployment at CRITICAL — this rule adds the matrix's superset-scoped P2 view.",
+  "interval": "1m",
+  "labels": {
+    "rule_group": "Superset"
+  },
+  "rules": [
+    {
+      "alert": "superset-dashboard-unavailable",
+      "for": "5m",
+      "window": "10m",
+      "severity": "WARNING",
+      "auto_resolve": "15m",
+      "notification": {
+        "priority": 3
+      },
+      "expr": "min by (deployment) (kube_deployment_status_replicas_available{namespace=\"superset-{{env}}-ns\",deployment=\"superset-{{env}}\"}) < {{threshold}}",
+      "thresholds": {
+        "critical": "1"
+      },
+      "datadog": {
+        "query": "min(last_{{window}}):min:kubernetes_state.deployment.replicas_available{kube_cluster_name:{{cluster_name}},kube_namespace:superset-{{env}}-ns,kube_deployment:superset-{{env}}} < {{threshold}}",
+        "message": "[P2] Superset has no available web replicas on cluster {{kube_cluster_name.name}} — the dashboard UI is unavailable. Recoverable; check the superset-{{env}} deployment, its DB (superset-postgres) and redis."
+      },
+      "annotations": {
+        "summary": "Superset dashboard unavailable (P2)",
+        "description": "The Superset web deployment has zero available replicas, so dashboards are unreachable. Recoverable operational issue — check pod status, the postgres backend, and redis."
+      }
+    }
+  ]
+}

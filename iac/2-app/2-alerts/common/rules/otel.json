@@ -1,0 +1,99 @@
+{
+  "name": "otel-collector",
+  "description": "OpenTelemetry collector export-queue (buffer/storage) usage alerts. Metrics are scraped via the Datadog openmetrics check from the collector's :8181/metrics endpoint. The chart uses a STABLE, env-independent openmetrics namespace, so the DD metric prefix is a neutral otel_collector.* (NOT otel_collector_<env>_ns.*); the environment is carried in tags (kube_cluster_name, kube_namespace:otel-collector-{{env}}-ns) and filtered there. Export-failure metrics (otelcol_exporter_send_failed_*) are intentionally NOT covered here: they are only emitted once the collector actually exports telemetry, so they cannot be authored/verified on an idle stack — add them once traffic exists and the names are confirmed live.",
+  "interval": "1m",
+  "labels": {
+    "rule_group": "OtelCollector"
+  },
+  "rules": [
+    {
+      "alert": "otel-buffer-exhausted",
+      "for": "5m",
+      "window": "5m",
+      "severity": "CRITICAL",
+      "auto_resolve": "10m",
+      "notification": {
+        "priority": 1
+      },
+      "expr": "max by (exporter) (otelcol_exporter_queue_size{namespace=\"otel-collector-{{env}}-ns\"} / otelcol_exporter_queue_capacity{namespace=\"otel-collector-{{env}}-ns\"} * 100) > {{threshold}}",
+      "thresholds": {
+        "critical": "99"
+      },
+      "datadog": {
+        "query": "max(last_{{window}}):max:otel_collector.otelcol_exporter_queue_size{kube_cluster_name:{{cluster_name}},kube_namespace:otel-collector-{{env}}-ns} by {exporter} / max:otel_collector.otelcol_exporter_queue_capacity{kube_cluster_name:{{cluster_name}},kube_namespace:otel-collector-{{env}}-ns} by {exporter} * 100 > {{threshold}}",
+        "message": "[P0] OTel collector exporter {{exporter.name}} send-queue is exhausted (>=99% full) on cluster {{kube_cluster_name.name}}. Telemetry is about to be dropped — the export pipeline is backed up. Investigate the downstream exporter target immediately."
+      },
+      "annotations": {
+        "summary": "OTel collector export buffer exhausted (P0)",
+        "description": "The exporter send-queue is at/near capacity. New spans/metrics/logs will be dropped once full. Check the exporter's downstream endpoint health and collector resourcing."
+      }
+    },
+    {
+      "alert": "otel-buffer-usage-high",
+      "for": "5m",
+      "window": "10m",
+      "severity": "WARNING",
+      "auto_resolve": "15m",
+      "notification": {
+        "notify": true,
+        "priority": 2
+      },
+      "expr": "max by (exporter) (otelcol_exporter_queue_size{namespace=\"otel-collector-{{env}}-ns\"} / otelcol_exporter_queue_capacity{namespace=\"otel-collector-{{env}}-ns\"} * 100) > {{threshold}}",
+      "thresholds": {
+        "critical": "90"
+      },
+      "datadog": {
+        "query": "max(last_{{window}}):max:otel_collector.otelcol_exporter_queue_size{kube_cluster_name:{{cluster_name}},kube_namespace:otel-collector-{{env}}-ns} by {exporter} / max:otel_collector.otelcol_exporter_queue_capacity{kube_cluster_name:{{cluster_name}},kube_namespace:otel-collector-{{env}}-ns} by {exporter} * 100 > {{threshold}}",
+        "message": "[P1] OTel collector exporter {{exporter.name}} send-queue is above 90% on cluster {{kube_cluster_name.name}}. The exporter is falling behind its downstream target; drops are imminent if it keeps climbing."
+      },
+      "annotations": {
+        "summary": "OTel collector export buffer usage high (P1)",
+        "description": "Exporter send-queue usage is above 90%. The collector cannot flush to its downstream as fast as it is filling. Investigate before it reaches the P0 (exhaustion) threshold."
+      }
+    },
+    {
+      "alert": "otel-buffer-usage-elevated",
+      "for": "5m",
+      "window": "10m",
+      "severity": "WARNING",
+      "auto_resolve": "15m",
+      "notification": {
+        "priority": 3
+      },
+      "expr": "max by (exporter) (otelcol_exporter_queue_size{namespace=\"otel-collector-{{env}}-ns\"} / otelcol_exporter_queue_capacity{namespace=\"otel-collector-{{env}}-ns\"} * 100) > {{threshold}}",
+      "thresholds": {
+        "critical": "80"
+      },
+      "datadog": {
+        "query": "max(last_{{window}}):max:otel_collector.otelcol_exporter_queue_size{kube_cluster_name:{{cluster_name}},kube_namespace:otel-collector-{{env}}-ns} by {exporter} / max:otel_collector.otelcol_exporter_queue_capacity{kube_cluster_name:{{cluster_name}},kube_namespace:otel-collector-{{env}}-ns} by {exporter} * 100 > {{threshold}}",
+        "message": "[P2] OTel collector exporter {{exporter.name}} send-queue is above 80% on cluster {{kube_cluster_name.name}}. Monitor the growth trend and downstream throughput."
+      },
+      "annotations": {
+        "summary": "OTel collector export buffer usage elevated (P2)",
+        "description": "Exporter send-queue usage is above 80%. Recoverable, but watch the trend — sustained growth points to a slow or failing downstream exporter."
+      }
+    },
+    {
+      "alert": "otel-buffer-usage-warning",
+      "for": "5m",
+      "window": "10m",
+      "severity": "INFO",
+      "auto_resolve": "15m",
+      "notification": {
+        "priority": 4
+      },
+      "expr": "max by (exporter) (otelcol_exporter_queue_size{namespace=\"otel-collector-{{env}}-ns\"} / otelcol_exporter_queue_capacity{namespace=\"otel-collector-{{env}}-ns\"} * 100) > {{threshold}}",
+      "thresholds": {
+        "critical": "70"
+      },
+      "datadog": {
+        "query": "max(last_{{window}}):max:otel_collector.otelcol_exporter_queue_size{kube_cluster_name:{{cluster_name}},kube_namespace:otel-collector-{{env}}-ns} by {exporter} / max:otel_collector.otelcol_exporter_queue_capacity{kube_cluster_name:{{cluster_name}},kube_namespace:otel-collector-{{env}}-ns} by {exporter} * 100 > {{threshold}}",
+        "message": "[P3] OTel collector exporter {{exporter.name}} send-queue is above 70% on cluster {{kube_cluster_name.name}}. Informational — capacity-planning signal."
+      },
+      "annotations": {
+        "summary": "OTel collector export buffer usage warning (P3)",
+        "description": "Exporter send-queue usage is above 70%. Informational only — useful for capacity planning and spotting slow downstream trends early."
+      }
+    }
+  ]
+}
