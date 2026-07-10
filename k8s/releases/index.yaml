@@ -51,3 +51,15 @@ releases:
     created: "2026-07-08T13:53:38Z"
     build_id: "010c39b4-8111-4550-a0af-40152eb8fb69"
     seq: 1
+  - version: "1.0.1-nightly.20260709.1"
+    channel: nightly
+    base: "1.0.1"
+    created: "2026-07-09T09:54:42Z"
+    build_id: "91225bf4-234f-4d4b-a79b-89a9c201a050"
+    seq: 1
+  - version: "1.0.1-nightly.20260709.2"
+    channel: nightly
+    base: "1.0.1"
+    created: "2026-07-09T11:53:23Z"
+    build_id: "3f54c064-3768-495c-872b-e9d2ff931e99"
+    seq: 2
