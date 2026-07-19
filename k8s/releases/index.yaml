@@ -75,3 +75,9 @@ releases:
     created: "2026-07-19T07:55:08Z"
     build_id: "6100c709-d2c1-468d-a862-e0e51fbbea71"
     seq: 1
+  - version: "1.0.1-nightly.20260719.2"
+    channel: nightly
+    base: "1.0.1"
+    created: "2026-07-19T12:01:48Z"
+    build_id: "76d0adac-aa8f-4800-a4d4-58b98dc77e7b"
+    seq: 2
