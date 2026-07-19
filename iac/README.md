@@ -101,6 +101,9 @@ export ARM_TENANT_ID=<TENANT_ID>
 ## For GCP
 * Install GCP CLI and run: gcloud auth application-default login; gcloud auth login
 * Export GOOGLE_APPLICATION_CREDENTIALS to a service account key JSON file.
+* The principal running the provision needs a specific set of project-level IAM roles — see
+  [docs/gcp-provisioning-iam.md](docs/gcp-provisioning-iam.md) for the full list (mapped to the units
+  each role unblocks) and a least-privilege set for a provisioning service account.
 
 ## Verify the cloud login is setup correctly
 ```bash
