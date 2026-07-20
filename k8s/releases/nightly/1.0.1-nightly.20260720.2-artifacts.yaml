@@ -1,0 +1,196 @@
+release:
+  channel: nightly
+  version: "1.0.1-nightly.20260720.2"
+  base: "1.0.1"
+  created: "2026-07-20T10:22:19Z"
+  build_id: "d9c803e3-3ef8-4ed2-970e-648be69d6bf0"
+  seq: 2
+
+# Chart versions and docker image references, merged with provider.yaml + resources.yaml via helmfile.
+# Pinned to the latest published chart versions (OCI) + image tags (GAR). Release artifacts files are produced/committed by internal release tooling. See ../VERSIONING.md.
+
+chartBasePath: "oci://asia-south1-docker.pkg.dev/prod-benchmarking/divyam-public-helm-as1"
+
+altinity-clickhouse-operator:
+  chart:
+    version: 0.24.98
+
+clickhouse:
+  chart:
+    version: 0.2.88
+
+divyam-control-plane-exporter:
+  chart:
+    version: 0.2.16
+  values:
+    image:
+      tag: "0.1.22"
+
+divyam-db-upgrades:
+  chart:
+    version: 0.1.16
+  values:
+    image:
+      tag: "0.0.29"
+
+divyam-e2e-test-runner:
+  chart:
+    version: 0.1.15
+  values:
+    image:
+      tag: "0.0.21"
+
+divyam-evaluator:
+  chart:
+    version: 0.2.17
+  values:
+    image:
+      tag: "0.1.65"
+
+divyam-persistent-storage:
+  chart:
+    version: 0.2.12
+
+divyam-redis:
+  chart:
+    version: 0.1.14
+
+divyam-route-selector:
+  chart:
+    version: 0.1.15
+  values:
+    image:
+      tag: "0.1.85"
+
+divyam-router-controller:
+  chart:
+    version: 0.1.185
+  values:
+    image:
+      tag: "0.1.204"
+
+divyam-router-controller-ingress:
+  chart:
+    version: 0.1.13
+
+divyam-selector-training:
+  chart:
+    version: 0.0.51
+  values:
+    image:
+      tag: "0.0.118"
+
+external-secrets-operator:
+  chart:
+    version: 2.7.0
+
+infinity:
+  chart:
+    version: 0.0.110
+
+kafka-cluster:
+  chart:
+    version: 0.1.94
+
+kafka-connect:
+  chart:
+    version: 0.1.65
+
+mysql:
+  chart:
+    version: 0.2.17
+
+otel-collector:
+  chart:
+    version: 0.1.16
+
+qdrant:
+  chart:
+    version: 2.0.109
+
+strimzi-kafka-operator:
+  chart:
+    version: 0.45.101
+
+superset:
+  chart:
+    version: 0.15.13
+
+superset-ingress:
+  chart:
+    version: 0.0.78
+
+superset-postgres:
+  chart:
+    version: 0.1.13
+
+# evalm8 stack
+
+argilla:
+  chart:
+    version: 0.1.6
+
+evalm8-server:
+  chart:
+    version: 0.1.5
+  values:
+    image:
+      tag: "0.1.4"
+
+evalm8-ui:
+  chart:
+    version: 0.1.5
+  values:
+    image:
+      tag: "0.1.4"
+
+evalm8-wfs:
+  chart:
+    version: 0.1.6
+  values:
+    image:
+      tag: "0.1.4"
+
+evalm8-ingress:
+  chart:
+    version: 0.1.6
+
+cloudnative-pg-operator:
+  chart:
+    version: 0.2.4
+
+opensearch-operator:
+  chart:
+    version: 0.2.5
+
+redis-operator:
+  chart:
+    version: 0.24.103
+
+temporal-postgres:
+  chart:
+    version: 0.1.5
+
+lakefs-postgres:
+  chart:
+    version: 0.1.4
+
+argilla-postgres:
+  chart:
+    version: 0.1.4
+
+argilla-opensearch:
+  chart:
+    version: 0.1.5
+
+argilla-redis:
+  chart:
+    version: 0.1.6
+
+temporal:
+  chart:
+    version: 0.1.6
+
+lakefs:
+  chart:
+    version: 0.1.6
