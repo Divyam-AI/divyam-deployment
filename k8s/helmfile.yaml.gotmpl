@@ -15,6 +15,17 @@ helmDefaults:
   wait: {{ env "HF_WAIT" | default "true" }}
   timeout: {{ env "HF_TIMEOUT" | default "1200" }}
   atomic: {{ env "HF_ATOMIC" | default "true" }}
+  {{- /* Operator-owned CRs (argilla's OpenSearchCluster, the CNPG Postgres Clusters) are co-owned by
+         their operators under Helm 4 server-side apply, so an upgrade-path re-apply (helmfile apply)
+         conflicts on operator-set fields (.spec.nodePools, etc.). syncArgs is passed to `helm
+         upgrade`/`install` ONLY (never the helm-diff plugin, which rejects unknown flags), so
+         --force-conflicts lets Helm re-assert the chart spec. Gated on provider.yaml helm.forceConflicts
+         so the prod path (key absent) is byte-for-byte unchanged. Read inline to avoid reordering the
+         provider.yaml load below. */}}
+  {{- if dig "helm" "forceConflicts" false (readFile (printf "%s/provider.yaml" (env "HELMFILE_VALUES_DIR" | default ".")) | fromYaml) }}
+  syncArgs:
+    - "--force-conflicts"
+  {{- end }}
   diffArgs:
     - "--normalize-manifests"
     - "--three-way-merge"
