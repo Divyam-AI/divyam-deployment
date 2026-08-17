@@ -63,10 +63,10 @@ divyam-route-selector:
 
 divyam-router-controller:
   chart:
-    version: 0.1.185
+    version: 0.1.186
   values:
     image:
-      tag: "0.1.203"
+      tag: "0.1.213"
 
 divyam-router-controller-ingress:
   chart:
