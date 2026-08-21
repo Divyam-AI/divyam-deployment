@@ -185,6 +185,8 @@ repositories:
   "evalm8-ui"                             "evalm8"
   "evalm8-ingress"                        "evalm8"
 
+  "self-serve-ui"                         "self-serve"
+
 -}}
 
 ###############################################################################
@@ -284,11 +286,13 @@ repositories:
   "evalm8-server"                 true
   "evalm8-wfs"                    true
   "evalm8-ui"                     true
+  "self-serve-ui"                 true
 -}}
 
 ###############################################################################
 # 3. Dependency Map
 ###############################################################################
+{{/* self-serve-ui's list is empty by fact rather than by omission. Its backend has no chart in this stack, so there is nothing here to order it against. */}}
 {{- $dependencyMap := dict
   "altinity-clickhouse-operator" (list)
   "clickhouse"                   (list "altinity-clickhouse-operator" "external-secrets-operator" "kafka-cluster" "mysql")
@@ -327,6 +331,7 @@ repositories:
   "evalm8-wfs"                    (list "temporal" "lakefs" "argilla" "mysql" "external-secrets-operator" "evalm8-server")
   "evalm8-ui"                     (list "evalm8-server")
   "evalm8-ingress"                (list)
+  "self-serve-ui"                 (list)
 
 -}}
 
