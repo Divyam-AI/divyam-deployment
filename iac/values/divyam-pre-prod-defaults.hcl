@@ -19,8 +19,11 @@ locals {
       "divyam-${local.env_name}"
   )
 
-  # Stack selector (evalm8 | router | both). Mirrors defaults.hcl, gates the evalm8-only cloud resources.
-  stack             = get_env("STACK", "both")
+  # Stack selector. Mirrors defaults.hcl; gates the evalm8-only cloud resources.
+  stack             = get_env("STACK", "all")
+  # Whether evalm8 is in the stack list. Membership, not inequality: a list can exclude evalm8
+  # without equalling "router".
+  evalm8_in_stack = local.stack == "all" || contains([for s in split(",", local.stack) : trimspace(s)], "evalm8")
 
   # evalm8 lakeFS storage backend, written into provider.yaml platform.evalm8.storage.type.
   evalm8_storage_type = get_env("EVALM8_STORAGE_TYPE", local.cloud_provider == "azure" ? "blob" : "gcs")
@@ -127,9 +130,9 @@ locals {
     container_name       = "divyam-preprod-gcs-router-raw-logs" # Azure Container or GCS Bucket
   }]
 
-  # Evalm8 lakeFS object storage, only provisioned when the evalm8 stack is in scope (stack != router).
+  # Evalm8 lakeFS object storage, only provisioned when evalm8 is in the stack list.
   # container_name is the GCS bucket name. The no-dash prefix helper resolves it to divyampreprodlakefs.
-  evalm8_object_storages = local.stack != "router" ? [{
+  evalm8_object_storages = local.evalm8_in_stack ? [{
     create               = true
     type                 = "lakefs-data"
     scope_name           = "${local.resource_scope}"

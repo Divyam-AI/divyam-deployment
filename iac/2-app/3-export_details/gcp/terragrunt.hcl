@@ -68,14 +68,17 @@ locals {
     ? "${local._controlplane_label}.${local._private_dns_zone_name}"
     : trimspace(try(local.lb_cfg.controlplane_dns, ""))
   )
+  # Whether evalm8 is in the stack list. Membership, not inequality: a list can exclude evalm8
+  # without equalling "router".
+  evalm8_in_stack = try(local.root.stack, "all") == "all" || contains([for s in split(",", try(local.root.stack, "all")) : trimspace(s)], "evalm8")
 }
 
 inputs = {
   environment                 = local.env
   project_id                  = local.root.resource_scope.name
   storage_bucket              = try(dependency.divyam_object_storage.outputs.router_requests_logs_bucket_name, local.storage_bucket)
-  evalm8_lakefs_bucket        = try(local.root.stack, "both") != "router" ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_bucket_name, local.evalm8_lakefs_bucket) : ""
-  evalm8_storage_type         = try(local.root.stack, "both") != "router" ? try(local.root.evalm8_storage_type, "gcs") : ""
+  evalm8_lakefs_bucket        = local.evalm8_in_stack ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_bucket_name, local.evalm8_lakefs_bucket) : ""
+  evalm8_storage_type         = local.evalm8_in_stack ? try(local.root.evalm8_storage_type, "gcs") : ""
   cluster_domain              = try(local.export_cfg.cluster_domain, "")
   ingress_deploy              = true
   ingress_external            = try(local.lb_cfg.public, false)

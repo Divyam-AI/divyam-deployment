@@ -9,7 +9,10 @@ locals {
   org_name          = get_env("ORG_NAME", "")
   region            = get_env("REGION", local.cloud_provider == "gcp" ? "asia-south1" : "centralindia")
   zone              = get_env("ZONE",   local.cloud_provider == "gcp" ? "asia-south1-a" : "centralindia-1")
-  stack             = get_env("STACK", "both")
+  stack             = get_env("STACK", "all")
+  # Whether evalm8 is in the stack list. Membership, not inequality: a list can exclude evalm8
+  # without equalling "router".
+  evalm8_in_stack = local.stack == "all" || contains([for s in split(",", local.stack) : trimspace(s)], "evalm8")
 
   deployment_mode = "onprem"  # Set value to "managed" | "onprem"
 
@@ -134,7 +137,7 @@ locals {
     container_name       = "${replace(local.deployment_prefix, "-", "")}container" # Azure Container or GCP Bucket
   }]
 
-  evalm8_object_storages = local.stack != "router" ? [{
+  evalm8_object_storages = local.evalm8_in_stack ? [{
     create               = true
     type                 = "lakefs-data"
     scope_name           = "${local.resource_scope}"

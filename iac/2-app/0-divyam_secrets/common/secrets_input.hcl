@@ -3,7 +3,10 @@ locals {
   cloud_provider = get_env("CLOUD_PROVIDER", "")
   env            = get_env("ENV", "")
   # Evalm8 secrets are provisioned only when the evalm8 stack is in scope.
-  stack = get_env("STACK", "both")
+  stack = get_env("STACK", "all")
+  # Whether evalm8 is in the stack list. Membership, not inequality: a list can exclude evalm8
+  # without equalling "router".
+  evalm8_in_stack = local.stack == "all" || contains([for s in split(",", local.stack) : trimspace(s)], "evalm8")
   # Deployment-wide image-pull auth flag from the values file (single source: root.hcl merged locals).
   # Only one root.hcl exists above this file, so find_in_parent_folders is unambiguous.
   root                      = read_terragrunt_config(find_in_parent_folders("root.hcl")).locals.merged
@@ -11,7 +14,7 @@ locals {
   secrets_input = merge(
     {
       # Gate for the evalm8 secret keys.
-      evalm8_enabled = local.stack != "router"
+      evalm8_enabled = local.evalm8_in_stack
       # Evalm8 stack secrets, manually passed via TF_VAR_* (main.tf falls back to a random value for a sandbox when unset).
       divyam_lakefs_access_key_id          = get_env("TF_VAR_divyam_lakefs_access_key_id", "")
       divyam_lakefs_secret_access_key      = get_env("TF_VAR_divyam_lakefs_secret_access_key", "")

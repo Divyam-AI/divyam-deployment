@@ -43,9 +43,9 @@ variable "router_logs_storage_account_id" {
 }
 
 variable "stack" {
-  description = "Divyam stack selector (evalm8, router, both). Gates the evalm8 service accounts in the common registry."
+  description = "Divyam stack selector: a comma-separated list of router, evalm8, self-serve — or all. Gates the evalm8 service accounts in the common registry."
   type        = string
-  default     = "both"
+  default     = "all"
 }
 
 variable "evalm8_lakefs_storage_account_name" {

@@ -99,6 +99,9 @@ locals {
     ? "${local._controlplane_label}.${local._private_dns_zone_name}"
     : trimspace(try(local.lb_cfg.controlplane_dns, ""))
   )
+  # Whether evalm8 is in the stack list. Membership, not inequality: a list can exclude evalm8
+  # without equalling "router".
+  evalm8_in_stack = try(local.root.stack, "all") == "all" || contains([for s in split(",", try(local.root.stack, "all")) : trimspace(s)], "evalm8")
 }
 
 inputs = {
@@ -106,9 +109,9 @@ inputs = {
   key_vault_name                = try(dependency.divyam_secrets.outputs.key_vault_name, local.key_vault_name)
   storage_account               = try(dependency.divyam_object_storage.outputs.router_requests_logs_storage_account_name, local.storage_account)
   storage_container             = try(one(dependency.divyam_object_storage.outputs.router_requests_logs_container_names), local.storage_container)
-  evalm8_lakefs_storage_account = try(local.root.stack, "both") != "router" ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_storage_account_name, local.evalm8_lakefs_storage_account) : ""
-  evalm8_lakefs_container       = try(local.root.stack, "both") != "router" ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_container_name, local.evalm8_lakefs_container) : ""
-  evalm8_storage_type           = try(local.root.stack, "both") != "router" ? try(local.root.evalm8_storage_type, "blob") : ""
+  evalm8_lakefs_storage_account = local.evalm8_in_stack ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_storage_account_name, local.evalm8_lakefs_storage_account) : ""
+  evalm8_lakefs_container       = local.evalm8_in_stack ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_container_name, local.evalm8_lakefs_container) : ""
+  evalm8_storage_type           = local.evalm8_in_stack ? try(local.root.evalm8_storage_type, "blob") : ""
   tenant_id                     = get_env("ARM_TENANT_ID", "")
   wif_client_id_map = {
     "divyam-router-controller"      = try(dependency.iam_bindings.outputs.uai_client_ids["router-controller-${local.env}-sa_uai_client_id"], "")
