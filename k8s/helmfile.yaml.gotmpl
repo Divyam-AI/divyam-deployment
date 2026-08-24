@@ -280,6 +280,7 @@ repositories:
   "divyam-router-controller"      true
   "divyam-route-selector"         true
   "infinity"                      true
+  "tei"                           true
   "temporal"                      true
   "lakefs"                        true
 -}}
@@ -326,8 +327,11 @@ repositories:
   "superset"                     (list "superset-postgres")
   "superset-ingress"             (list "superset")
   "infinity"                     (list)
+  "tei"                          (list)
   "qdrant"                       (list)
-  "divyam-route-selector"        (list "infinity" "qdrant" "mysql")
+  {{/* Both listed through the cutover: whichever of the two is enabled for an environment is
+       the one the selector waits on, and a disabled chart contributes no wait. */}}
+  "divyam-route-selector"        (list "infinity" "tei" "qdrant" "mysql")
   "divyam-selector-training"     (list "mysql" "divyam-redis" "qdrant" "clickhouse")
   "divyam-evaluator"             (list "mysql" "clickhouse")
   "divyam-router-controller"     (list "otel-collector" "mysql" "divyam-route-selector" "clickhouse")
