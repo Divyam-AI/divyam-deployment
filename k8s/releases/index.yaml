@@ -141,3 +141,12 @@ releases:
     created: "2026-08-17T08:19:59Z"
     build_id: "7fc69826-9fe6-4b2c-8beb-0a22161fe4e0"
     seq: 1
+  - version: "1.0.1-nightly.20260827.1"
+    channel: nightly
+    base: "1.0.1"
+    created: "2026-08-27T04:21:51Z"
+    build_id: "manually seeded"
+    seq: 1
+    # hand-authored: adds the tei chart pin so a channel deploy can resolve it. Chart versions
+    # and image tags are inherited from 1.0.1-nightly.20260817.1, not freshly resolved from the
+    # registries -- that is the pipeline's job when it lands.
