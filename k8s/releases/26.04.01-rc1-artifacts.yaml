@@ -71,6 +71,22 @@ infinity:
     image:
       tag: 0.0.76-trt-onnx
 
+tei:
+  chart:
+    subPath: tei
+    version: 0.0.1
+  values:
+    image:
+      repository: asia-south1-docker.pkg.dev/prod-benchmarking/divyam-docker-prod-as1/tei_models
+      # Baseline tags. The GPU tag is per compute capability, so an environment on
+      # something other than an L4 (az-prod, on an A10) overrides gpu_tag to its own.
+      cpu_tag: cpu-1.8-4models-1
+      gpu_tag: 89-1.8-4models-1
+    storage:
+      # The image ships the weights under /data; a volume there would hide them and
+      # send TEI back to the hub on every pod start.
+      use_image_cache: true
+
 qdrant:
   chart:
     subPath: qdrant
