@@ -292,7 +292,7 @@ repositories:
 ###############################################################################
 # 3. Dependency Map
 ###############################################################################
-{{/* self-serve-ui's list is empty by fact rather than by omission. Its backend has no chart in this stack, so there is nothing here to order it against. */}}
+{{/* self-serve-ui's list is empty by choice. It is nginx over a static bundle, so it starts with no backend reachable and ordering it after the control plane would serialise the deploy for nothing. */}}
 {{- $dependencyMap := dict
   "altinity-clickhouse-operator" (list)
   "clickhouse"                   (list "altinity-clickhouse-operator" "external-secrets-operator" "kafka-cluster" "mysql")
