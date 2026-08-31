@@ -7,7 +7,7 @@
 # Stack selection (evalm8 | router | both) comes from the `stack` key in provider.yaml. Absent = all.
 
 # wait/timeout/atomic are env-overridable so a caller (e.g. the sandbox / nightly CI) can relax them
-# for faster failure + surviving wreckage to diagnose. Unset env ⇒ the prod defaults below verbatim —
+# for faster failure + surviving wreckage to diagnose. Unset env ⇒ the prod defaults below verbatim ,
 # the prod path never sets these vars, so its behavior is unchanged. Set by k8s.sh's --no-wait /
 # --deploy-timeout / --no-atomic flags (exported as HF_WAIT / HF_TIMEOUT / HF_ATOMIC).
 helmDefaults:
@@ -43,14 +43,14 @@ repositories:
     - artifacts.yaml     (optionally used to override image and chart versions)
 
   Optional keys in provider.yaml (merged into listed charts when present):
-    - monitoring         (top-level; merged with per-chart values.monitoring; chart wins on overlap)
-    - ingress            (top-level; merged with per-chart values.ingress; chart wins on overlap)
-    - secrets            (top-level; merged with per-chart values.secrets; chart wins on overlap)
+    - monitoring         (top-level, merged with per-chart values.monitoring, chart wins on overlap)
+    - ingress            (top-level, merged with per-chart values.ingress, chart wins on overlap)
+    - secrets            (top-level, merged with per-chart values.secrets, chart wins on overlap)
 */}}
 {{- $providerVals := readFile (printf "%s/provider.yaml" $valuesDir) | fromYaml }}
 {{- $resources := readFile (printf "%s/resources.yaml" $valuesDir) | fromYaml }}
 
-{{/* Optional config.yaml — local per-deployment value overrides (flat structure: chart names at top level) */}}
+{{/* Optional config.yaml, local per-deployment value overrides (flat structure: chart names at top level) */}}
 {{- $configExists := exec "sh" (list "-c" (printf "test -f '%s/config.yaml' && echo true || echo false" $valuesDir)) | trim }}
 {{- $configVals := dict }}
 {{- if eq $configExists "true" }}
@@ -111,7 +111,7 @@ repositories:
 {{- $settings := merge ($resources.settings | default dict) (dict "use_spot_nodes" false) }}
 {{- $global := merge ($providerVals | default dict) }}
 {{- $deploymentMode := $global.deployment_mode | default "onprem" }}
-{{/* config.yaml is flat (chart names at top level) — merge directly as chart overrides */}}
+{{/* config.yaml is flat (chart names at top level), merge directly as chart overrides */}}
 {{- $charts := merge ($configVals | default dict) ($resources.charts | default dict) ($artifacts | default dict) }}
 
 {{- $values := merge $resources (dict
@@ -128,12 +128,7 @@ repositories:
 {{- $clusterDomain := $values.global.clusterDomain }}
 {{- $externalSecretsChartName := "external-secrets/external-secrets" }}
 
-{{/* Stack selector: evalm8 | router | both. Read ONLY from provider.yaml (terraform writes the
-     chosen stack there, the same way it writes deployment_mode), so a provisioned cluster deploys
-     the stack it was provisioned for. When the key is ABSENT from provider.yaml the helmfile keeps
-     the prior default behaviour and enables every chart. When it is set to evalm8 or router, only
-     that stack's namespace groups plus the always-shared charts (external-secrets, mysql,
-     persistent-storage) are enabled. The IaC that writes this value lands as a separate PR. */}}
+{{/* Stack selector: evalm8 | router | both. Read ONLY from provider.yaml (terraform writes the chosen stack there, the same way it writes deployment_mode), so a provisioned cluster deploys the stack it was provisioned for. When the key is ABSENT from provider.yaml the helmfile keeps the prior default behaviour and enables every chart. When it is set to evalm8 or router, only that stack's namespace groups plus the always-shared charts (external-secrets, mysql, persistent-storage) are enabled. The IaC that writes this value lands as a separate PR. */}}
 {{- $stack := dig "stack" "both" $global }}
 {{- if not (has $stack (list "evalm8" "router" "both")) }}
 {{- fail (printf "ERROR: invalid provider.yaml stack '%s'. Set it to one of: evalm8, router, both (or omit it to deploy all services)." $stack) }}
@@ -190,6 +185,8 @@ repositories:
   "evalm8-ui"                             "evalm8"
   "evalm8-ingress"                        "evalm8"
 
+  "self-serve-ui"                         "self-serve"
+
 -}}
 
 ###############################################################################
@@ -211,9 +208,7 @@ repositories:
 -}}
 
 {{/*
-  Charts shared by both stacks, always enabled regardless of the selector. External Secrets
-  resolves cloud secrets for every workload, mysql is the platform database that both the
-  router services and evalm8-server/wfs use, and persistent storage backs both.
+  Charts shared by both stacks, always enabled regardless of the selector. External Secrets resolves cloud secrets for every workload, mysql is the platform database that both the router services and evalm8-server/wfs use, and persistent storage backs both.
 */}}
 {{- $sharedCharts := dict
   "external-secrets-operator"   true
@@ -221,10 +216,7 @@ repositories:
   "divyam-persistent-storage"   true
 -}}
 
-{{/*
-  Per-chart stack membership. A chart is selected when the stack is "both", when it is a shared
-  chart, or when its namespace group matches the selected stack (evalm8 groups for "evalm8",
-  everything else for "router"). A chart's group is namespaceGroupMap[name] or its own name.
+{{/* Per-chart stack membership. A chart is selected when the stack is "both", when it is a shared chart, or when its namespace group matches the selected stack (evalm8 groups for "evalm8", everything else for "router"). A chart's group is namespaceGroupMap[name] or its own name.
 */}}
 {{- $stackEnabled := dict }}
 {{- range $cName, $_cfg := $values.charts }}
@@ -238,10 +230,7 @@ repositories:
   {{- $_ := set $stackEnabled $cName $sel }}
 {{- end }}
 
-{{/*
-  Charts that receive a top-level `ingress` value merged from provider.yaml
-  and per-chart resources (values.ingress in resources.yaml wins on overlap).
-  Add chart names here as "chart-name" true — membership is explicit, not name-based.
+{{/* Charts that receive a top-level `ingress` value merged from provider.yaml and per-chart resources (values.ingress in resources.yaml wins on overlap). Add chart names here as "chart-name" true, membership is explicit, not name-based.
 */}}
 {{- $chartsWithProviderIngress := dict
   "superset-ingress"                  true
@@ -252,9 +241,7 @@ repositories:
 -}}
 
 {{/*
-  Charts that receive a top-level `deployment_mode` value derived from provider.yaml.
-  The value ("managed" or "onprem") controls server-side vs client-side feature gating
-  within each chart. Add chart names here as "chart-name" true.
+  Charts that receive a top-level `deployment_mode` value derived from provider.yaml. The value ("managed" or "onprem") controls server-side vs client-side feature gating within each chart. Add chart names here as "chart-name" true.
 */}}
 {{- $chartsWithDeploymentMode := dict
   "divyam-router-controller"  true
@@ -262,10 +249,7 @@ repositories:
   "otel-collector"            true
   "kafka-cluster"             true
 -}}
-
-{{/*
-  Charts whose values.yaml defines a top-level `monitoring` key — merged from
-  provider.yaml `monitoring` (when present) with per-chart resources values
+ {{/* Charts whose values.yaml defines a top-level `monitoring` key, merged from provider.yaml `monitoring` (when present) with per-chart resources values
   (chart wins on overlap). If provider.yaml omits `monitoring`, only chart values apply.
 */}}
 {{- $chartsWithProviderMonitoring := dict
@@ -283,12 +267,7 @@ repositories:
   "temporal"                      true
   "lakefs"                        true
 -}}
-
-{{/*
-  Charts whose values.yaml defines a top-level `secrets` key — merged from
-  provider.yaml `secrets` (when present) with per-chart resources values
-  (chart wins on overlap). If provider.yaml omits `secrets`, only chart values apply.
-  Add chart names here as "chart-name" true — membership is explicit, not name-based.
+ {{/* Charts whose values.yaml defines a top-level `secrets` key, merged from provider.yaml `secrets` (when present) with per-chart resources values (chart wins on overlap). If provider.yaml omits `secrets`, only chart values apply. Add chart names here as "chart-name" true, membership is explicit, not name-based.
 */}}
 {{- $chartsWithProviderSecrets := dict
   "clickhouse"                    true
@@ -307,11 +286,13 @@ repositories:
   "evalm8-server"                 true
   "evalm8-wfs"                    true
   "evalm8-ui"                     true
+  "self-serve-ui"                 true
 -}}
 
 ###############################################################################
 # 3. Dependency Map
 ###############################################################################
+{{/* self-serve-ui's list is empty by choice. It is nginx over a static bundle, so it starts with no backend reachable and ordering it after the control plane would serialise the deploy for nothing. */}}
 {{- $dependencyMap := dict
   "altinity-clickhouse-operator" (list)
   "clickhouse"                   (list "altinity-clickhouse-operator" "external-secrets-operator" "kafka-cluster" "mysql")
@@ -350,6 +331,7 @@ repositories:
   "evalm8-wfs"                    (list "temporal" "lakefs" "argilla" "mysql" "external-secrets-operator" "evalm8-server")
   "evalm8-ui"                     (list "evalm8-server")
   "evalm8-ingress"                (list)
+  "self-serve-ui"                 (list)
 
 -}}
 
