@@ -101,9 +101,20 @@ export ARM_TENANT_ID=<TENANT_ID>
 ## For GCP
 * Install GCP CLI and run: gcloud auth application-default login; gcloud auth login
 * Export GOOGLE_APPLICATION_CREDENTIALS to a service account key JSON file.
-* The principal running the provision needs a specific set of project-level IAM roles — see
-  [docs/gcp-provisioning-iam.md](docs/gcp-provisioning-iam.md) for the full list (mapped to the units
-  each role unblocks) and a least-privilege set for a provisioning service account.
+* The principal running the provision (a human's ADC or a dedicated provisioning service account)
+  needs these project-level IAM roles on the target project (e.g. `divyam-production`). Grant them
+  **up front** — a missing one surfaces only as a `403 … Required '<permission>'` on the apply that
+  needs it, turning a provision into a stop-start "grant → retry" loop.
+
+| Role | Enables | Gating permission(s) | Unit(s) |
+|------|---------|----------------------|---------|
+| `roles/secretmanager.admin` | Create/manage Secret Manager secrets + versions | `secretmanager.secrets.*`, `secretmanager.versions.add` | `2-app/0-divyam_secrets` |
+| `roles/storage.admin` | Create/look up GCS buckets **and** read/write the Terraform state bucket | `storage.buckets.create`, `storage.buckets.get`, `storage.objects.*` | `1-platform/0-divyam_object_storage`; the GCS state backend |
+| `roles/iam.serviceAccountAdmin` | Create service accounts + set their IAM (Workload Identity bindings) | `iam.serviceAccounts.create`, `iam.serviceAccounts.setIamPolicy` | `2-app/1-iam_bindings` |
+| `roles/resourcemanager.projectIamAdmin` | Add project-level IAM bindings (`google_project_iam_member`) | `resourcemanager.projects.setIamPolicy` | `2-app/1-iam_bindings` |
+| `roles/compute.loadBalancerAdmin` | Reserve global static IPs + create Google-managed SSL certs | `compute.globalAddresses.create`, `compute.sslCertificates.create` | `2-app/4-ingress_inputs` |
+| `roles/compute.securityAdmin` | Create/manage Cloud Armor security policies | `compute.securityPolicies.create` | `2-app/4-ingress_inputs` |
+| `roles/container.admin` | GKE cluster access (kubeconfig / kubectl); GKE Ingress-generated LB objects | `container.*` | `1-platform/1-k8s`, Phase-2 Helmfile, ingress |
 
 ## Verify the cloud login is setup correctly
 ```bash
