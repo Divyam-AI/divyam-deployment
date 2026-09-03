@@ -37,7 +37,7 @@ EOT
   # type is the storage backend (pvc or gcs on GCP). The helmfile maps it to the lakefs chart objectStorage.
   evalm8_storage_block = trimspace(var.evalm8_lakefs_bucket) != "" ? "  evalm8:\n    storage:\n      type: \"${var.evalm8_storage_type}\"\n      bucket: \"${var.evalm8_lakefs_bucket}\"" : ""
 
-  # Stack selector consumed by k8s/helmfile.yaml.gotmpl (evalm8 | router | both). Emitted only when set.
+  # Stack selector consumed by k8s/helmfile.yaml.gotmpl. Emitted only when set.
   # An absent key makes helmfile deploy every stack (its documented default). This replaces the manual stack edit that each regen used to wipe.
   stack_block = trimspace(var.stack) != "" ? "stack: ${var.stack}\n\n" : ""
 

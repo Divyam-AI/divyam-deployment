@@ -118,11 +118,12 @@ locals {
     }
   }
 
-  # Gate evalm8 accounts behind the stack selector, mirroring deployment_mode.
-  # A router-only deployment omits them entirely so no evalm8 cloud identity is created.
+  # Gate evalm8 accounts behind the stack selector, mirroring deployment_mode. Membership, not
+  # inequality: a stack list can exclude evalm8 without equalling "router".
+  evalm8_in_stack = var.stack == "all" || contains([for s in split(",", var.stack) : trimspace(s)], "evalm8")
   base_service_accounts = merge(
     local.router_service_accounts,
-    var.stack != "router" ? local.evalm8_service_accounts : {}
+    local.evalm8_in_stack ? local.evalm8_service_accounts : {}
   )
 
   ##########################################

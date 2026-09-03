@@ -25,6 +25,9 @@ locals {
   # Plan fallback: when the object_storage unit has no state yet, derive the lakeFS bucket name directly
   # from values so the evalm8 IAM path still validates under local-backend sandbox runs.
   evalm8_lakefs_bucket_name = try(one([for s in try(local.root.evalm8_object_storages, []) : s.container_name if s.type == "lakefs-data"]), null)
+  # Whether evalm8 is in the stack list. Membership, not inequality: a list can exclude evalm8
+  # without equalling "router".
+  evalm8_in_stack = try(local.root.stack, "all") == "all" || contains([for s in split(",", try(local.root.stack, "all")) : trimspace(s)], "evalm8")
 }
 
 inputs = {
@@ -37,6 +40,6 @@ inputs = {
     resource_name = local.root.deployment_prefix
   }
   router_logs_bucket_name   = local.router_logs_bucket_name
-  stack                     = try(local.root.stack, "both")
-  evalm8_lakefs_bucket_name = try(local.root.stack, "both") != "router" ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_bucket_name, local.evalm8_lakefs_bucket_name) : null
+  stack                     = try(local.root.stack, "all")
+  evalm8_lakefs_bucket_name = local.evalm8_in_stack ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_bucket_name, local.evalm8_lakefs_bucket_name) : null
 }

@@ -4,7 +4,7 @@ variable "env_name" {
 }
 
 variable "stack" {
-  description = "Divyam stack selector (evalm8, router, both). The evalm8 service accounts are added only when stack is not router."
+  description = "Divyam stack selector: a comma-separated list of router, evalm8, self-serve — or all. The evalm8 service accounts are added only when stack is not router."
   type        = string
-  default     = "both"
+  default     = "all"
 }

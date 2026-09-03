@@ -11,10 +11,13 @@ locals {
   zone           = get_env("ZONE", "asia-south1")
 
   # Stack selector: which Divyam stack this deployment provisions and deploys.
-  # Allowed values are "evalm8", "router", or "both" (the default).
+  # A comma-separated list of "router", "evalm8", "self-serve" — or "all" (the default).
   # 3-export_details writes this into provider.yaml (like deployment_mode), so the helmfile deploys the same stack this infra was provisioned for.
   # It also gates the evalm8-only cloud resources (the new charts' secret-manager keys and the lakeFS object storage) so a router-only deployment does not provision them.
-  stack = get_env("STACK", "both")
+  stack = get_env("STACK", "all")
+  # Whether evalm8 is in the stack list. Membership, not inequality: a list can exclude evalm8
+  # without equalling "router".
+  evalm8_in_stack = local.stack == "all" || contains([for s in split(",", local.stack) : trimspace(s)], "evalm8")
 
   deployment_mode = "onprem" # Set value to "managed" | "onprem"
 
@@ -138,11 +141,11 @@ locals {
   }]
 
   # --- Evalm8 Data (lakeFS object storage) ---
-  # Only provisioned when the evalm8 stack is in scope (stack != "router"). Empty for a router-only deployment.
+  # Only provisioned when evalm8 is in the stack list. Empty otherwise.
   # Mirrors the divyam_object_storages element shape. type = "lakefs-data" identifies the lakeFS data store.
   # storage_account_name groups this into its own Azure storage account, kept distinct from the router account.
   # On GCP storage_account_name is only a grouping key, container_name is the GCS bucket name.
-  evalm8_object_storages = local.stack != "router" ? [{
+  evalm8_object_storages = local.evalm8_in_stack ? [{
     create               = true                                                 # If this is set to false, edit the below values that is to be used for setting up Divyam.
     type                 = "lakefs-data"                                        # Identifies this storage as the lakeFS data store
     scope_name           = "${local.resource_scope}"                            # Azure Resource Group or GCP Project

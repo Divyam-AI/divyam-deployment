@@ -106,12 +106,14 @@ variable "monitoring_provider" {
 }
 
 variable "stack" {
-  description = "Which chart stack helmfile deploys, written to provider.yaml as top-level `stack`: evalm8 | router | both. Empty omits the key (helmfile then deploys all stacks)."
+  description = "Which chart stacks helmfile deploys, written to provider.yaml as top-level `stack`. A comma-separated list of evalm8 | router | self-serve, or all. Empty omits the key (helmfile then deploys every stack)."
   type        = string
   default     = ""
   validation {
-    condition     = contains(["", "evalm8", "router", "both"], var.stack)
-    error_message = "stack must be one of: evalm8, router, both (or empty to omit the key)."
+    condition = var.stack == "" || alltrue([
+      for s in split(",", var.stack) : contains(["evalm8", "router", "self-serve", "all"], trimspace(s))
+    ])
+    error_message = "stack must be a comma-separated list of: evalm8, router, self-serve — or all (or empty to omit the key)."
   }
 }
 
