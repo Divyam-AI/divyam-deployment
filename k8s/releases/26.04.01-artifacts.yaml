@@ -74,7 +74,7 @@ infinity:
 tei:
   chart:
     subPath: tei
-    version: 0.0.1
+    version: 0.0.2
   values:
     image:
       repository: asia-south1-docker.pkg.dev/prod-benchmarking/divyam-docker-prod-as1/tei_models
