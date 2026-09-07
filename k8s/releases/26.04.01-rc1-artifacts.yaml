@@ -12,10 +12,10 @@ divyam-selector-training:
 
 divyam-evaluator:
   chart:
-    version: 0.1.0
+    version: 0.2.18
   values:
     image:
-      tag: "0.1.52"
+      tag: "0.1.69"
 
 divyam-router-controller:
   chart:
