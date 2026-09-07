@@ -41,10 +41,10 @@ divyam-e2e-test-runner:
 
 divyam-evaluator:
   chart:
-    version: 0.2.16
+    version: 0.2.18
   values:
     image:
-      tag: "0.1.63"
+      tag: "0.1.69"
 
 divyam-persistent-storage:
   chart:
