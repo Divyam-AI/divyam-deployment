@@ -153,18 +153,24 @@ resource "random_password" "switch_bootstrap_admin_password" {
 locals {
   # Self-serve secrets, created only when the self-serve stack is in scope: the Cloud SQL Postgres
   # credentials plus the divyam-switch app secrets (four generated above, two passed in via TF_VAR).
-  self_serve_secrets = var.input.self_serve_enabled ? {
-    "divyam-selfserve-pg-user-name"     = var.input.divyam_selfserve_pg_user_name
-    "divyam-selfserve-pg-password"      = var.input.divyam_selfserve_pg_password
-    "divyam-selfserve-pg-root-password" = var.input.divyam_selfserve_pg_root_password
+  self_serve_secrets = var.input.self_serve_enabled ? merge(
+    {
+      "divyam-selfserve-pg-user-name"     = var.input.divyam_selfserve_pg_user_name
+      "divyam-selfserve-pg-password"      = var.input.divyam_selfserve_pg_password
+      "divyam-selfserve-pg-root-password" = var.input.divyam_selfserve_pg_root_password
 
-    "divyam-switch-jwt-secret"               = random_password.switch_jwt_secret[0].result
-    "divyam-switch-verification-code-secret" = random_password.switch_verification_code_secret[0].result
-    "divyam-switch-db-encryption-keys"       = replace(replace(random_id.switch_db_encryption_key[0].b64_std, "+", "-"), "/", "_")
-    "divyam-switch-bootstrap-admin-password" = random_password.switch_bootstrap_admin_password[0].result
-    "divyam-router-admin-api-key"            = var.input.divyam_router_admin_api_key
-    "divyam-switch-resend-api-key"           = var.input.divyam_switch_resend_api_key
-  } : {}
+      "divyam-switch-jwt-secret"               = random_password.switch_jwt_secret[0].result
+      "divyam-switch-verification-code-secret" = random_password.switch_verification_code_secret[0].result
+      "divyam-switch-db-encryption-keys"       = replace(replace(random_id.switch_db_encryption_key[0].b64_std, "+", "-"), "/", "_")
+      "divyam-switch-bootstrap-admin-password" = random_password.switch_bootstrap_admin_password[0].result
+    },
+    # Operator-provided keys are managed only when a value is supplied. Empty means "leave it": the
+    # router admin key already exists in Secret Manager (created out of band) and must not be
+    # overwritten, and an empty string is not a valid secret version anyway. Each joins the managed
+    # set once its TF_VAR is set.
+    var.input.divyam_router_admin_api_key != "" ? { "divyam-router-admin-api-key" = var.input.divyam_router_admin_api_key } : {},
+    var.input.divyam_switch_resend_api_key != "" ? { "divyam-switch-resend-api-key" = var.input.divyam_switch_resend_api_key } : {}
+  ) : {}
 
   secrets = merge(
     {
