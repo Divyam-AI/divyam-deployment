@@ -202,6 +202,10 @@ repositories:
   "evalm8-ui"                             "evalm8"
   "evalm8-ingress"                        "evalm8"
 
+  "self-serve-server"                     "self-serve"
+  "self-serve-ui"                         "self-serve"
+  "self-serve-ingress"                    "self-serve"
+
 -}}
 
 ###############################################################################
@@ -226,7 +230,9 @@ repositories:
   Namespace groups that belong to the self-serve stack. A group must be registered here to count as
   self-serve; an unregistered group falls through to router.
 */}}
-{{- $selfServeGroups := dict -}}
+{{- $selfServeGroups := dict
+  "self-serve"                  true
+-}}
 
 {{/*
   Charts shared by every stack, always enabled regardless of the selector. External Secrets
@@ -266,6 +272,7 @@ repositories:
   "evalm8-ingress"                    true
   "evalm8-server"                     true
   "evalm8-wfs"                        true
+  "self-serve-ingress"                true
 -}}
 
 {{/*
@@ -325,6 +332,8 @@ repositories:
   "evalm8-server"                 true
   "evalm8-wfs"                    true
   "evalm8-ui"                     true
+  "self-serve-server"             true
+  "self-serve-ui"                 true
 -}}
 
 ###############################################################################
@@ -369,6 +378,9 @@ repositories:
   "evalm8-wfs"                    (list "temporal" "lakefs" "argilla" "mysql" "external-secrets-operator" "evalm8-server")
   "evalm8-ui"                     (list "evalm8-server")
   "evalm8-ingress"                (list)
+  "self-serve-server"             (list "mysql" "external-secrets-operator" "divyam-router-controller")
+  "self-serve-ui"                 (list)
+  "self-serve-ingress"            (list)
 
 -}}
 
