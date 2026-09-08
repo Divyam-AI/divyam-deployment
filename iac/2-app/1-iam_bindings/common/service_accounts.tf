@@ -118,12 +118,27 @@ locals {
     }
   }
 
+  # Switch accounts share the namespace used by Helmfile and the ingress Services.
+  self_serve_service_accounts = {
+    self-serve-server = {
+      namespace_prefix = "self-serve"
+      roles            = ["secret_reader"]
+    }
+    self-serve-ui = {
+      namespace_prefix = "self-serve"
+      roles            = ["secret_reader"]
+    }
+  }
+
+  self_serve_in_stack = var.stack == "all" || contains([for s in split(",", var.stack) : trimspace(s)], "self-serve")
+
   # Gate evalm8 accounts behind the stack selector, mirroring deployment_mode. Membership, not
   # inequality: a stack list can exclude evalm8 without equalling "router".
   evalm8_in_stack = var.stack == "all" || contains([for s in split(",", var.stack) : trimspace(s)], "evalm8")
   base_service_accounts = merge(
     local.router_service_accounts,
-    local.evalm8_in_stack ? local.evalm8_service_accounts : {}
+    local.evalm8_in_stack ? local.evalm8_service_accounts : {},
+    local.self_serve_in_stack ? local.self_serve_service_accounts : {}
   )
 
   ##########################################

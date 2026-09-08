@@ -202,6 +202,10 @@ repositories:
   "evalm8-ui"                             "evalm8"
   "evalm8-ingress"                        "evalm8"
 
+  "self-serve-ui"                         "self-serve"
+  "self-serve-server"                     "self-serve"
+  "self-serve-ingress"                    "self-serve"
+
 -}}
 
 ###############################################################################
@@ -226,7 +230,7 @@ repositories:
   Namespace groups that belong to the self-serve stack. A group must be registered here to count as
   self-serve; an unregistered group falls through to router.
 */}}
-{{- $selfServeGroups := dict -}}
+{{- $selfServeGroups := dict "self-serve" true -}}
 
 {{/*
   Charts shared by every stack, always enabled regardless of the selector. External Secrets
@@ -261,6 +265,7 @@ repositories:
   Add chart names here as "chart-name" true — membership is explicit, not name-based.
 */}}
 {{- $chartsWithProviderIngress := dict
+  "self-serve-ingress"                true
   "superset-ingress"                  true
   "divyam-router-controller-ingress"  true
   "evalm8-ingress"                    true
@@ -309,6 +314,8 @@ repositories:
   Add chart names here as "chart-name" true — membership is explicit, not name-based.
 */}}
 {{- $chartsWithProviderSecrets := dict
+  "self-serve-ui"                 true
+  "self-serve-server"             true
   "clickhouse"                    true
   "mysql"                         true
   "superset-postgres"             true
@@ -331,6 +338,9 @@ repositories:
 # 3. Dependency Map
 ###############################################################################
 {{- $dependencyMap := dict
+  "self-serve-server"            (list "external-secrets-operator")
+  "self-serve-ui"                (list "self-serve-server" "external-secrets-operator")
+  "self-serve-ingress"           (list "self-serve-ui" "self-serve-server")
   "altinity-clickhouse-operator" (list)
   "clickhouse"                   (list "altinity-clickhouse-operator" "external-secrets-operator" "kafka-cluster" "mysql")
   "external-secrets-operator"    (list)
@@ -376,6 +386,8 @@ repositories:
 # 4. Service Override Map
 ###############################################################################
 {{- $serviceOverrideMap := dict
+  "self-serve-ui" "self-serve-ui-public-%s-svc"
+  "self-serve-server" "self-serve-server-private-%s-svc"
   "kafka-cluster" "kafka-%s-kafka-bootstrap"
   "clickhouse" "clickhouse-clk-%s"
   "divyam-route-selector" "route-selector-%s-svc"
@@ -518,6 +530,9 @@ releases:
 - name: {{ $name }}-{{ $env }}
   namespace: {{ $ns }}
   chart: {{ $chart }}
+  {{- if eq $name "self-serve-server" }}
+  waitForJobs: true
+  {{- end }}
 
   # Per-release timing markers. presync prints a timestamped START before the release's
   # helm op, postsync a DONE after it completes (including --wait). A release that is HELD
@@ -604,6 +619,9 @@ releases:
     {{- end }}
     {{- if hasKey $chartsWithProviderIngress $name }}
     {{- $mergedIngress := merge (index $values.global "ingress" | default dict) (index $chartVals "ingress" | default dict) }}
+    {{- if eq $name "self-serve-ingress" }}
+    {{- $mergedIngress = mergeOverwrite (deepCopy (index $values.global "ingress" | default dict)) (index $chartVals "ingress" | default dict) }}
+    {{- end }}
     - ingress:
       {{ $mergedIngress | toYaml | nindent 8 }}
     {{- end }}
@@ -615,6 +633,9 @@ releases:
 
     {{- if and (hasKey $chartsWithProviderSecrets $name) (index $values.global "secrets") }}
     {{- $mergedSecrets := merge (index $values.global "secrets" | default dict) (index $chartVals "secrets" | default dict) }}
+    {{- if has $name (list "self-serve-server" "self-serve-ui") }}
+    {{- $mergedSecrets = mergeOverwrite (deepCopy (index $values.global "secrets" | default dict)) (index $chartVals "secrets" | default dict) }}
+    {{- end }}
     - secrets:
       {{ $mergedSecrets | toYaml | nindent 8 }}
     {{- end }}
