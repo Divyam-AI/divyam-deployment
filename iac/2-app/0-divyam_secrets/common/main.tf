@@ -116,12 +116,54 @@ locals {
   } : {}
 }
 
+# divyam-switch app secrets, generated when the self-serve stack is in scope. jwt and
+# verification-code are token strings; bootstrap-admin-password is the first-login password.
+resource "random_password" "switch_jwt_secret" {
+  count   = var.input.self_serve_enabled ? 1 : 0
+  length  = 48
+  special = false
+}
+
+resource "random_password" "switch_verification_code_secret" {
+  count   = var.input.self_serve_enabled ? 1 : 0
+  length  = 32
+  special = false
+}
+
+# 32 random bytes as URL-safe base64 with padding — a Fernet key. b64_std is standard base64; the two
+# replaces make it URL-safe, matching Python's base64.urlsafe_b64encode(secrets.token_bytes(32)).
+resource "random_id" "switch_db_encryption_key" {
+  count       = var.input.self_serve_enabled ? 1 : 0
+  byte_length = 32
+}
+
+resource "random_password" "switch_bootstrap_admin_password" {
+  count       = var.input.self_serve_enabled ? 1 : 0
+  length      = 15
+  lower       = true
+  upper       = true
+  numeric     = true
+  special     = true
+  min_lower   = 1
+  min_upper   = 1
+  min_numeric = 1
+  min_special = 1
+}
+
 locals {
-  # Self-serve Cloud SQL Postgres credentials, created only when the self-serve stack is in scope.
+  # Self-serve secrets, created only when the self-serve stack is in scope: the Cloud SQL Postgres
+  # credentials plus the divyam-switch app secrets (four generated above, two passed in via TF_VAR).
   self_serve_secrets = var.input.self_serve_enabled ? {
     "divyam-selfserve-pg-user-name"     = var.input.divyam_selfserve_pg_user_name
     "divyam-selfserve-pg-password"      = var.input.divyam_selfserve_pg_password
     "divyam-selfserve-pg-root-password" = var.input.divyam_selfserve_pg_root_password
+
+    "divyam-switch-jwt-secret"               = random_password.switch_jwt_secret[0].result
+    "divyam-switch-verification-code-secret" = random_password.switch_verification_code_secret[0].result
+    "divyam-switch-db-encryption-keys"       = replace(replace(random_id.switch_db_encryption_key[0].b64_std, "+", "-"), "/", "_")
+    "divyam-switch-bootstrap-admin-password" = random_password.switch_bootstrap_admin_password[0].result
+    "divyam-router-admin-api-key"            = var.input.divyam_router_admin_api_key
+    "divyam-switch-resend-api-key"           = var.input.divyam_switch_resend_api_key
   } : {}
 
   secrets = merge(
