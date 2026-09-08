@@ -47,10 +47,10 @@ inputs = merge(
     region             = local.root.region
     vpc_network_name   = local.vnet_name
     vpc_network        = "projects/${local.project}/global/networks/${local.vnet_name}"
-    divyam_db_user          = get_env("TF_VAR_divyam_selfserve_pg_user_name", "divyam")
-    divyam_db_password      = get_env("TF_VAR_divyam_selfserve_pg_password", "")
-    divyam_db_root_password = get_env("TF_VAR_divyam_selfserve_pg_root_password", "")
-    divyam_db_name          = get_env("TF_VAR_divyam_selfserve_pg_db_name", "divyam")
+    divyam_selfserve_pg_user_name     = get_env("TF_VAR_divyam_selfserve_pg_user_name", "divyam")
+    divyam_selfserve_pg_password      = get_env("TF_VAR_divyam_selfserve_pg_password", "")
+    divyam_selfserve_pg_root_password = get_env("TF_VAR_divyam_selfserve_pg_root_password", "")
+    divyam_selfserve_pg_db_name       = get_env("TF_VAR_divyam_selfserve_pg_db_name", "divyam")
 
     common_tags = try(local.root.common_tags, {})
     tag_globals = try(include.root.inputs.tag_globals, {})

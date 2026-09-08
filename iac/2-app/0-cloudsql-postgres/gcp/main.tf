@@ -48,25 +48,25 @@ resource "google_sql_database_instance" "default" {
 
 resource "google_sql_user" "default" {
   count    = var.create ? 1 : 0
-  name     = var.divyam_db_user
+  name     = var.divyam_selfserve_pg_user_name
   instance = google_sql_database_instance.default[0].name
-  password = var.divyam_db_password
+  password = var.divyam_selfserve_pg_password
   project  = var.project_id
 }
 
 # The postgres superuser already exists on the instance; this sets its password. Skipped when
 # no root password is supplied, leaving the user unmanaged.
 resource "google_sql_user" "postgres" {
-  count    = var.create && var.divyam_db_root_password != "" ? 1 : 0
+  count    = var.create && var.divyam_selfserve_pg_root_password != "" ? 1 : 0
   name     = "postgres"
   instance = google_sql_database_instance.default[0].name
-  password = var.divyam_db_root_password
+  password = var.divyam_selfserve_pg_root_password
   project  = var.project_id
 }
 
 resource "google_sql_database" "default" {
   count    = var.create ? 1 : 0
-  name     = var.divyam_db_name
+  name     = var.divyam_selfserve_pg_db_name
   instance = google_sql_database_instance.default[0].name
   project  = var.project_id
 }

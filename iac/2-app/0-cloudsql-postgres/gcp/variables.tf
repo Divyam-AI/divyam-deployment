@@ -35,25 +35,28 @@ variable "vpc_network" {
   type        = string
 }
 
-variable "divyam_db_user" {
-  description = "The username for the Cloud SQL instance"
+# Names are prefixed divyam_selfserve_pg_* so they map to TF_VAR_divyam_selfserve_pg_* and do NOT
+# collide with the deployment-wide TF_VAR_divyam_db_* (the general/MySQL DB credentials) that
+# secrets.env exports — a collision there silently shadows these with the wrong password.
+variable "divyam_selfserve_pg_user_name" {
+  description = "The app username for the self-serve Cloud SQL Postgres instance"
   type        = string
 }
 
-variable "divyam_db_password" {
-  description = "The password for the Cloud SQL app user. Use TF_VAR."
+variable "divyam_selfserve_pg_password" {
+  description = "The password for the self-serve Postgres app user. Use TF_VAR."
   type        = string
   sensitive   = true
 }
 
-variable "divyam_db_root_password" {
+variable "divyam_selfserve_pg_root_password" {
   description = "Password for the built-in postgres superuser. Empty leaves it unmanaged."
   type        = string
   sensitive   = true
   default     = ""
 }
 
-variable "divyam_db_name" {
+variable "divyam_selfserve_pg_db_name" {
   description = "The name of the initial database to create"
   type        = string
   default     = "divyam"
