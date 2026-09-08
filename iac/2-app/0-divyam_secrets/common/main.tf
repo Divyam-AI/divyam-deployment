@@ -117,6 +117,13 @@ locals {
 }
 
 locals {
+  # Self-serve Cloud SQL Postgres credentials, created only when the self-serve stack is in scope.
+  self_serve_secrets = var.input.self_serve_enabled ? {
+    "divyam-selfserve-pg-user-name"     = var.input.divyam_selfserve_pg_user_name
+    "divyam-selfserve-pg-password"      = var.input.divyam_selfserve_pg_password
+    "divyam-selfserve-pg-root-password" = var.input.divyam_selfserve_pg_root_password
+  } : {}
+
   secrets = merge(
     {
       "divyam-db-root-password"              = local.divyam_db_root_password
@@ -155,6 +162,8 @@ locals {
       "divyam-artifactory-docker-auth" = var.input.divyam_artifactory_docker_auth
     } : {},
     # Evalm8 vault keys, TF-generated. Empty unless the evalm8 stack is in scope.
-    local.evalm8_secrets
+    local.evalm8_secrets,
+    # Self-serve Postgres credentials. Empty unless the self-serve stack is in scope.
+    local.self_serve_secrets
   )
 }

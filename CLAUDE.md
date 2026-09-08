@@ -146,6 +146,22 @@ in the existing values. A stale state lock (VM died mid-apply) waits `IAC_LOCK_T
 prints the fix: `make iac -- unlock -l <layer1.layer2> -- <lock-id>`. API-enablement (`0-apis`)
 "already exists" errors are safe to ignore.
 
+### Cloud SQL for Postgres (GCP)
+
+- **A new Postgres instance defaults to `ENTERPRISE_PLUS`, which rejects shared-core tiers.** A
+  `db-f1-micro` (or any `db-*` shared-core) instance fails apply with `Invalid Tier (db-f1-micro) for
+  (ENTERPRISE_PLUS) Edition`. Pin `edition = "ENTERPRISE"` in `settings`. MySQL defaults to `ENTERPRISE`,
+  so this only bites Postgres. Two more Postgres-vs-MySQL differences: the backup toggle is
+  `point_in_time_recovery_enabled` (MySQL uses `binary_log_enabled`), and the superuser is `postgres`
+  (there is no `root`).
+- **Move a locally-applied instance into remote state with `state push`, never destroy/recreate.**
+  Cloud SQL reserves a deleted instance name for ~a week, so recreating it under a fresh remote state
+  collides on the name. Instead: `terragrunt init -reconfigure` the unit against the remote backend
+  (which starts empty), `terragrunt state push -force <local-state-file>` to lift the running instance's
+  state up, then `plan` — it should show only the intended diffs (e.g. a `google_sql_user` password
+  update), never an instance replacement. Confirm no `must be replaced` / `will be destroyed` on the
+  instance before apply.
+
 ## Phase 2 — deploy the stack (`k8s/`, Helmfile)
 
 Run from the bastion, through `make k8s -- <cmd>` (forwards to `scripts/k8s.sh`). First fetch
@@ -219,6 +235,14 @@ make iac -- creds          # validate cloud auth
 
 `make iac -- secrets` → `make iac -- creds` → `make iac -- plan/apply -l <layer>` is the per-layer flow
 (`/provision` and `/setup` drive it interactively). Use the **terrashark** skill for any HCL edit.
+
+- **Org reauth blocks token refresh in a non-interactive shell.** When the org enforces reauth,
+  `gcloud auth application-default print-access-token` (and the CLI-credential equivalent) fail with
+  *"Reauthentication failed. cannot prompt during non-interactive execution"* even though the ADC file
+  exists — the refresh needs an interactive prompt that an automated shell cannot answer, and the ADC
+  and CLI credentials relapse independently. There is no non-interactive workaround: the user runs
+  `gcloud auth application-default login` (and, for `gcloud` CLI calls, `gcloud auth login`) in their
+  own terminal, then automated `terragrunt`/`gcloud` runs work until the next reauth interval.
 
 ## Skills / plugins to use
 

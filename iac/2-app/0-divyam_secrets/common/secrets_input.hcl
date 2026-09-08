@@ -7,6 +7,8 @@ locals {
   # Whether evalm8 is in the stack list. Membership, not inequality: a list can exclude evalm8
   # without equalling "router".
   evalm8_in_stack = local.stack == "all" || contains([for s in split(",", local.stack) : trimspace(s)], "evalm8")
+  # Whether self-serve is in the stack list. Gates the self-serve Cloud SQL Postgres credential secrets.
+  self_serve_in_stack = local.stack == "all" || contains([for s in split(",", local.stack) : trimspace(s)], "self-serve")
   # Deployment-wide image-pull auth flag from the values file (single source: root.hcl merged locals).
   # Only one root.hcl exists above this file, so find_in_parent_folders is unambiguous.
   root                      = read_terragrunt_config(find_in_parent_folders("root.hcl")).locals.merged
@@ -28,6 +30,11 @@ locals {
       divyam_db_root_password              = get_env("TF_VAR_divyam_db_root_password", "")
       divyam_db_user_name                  = get_env("TF_VAR_divyam_db_user_name", "divyam-prod")
       divyam_db_password                   = get_env("TF_VAR_divyam_db_password", "")
+      # Gate + credentials for the self-serve Cloud SQL Postgres. Same TF_VARs the cloudsql-postgres unit reads.
+      self_serve_enabled                = local.self_serve_in_stack
+      divyam_selfserve_pg_user_name     = get_env("TF_VAR_divyam_selfserve_pg_user_name", "divyam")
+      divyam_selfserve_pg_password      = get_env("TF_VAR_divyam_selfserve_pg_password", "")
+      divyam_selfserve_pg_root_password = get_env("TF_VAR_divyam_selfserve_pg_root_password", "")
       divyam_clickhouse_user_name          = get_env("TF_VAR_divyam_clickhouse_user_name", "default")
       divyam_clickhouse_password           = get_env("TF_VAR_divyam_clickhouse_password", "")
       divyam_superset_pg_password          = get_env("TF_VAR_divyam_superset_pg_password", "")
