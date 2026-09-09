@@ -24,6 +24,8 @@ locals {
   # Whether evalm8 is in the stack list. Membership, not inequality: a list can exclude evalm8
   # without equalling "router".
   evalm8_in_stack = local.stack == "all" || contains([for s in split(",", local.stack) : trimspace(s)], "evalm8")
+  # Whether self-serve is in the stack list. Gates the self-serve managed Postgres (Cloud SQL).
+  self_serve_in_stack = local.stack == "all" || contains([for s in split(",", local.stack) : trimspace(s)], "self-serve")
 
   deployment_mode = "onprem" # Set value to "managed" | "onprem"
 
@@ -70,7 +72,7 @@ locals {
   # GCP: set shared_vpc_host = true to enable this project as Shared VPC host; set service_project_ids = ["project-a","project-b"] to attach service projects.
   vnet = {
     create = false # If this is set to false, edit the below values that is to be used for setting up Divyam.
-    name   = "divyam-ckt-dev-vnet"
+    name   = "default"
     # name            = "${local.deployment_prefix}-vnet"
     scope_name = "az-bharath-dev" # Azure Resource Group or GCP Project where this vnet is to be created/present
     # scope_name      = "${local.resource_scope.name}" # Azure Resource Group or GCP Project where this vnet is to be created/present
@@ -376,6 +378,15 @@ locals {
   cloudsql = {
     create        = false
     instance_name = "${local.deployment_prefix}-cloudsql"
+  }
+
+  # Self-serve managed Postgres (Cloud SQL), brought up only when self-serve is in the stack list.
+  # Sizing/HA matches cloudsql above (db-f1-micro, zonal); backups use Postgres point-in-time recovery.
+  # This env's default VPC already has private service access (from the MySQL cloudsql), so reuse it.
+  cloudsql_postgres = {
+    create                        = local.self_serve_in_stack
+    create_private_service_access = false
+    instance_name                 = "${local.deployment_prefix}-cloudsql-pg"
   }
 
   # --- Terraform outputs file for Helm ---
