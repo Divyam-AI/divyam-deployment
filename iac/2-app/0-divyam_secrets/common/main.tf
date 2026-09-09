@@ -169,7 +169,10 @@ locals {
     # overwritten, and an empty string is not a valid secret version anyway. Each joins the managed
     # set once its TF_VAR is set.
     var.input.divyam_router_admin_api_key != "" ? { "divyam-router-admin-api-key" = var.input.divyam_router_admin_api_key } : {},
-    var.input.divyam_switch_resend_api_key != "" ? { "divyam-switch-resend-api-key" = var.input.divyam_switch_resend_api_key } : {}
+    var.input.divyam_switch_resend_api_key != "" ? { "divyam-switch-resend-api-key" = var.input.divyam_switch_resend_api_key } : {},
+    var.input.divyam_switch_deepinfra_api_key != "" ? { "divyam-switch-deepinfra-api-key" = var.input.divyam_switch_deepinfra_api_key } : {},
+    var.input.divyam_switch_openai_api_key != "" ? { "divyam-switch-openai-api-key" = var.input.divyam_switch_openai_api_key } : {},
+    var.input.divyam_switch_gemini_api_key != "" ? { "divyam-switch-gemini-api-key" = var.input.divyam_switch_gemini_api_key } : {}
   ) : {}
 
   secrets = merge(

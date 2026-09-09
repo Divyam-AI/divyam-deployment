@@ -38,6 +38,9 @@ locals {
       # divyam-switch app keys the caller provides (empty until set). The generated switch secrets take no input.
       divyam_router_admin_api_key       = get_env("TF_VAR_divyam_router_admin_api_key", "")
       divyam_switch_resend_api_key      = get_env("TF_VAR_divyam_switch_resend_api_key", "")
+      divyam_switch_deepinfra_api_key   = get_env("TF_VAR_divyam_switch_deepinfra_api_key", "")
+      divyam_switch_openai_api_key      = get_env("TF_VAR_divyam_switch_openai_api_key", "")
+      divyam_switch_gemini_api_key      = get_env("TF_VAR_divyam_switch_gemini_api_key", "")
       divyam_clickhouse_user_name          = get_env("TF_VAR_divyam_clickhouse_user_name", "default")
       divyam_clickhouse_password           = get_env("TF_VAR_divyam_clickhouse_password", "")
       divyam_superset_pg_password          = get_env("TF_VAR_divyam_superset_pg_password", "")
