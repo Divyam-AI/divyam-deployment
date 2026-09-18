@@ -82,3 +82,15 @@ output "evalm8_lakefs_bucket_name" {
   description = "Name of the GCS bucket with type lakefs-data from evalm8_object_storages. Consumed by the evalm8 export unit."
   value       = local.evalm8_lakefs_first_key != null ? local.all_bucket_names[local.evalm8_lakefs_first_key] : null
 }
+
+
+# Switch selector bundle store, identified by type selectors in self_serve_object_storages.
+locals {
+  selectors_keys      = var.selectors_storage_key != null ? [for k in keys(local.all_bucket_names) : k if startswith(k, "${var.selectors_storage_key}/")] : []
+  selectors_first_key = length(local.selectors_keys) > 0 ? local.selectors_keys[0] : null
+}
+
+output "selectors_bucket_name" {
+  description = "Name of the GCS bucket with type selectors from self_serve_object_storages. Consumed by the iam_bindings unit."
+  value       = local.selectors_first_key != null ? local.all_bucket_names[local.selectors_first_key] : null
+}

@@ -27,9 +27,10 @@ locals {
   }
 
   scope_ids = {
-    project        = var.project_id
-    storage_bucket = var.router_logs_bucket_name
-    lakefs_bucket  = var.evalm8_lakefs_bucket_name
+    project          = var.project_id
+    storage_bucket   = var.router_logs_bucket_name
+    lakefs_bucket    = var.evalm8_lakefs_bucket_name
+    selectors_bucket = var.selectors_bucket_name
   }
 
   sa_role_pairs = flatten([
@@ -61,6 +62,7 @@ locals {
     for rb in local.role_bindings_flat :
     rb if(rb.scope != "storage_bucket" || var.router_logs_bucket_name != null)
     && (rb.scope != "lakefs_bucket" || var.evalm8_lakefs_bucket_name != null)
+    && (rb.scope != "selectors_bucket" || var.selectors_bucket_name != null)
   ]
 
   _sep = "::"
@@ -118,6 +120,21 @@ resource "google_storage_bucket_iam_member" "bucket_roles" {
   }
 
   bucket = local.scope_ids.storage_bucket
+  role   = each.value.role
+  member = "serviceAccount:${google_service_account.identities[each.value.sa_name].email}"
+}
+
+############################################
+# Selector Bundle Bucket IAM Bindings (switch)
+############################################
+
+resource "google_storage_bucket_iam_member" "selectors_bucket_roles" {
+  for_each = {
+    for k, v in local.role_binding_map :
+    k => v if v.scope == "selectors_bucket"
+  }
+
+  bucket = local.scope_ids.selectors_bucket
   role   = each.value.role
   member = "serviceAccount:${google_service_account.identities[each.value.sa_name].email}"
 }
