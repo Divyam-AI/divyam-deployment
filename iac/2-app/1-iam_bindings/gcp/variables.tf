@@ -30,3 +30,9 @@ variable "evalm8_lakefs_bucket_name" {
   type        = string
   default     = null
 }
+
+variable "selectors_bucket_name" {
+  description = "GCS bucket holding the published selector bundles. Null when self-serve is not in the stack, which drops the selectors_bucket role bindings."
+  type        = string
+  default     = null
+}

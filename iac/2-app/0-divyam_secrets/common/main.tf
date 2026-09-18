@@ -116,6 +116,19 @@ locals {
   } : {}
 }
 
+# Divyam's own credential with each model provider that the switch catalog serves, one secret per
+# provider. These are real upstream credentials, so there is no random fallback: an empty value is
+# written as empty and the switch refuses to start outside local and test runs, which is the point.
+# The switch reads them as DIVYAM_SWITCH_<PROVIDER>_API_KEY, deliberately outside the SWITCH_
+# Dynaconf namespace, and the chart's ExternalSecret names the synced keys to match.
+locals {
+  self_serve_secrets = var.input.self_serve_enabled ? {
+    "divyam-switch-deepinfra-api-key" = var.input.divyam_switch_deepinfra_api_key
+    "divyam-switch-openai-api-key"    = var.input.divyam_switch_openai_api_key
+    "divyam-switch-gemini-api-key"    = var.input.divyam_switch_gemini_api_key
+  } : {}
+}
+
 locals {
   secrets = merge(
     {
@@ -155,6 +168,8 @@ locals {
       "divyam-artifactory-docker-auth" = var.input.divyam_artifactory_docker_auth
     } : {},
     # Evalm8 vault keys, TF-generated. Empty unless the evalm8 stack is in scope.
-    local.evalm8_secrets
+    local.evalm8_secrets,
+    # Switch provider credentials, supplied not generated. Empty unless self-serve is in scope.
+    local.self_serve_secrets
   )
 }

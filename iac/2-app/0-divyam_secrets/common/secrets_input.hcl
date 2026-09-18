@@ -7,6 +7,8 @@ locals {
   # Whether evalm8 is in the stack list. Membership, not inequality: a list can exclude evalm8
   # without equalling "router".
   evalm8_in_stack = local.stack == "all" || contains([for s in split(",", local.stack) : trimspace(s)], "evalm8")
+  # Whether self-serve is in the stack list, gating the switch provider credentials.
+  self_serve_in_stack = local.stack == "all" || contains([for s in split(",", local.stack) : trimspace(s)], "self-serve")
   # Deployment-wide image-pull auth flag from the values file (single source: root.hcl merged locals).
   # Only one root.hcl exists above this file, so find_in_parent_folders is unambiguous.
   root                      = read_terragrunt_config(find_in_parent_folders("root.hcl")).locals.merged
@@ -14,7 +16,12 @@ locals {
   secrets_input = merge(
     {
       # Gate for the evalm8 secret keys.
-      evalm8_enabled = local.evalm8_in_stack
+      evalm8_enabled     = local.evalm8_in_stack
+      self_serve_enabled = local.self_serve_in_stack
+      # Switch provider credentials. Real upstream keys, so there is no generated fallback.
+      divyam_switch_deepinfra_api_key = get_env("TF_VAR_divyam_switch_deepinfra_api_key", "")
+      divyam_switch_openai_api_key    = get_env("TF_VAR_divyam_switch_openai_api_key", "")
+      divyam_switch_gemini_api_key    = get_env("TF_VAR_divyam_switch_gemini_api_key", "")
       # Evalm8 stack secrets, manually passed via TF_VAR_* (main.tf falls back to a random value for a sandbox when unset).
       divyam_lakefs_access_key_id          = get_env("TF_VAR_divyam_lakefs_access_key_id", "")
       divyam_lakefs_secret_access_key      = get_env("TF_VAR_divyam_lakefs_secret_access_key", "")
