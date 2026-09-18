@@ -536,6 +536,14 @@ releases:
 - name: {{ $name }}-{{ $env }}
   namespace: {{ $ns }}
   chart: {{ $chart }}
+  {{- /* Pin the chart version when the artifacts file names one. Without this helm resolves the
+         chart to the newest STABLE semver in the repo, so a declared version was documentation and
+         the cache decided what actually shipped. It also made a prerelease chart unusable: a dev
+         lane publishes 0.1.0-dev-main.<ts>, and `helm pull` with no --version skips prereleases
+         entirely and fails with "could not locate a version matching provided version string". */}}
+  {{- if and (hasKey $cfg "chart") $cfg.chart (kindIs "map" $cfg.chart) (index $cfg.chart "version") }}
+  version: {{ index $cfg.chart "version" | quote }}
+  {{- end }}
   {{- if eq $name "self-serve-server" }}
   waitForJobs: true
   {{- end }}
