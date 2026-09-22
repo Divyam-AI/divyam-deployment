@@ -15,6 +15,7 @@ dependency "divyam_object_storage" {
   config_path = "${get_repo_root()}/iac/1-platform/0-divyam_object_storage/gcp"
   mock_outputs = {
     evalm8_lakefs_bucket_name = ""
+    selectors_bucket_name     = ""
   }
 }
 
@@ -28,6 +29,9 @@ locals {
   # Whether evalm8 is in the stack list. Membership, not inequality: a list can exclude evalm8
   # without equalling "router".
   evalm8_in_stack = try(local.root.stack, "all") == "all" || contains([for s in split(",", try(local.root.stack, "all")) : trimspace(s)], "evalm8")
+  # Same plan fallback for the selector bundle bucket, so the switch IAM path validates without state.
+  selectors_bucket_name = try(one([for s in try(local.root.self_serve_object_storages, []) : s.container_name if s.type == "selectors"]), null)
+  self_serve_in_stack   = try(local.root.stack, "all") == "all" || contains([for s in split(",", try(local.root.stack, "all")) : trimspace(s)], "self-serve")
 }
 
 inputs = {
@@ -42,4 +46,5 @@ inputs = {
   router_logs_bucket_name   = local.router_logs_bucket_name
   stack                     = try(local.root.stack, "all")
   evalm8_lakefs_bucket_name = local.evalm8_in_stack ? try(dependency.divyam_object_storage.outputs.evalm8_lakefs_bucket_name, local.evalm8_lakefs_bucket_name) : null
+  selectors_bucket_name     = local.self_serve_in_stack ? try(dependency.divyam_object_storage.outputs.selectors_bucket_name, local.selectors_bucket_name) : null
 }

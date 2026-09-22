@@ -418,3 +418,24 @@ charts:
   argilla-ingress:
     values: {}
 
+  self-serve-server:
+    values:
+      server:
+        replicaCount: 1
+        resources:
+          requests: { cpu: "250m", memory: "512Mi" }
+          limits:   { cpu: "1",    memory: "1Gi" }
+      highAvailability:
+        podAntiAffinity: { enabled: true }
+
+  self-serve-ui:
+    values:
+      ui:
+        replicaCount: 1
+        resources:
+          requests: { cpu: "100m", memory: "128Mi" }
+          limits:   { cpu: "250m", memory: "256Mi" }
+
+  self-serve-ingress:
+    values: {}
+

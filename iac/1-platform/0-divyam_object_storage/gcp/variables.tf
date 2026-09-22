@@ -38,6 +38,12 @@ variable "evalm8_lakefs_storage_key" {
   default     = null
 }
 
+variable "selectors_storage_key" {
+  description = "Key in buckets that holds the switch selector bundle store, type selectors. Used for the selectors_bucket_name output."
+  type        = string
+  default     = null
+}
+
 variable "storage_class" {
   description = "GCS storage class"
   type        = string

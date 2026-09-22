@@ -10,7 +10,8 @@ terraform {
 locals {
   root = include.root.locals.merged
   # Evalm8 lakeFS storage is gated by stack in defaults.hcl, empty list for a router-only deployment.
-  storages = concat(try(local.root.divyam_object_storages, []), try(local.root.evalm8_object_storages, []))
+  # Switch selector storage is gated by stack the same way, empty for a deployment without self-serve.
+  storages = concat(try(local.root.divyam_object_storages, []), try(local.root.evalm8_object_storages, []), try(local.root.self_serve_object_storages, []))
   # Group by storage_account_name (logical group key); each group -> one entry with bucket_names (container_name = GCS bucket name).
   buckets = length(local.storages) > 0 ? {
     for name in distinct([for s in local.storages : s.storage_account_name]) :
@@ -24,6 +25,8 @@ locals {
   router_requests_logs_storage_key = try([for k, v in local.buckets : k if v.type == "router-requests-logs"][0], null)
   # Key in buckets whose type is lakefs-data, the evalm8 lakeFS data store, for the evalm8_lakefs_bucket_name output.
   evalm8_lakefs_storage_key = try([for k, v in local.buckets : k if v.type == "lakefs-data"][0], null)
+  # Key in buckets whose type is selectors, the switch selector bundle store, for the selectors_bucket_name output.
+  selectors_storage_key = try([for k, v in local.buckets : k if v.type == "selectors"][0], null)
 }
 
 inputs = merge(
@@ -34,6 +37,7 @@ inputs = merge(
     buckets                          = local.buckets
     router_requests_logs_storage_key = local.router_requests_logs_storage_key
     evalm8_lakefs_storage_key        = local.evalm8_lakefs_storage_key
+    selectors_storage_key            = local.selectors_storage_key
     common_tags                      = try(local.root.common_tags, {})
     tag_globals                      = try(include.root.inputs.tag_globals, {})
     tag_context = {

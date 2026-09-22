@@ -271,6 +271,7 @@ repositories:
   "evalm8-ingress"                    true
   "evalm8-server"                     true
   "evalm8-wfs"                        true
+  "self-serve-ingress"                true
 -}}
 
 {{/*
@@ -332,6 +333,8 @@ repositories:
   "evalm8-server"                 true
   "evalm8-wfs"                    true
   "evalm8-ui"                     true
+  "self-serve-server"             true
+  "self-serve-ui"                 true
 -}}
 
 ###############################################################################
@@ -356,7 +359,7 @@ repositories:
   "infinity"                     (list)
   "tei"                          (list)
   "qdrant"                       (list)
-  "divyam-route-selector"        (list "tei" "qdrant" "mysql")
+  "divyam-route-selector"        (list "tei" "qdrant" "mysql" "clickhouse")
   "divyam-selector-training"     (list "mysql" "divyam-redis" "qdrant" "clickhouse" "tei")
   "divyam-evaluator"             (list "mysql" "clickhouse")
   "divyam-router-controller"     (list "otel-collector" "mysql" "divyam-route-selector" "clickhouse")
@@ -379,6 +382,9 @@ repositories:
   "evalm8-wfs"                    (list "temporal" "lakefs" "argilla" "mysql" "external-secrets-operator" "evalm8-server")
   "evalm8-ui"                     (list "evalm8-server")
   "evalm8-ingress"                (list)
+  "self-serve-server"             (list "mysql" "external-secrets-operator" "divyam-router-controller")
+  "self-serve-ui"                 (list)
+  "self-serve-ingress"            (list)
 
 -}}
 
@@ -530,6 +536,14 @@ releases:
 - name: {{ $name }}-{{ $env }}
   namespace: {{ $ns }}
   chart: {{ $chart }}
+  {{- /* Pin the chart version when the artifacts file names one. Without this helm resolves the
+         chart to the newest STABLE semver in the repo, so a declared version was documentation and
+         the cache decided what actually shipped. It also made a prerelease chart unusable: a dev
+         lane publishes 0.1.0-dev-main.<ts>, and `helm pull` with no --version skips prereleases
+         entirely and fails with "could not locate a version matching provided version string". */}}
+  {{- if and (hasKey $cfg "chart") $cfg.chart (kindIs "map" $cfg.chart) (index $cfg.chart "version") }}
+  version: {{ index $cfg.chart "version" | quote }}
+  {{- end }}
   {{- if eq $name "self-serve-server" }}
   waitForJobs: true
   {{- end }}

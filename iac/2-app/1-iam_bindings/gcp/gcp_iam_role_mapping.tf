@@ -51,6 +51,20 @@ locals {
     }
 
     # -----------------------------------
+    # Selector bundle store reader (GCS)
+    # -----------------------------------
+    # Its own scope rather than blob_reader, because the selector bundles live in a different
+    # bucket from the router logs and the switch has no business reading those.
+    selectors_blob_reader = {
+      role_bindings = [
+        {
+          scope = "selectors_bucket"
+          role  = "roles/storage.objectViewer"
+        }
+      ]
+    }
+
+    # -----------------------------------
     # Resource metadata reader
     # -----------------------------------
     resource_reader = {

@@ -24,7 +24,9 @@ locals {
   # Whether evalm8 is in the stack list. Membership, not inequality: a list can exclude evalm8
   # without equalling "router".
   evalm8_in_stack = local.stack == "all" || contains([for s in split(",", local.stack) : trimspace(s)], "evalm8")
-  # Whether self-serve is in the stack list. Gates the self-serve managed Postgres (Cloud SQL).
+  # Whether self-serve is in the stack list. Gates the switch object storage, the managed Postgres
+  # (Cloud SQL) and the self-serve secrets the same way evalm8_in_stack gates lakeFS, so a
+  # router-only deployment provisions none of them.
   self_serve_in_stack = local.stack == "all" || contains([for s in split(",", local.stack) : trimspace(s)], "self-serve")
 
   deployment_mode = "onprem" # Set value to "managed" | "onprem"
@@ -159,6 +161,20 @@ locals {
     scope_name           = "${local.resource_scope}"                            # Azure Resource Group or GCP Project
     storage_account_name = "${replace(local.deployment_prefix, "-", "")}lakefs" # Full Azure storage account name (no dashes). Not for GCP, used for grouping
     container_name       = "${replace(local.deployment_prefix, "-", "")}lakefs" # GCP bucket name and Azure container name for the lakeFS data store
+  }] : []
+
+  # --- Switch Data (selector bundle object storage) ---
+  # Only provisioned when self-serve is in the stack list. Empty otherwise.
+  # Mirrors the divyam_object_storages element shape. type = "selectors" identifies the bundle store.
+  # The switch reads selector zips and eval definitions from here at startup and never writes, so the
+  # service account gets objectViewer and nothing more.
+  # create = false: the bucket is published to by the training side and predates this unit.
+  self_serve_object_storages = local.self_serve_in_stack ? [{
+    create               = false                                                    # Existing bucket: look up, do not create.
+    type                 = "selectors"                                              # Identifies this storage as the selector bundle store
+    scope_name           = "${local.resource_scope}"                                # Azure Resource Group or GCP Project
+    storage_account_name = "${replace(local.deployment_prefix, "-", "")}selectors"  # Azure storage account name. On GCP only a grouping key
+    container_name       = "divyam-selectors-${local.env_name}"                     # GCS bucket name holding the published selector bundles
   }] : []
 
   # -- Secrets ---

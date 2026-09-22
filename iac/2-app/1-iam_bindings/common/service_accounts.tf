@@ -122,7 +122,10 @@ locals {
   self_serve_service_accounts = {
     self-serve-server = {
       namespace_prefix = "self-serve"
-      roles            = ["secret_reader"]
+      # selectors_blob_reader: the bootstrap downloads each class's selector bundle and eval from
+      # the selectors bucket at startup. Without it the download fails and the switch caches no
+      # bundles, which is silent apart from a log line.
+      roles = ["secret_reader", "selectors_blob_reader"]
     }
     self-serve-ui = {
       namespace_prefix = "self-serve"

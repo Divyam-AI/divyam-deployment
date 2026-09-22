@@ -170,6 +170,8 @@ locals {
     # set once its TF_VAR is set.
     var.input.divyam_router_admin_api_key != "" ? { "divyam-router-admin-api-key" = var.input.divyam_router_admin_api_key } : {},
     var.input.divyam_switch_resend_api_key != "" ? { "divyam-switch-resend-api-key" = var.input.divyam_switch_resend_api_key } : {},
+    # The three provider keys are real upstream credentials; the switch reads them as
+    # DIVYAM_SWITCH_<PROVIDER>_API_KEY and its ExternalSecret names the synced keys to match.
     var.input.divyam_switch_deepinfra_api_key != "" ? { "divyam-switch-deepinfra-api-key" = var.input.divyam_switch_deepinfra_api_key } : {},
     var.input.divyam_switch_openai_api_key != "" ? { "divyam-switch-openai-api-key" = var.input.divyam_switch_openai_api_key } : {},
     var.input.divyam_switch_gemini_api_key != "" ? { "divyam-switch-gemini-api-key" = var.input.divyam_switch_gemini_api_key } : {}
@@ -214,7 +216,7 @@ locals {
     } : {},
     # Evalm8 vault keys, TF-generated. Empty unless the evalm8 stack is in scope.
     local.evalm8_secrets,
-    # Self-serve Postgres credentials. Empty unless the self-serve stack is in scope.
+    # Self-serve secrets (Cloud SQL Postgres creds + divyam-switch app keys). Empty unless self-serve is in scope.
     local.self_serve_secrets
   )
 }
