@@ -152,6 +152,29 @@ repositories:
 {{- $allStacks := has "all" $stacks }}
 {{- $_ := exec "sh" (list "-c" (printf "echo '[INFO] stack selector: %s' >&2" (join "," $stacks))) }}
 
+{{/* The switch database, resolved exactly the way mysql_integration resolves mysql's: a DECLARED
+     host wins, otherwise the in-cluster Service the self-serve-postgres chart deploys. Unlike
+     mysql, the declaration also decides whether that chart is deployed at all — an environment on
+     Cloud SQL should not also be running a Postgres nobody connects to.
+
+     Two places count as a declaration, and both are read because environments predate the first:
+       databases.self-serve-postgres.host in provider.yaml (terraform writes it, as for mysql), and
+       charts.self-serve-server.values.database.host (what preprod sets in its config.yaml today).
+     Neither present ⇒ the chart comes up and the server is pointed at it, which is what a box
+     and any all-in-cluster environment want with nothing configured. */}}
+{{- $selfServeDbHost := $values | dig "databases" "self-serve-postgres" "host" "" }}
+{{- if not $selfServeDbHost }}
+  {{- $selfServeDbHost = $values | dig "charts" "self-serve-server" "values" "database" "host" "" }}
+{{- end }}
+{{- $selfServeDbDeclared := ne $selfServeDbHost "" }}
+
+{{/* Charts switched off by something other than the `enabled` key or the stack selector. Read in
+     all three places a chart's enablement is decided — the release gate, the `needs` list and the
+     dependency DNS map — because a need pointing at a release that was never rendered is an
+     "undefined release" error, not a dropped edge. */}}
+{{- $forceDisabled := dict }}
+{{- if $selfServeDbDeclared }}{{- $_ := set $forceDisabled "self-serve-postgres" true }}{{- end }}
+
 ###############################################################################
 # 2. Namespace Group Map
 ###############################################################################
@@ -205,6 +228,7 @@ repositories:
   "self-serve-ui"                         "self-serve"
   "self-serve-server"                     "self-serve"
   "self-serve-ingress"                    "self-serve"
+  "self-serve-postgres"                   "self-serve"
 
 -}}
 
@@ -237,10 +261,17 @@ repositories:
   resolves cloud secrets for every workload, mysql is the platform database that both the
   router services and evalm8-server/wfs use, and persistent storage backs both.
 */}}
+{{/*
+  cloudnative-pg-operator joins them: it backs two stacks now — evalm8's three databases and
+  self-serve's one — so it can no longer belong to the evalm8 group alone. Its namespace group
+  stays cnpg-operator, and this entry is what keeps `stack: self-serve` from deploying a Cluster
+  CR with no controller to act on it.
+*/}}
 {{- $sharedCharts := dict
   "external-secrets-operator"   true
   "mysql"                       true
   "divyam-persistent-storage"   true
+  "cloudnative-pg-operator"     true
 -}}
 
 {{/*
@@ -265,7 +296,6 @@ repositories:
   Add chart names here as "chart-name" true — membership is explicit, not name-based.
 */}}
 {{- $chartsWithProviderIngress := dict
-  "self-serve-ingress"                true
   "superset-ingress"                  true
   "divyam-router-controller-ingress"  true
   "evalm8-ingress"                    true
@@ -315,8 +345,6 @@ repositories:
   Add chart names here as "chart-name" true — membership is explicit, not name-based.
 */}}
 {{- $chartsWithProviderSecrets := dict
-  "self-serve-ui"                 true
-  "self-serve-server"             true
   "clickhouse"                    true
   "mysql"                         true
   "superset-postgres"             true
@@ -335,15 +363,19 @@ repositories:
   "evalm8-ui"                     true
   "self-serve-server"             true
   "self-serve-ui"                 true
+  "self-serve-postgres"           true
 -}}
 
 ###############################################################################
 # 3. Dependency Map
 ###############################################################################
+{{/*
+  Keys are unique. They were not: two self-serve blocks lived in this one dict literal, 40 lines
+  apart, so the later silently won and self-serve-ui and self-serve-ingress deployed with no
+  ordering at all — which is what tests/integration/test_self_serve_deployment.py was failing on.
+  The self-serve entries below are the union of both.
+*/}}
 {{- $dependencyMap := dict
-  "self-serve-server"            (list "external-secrets-operator")
-  "self-serve-ui"                (list "self-serve-server" "external-secrets-operator")
-  "self-serve-ingress"           (list "self-serve-ui" "self-serve-server")
   "altinity-clickhouse-operator" (list)
   "clickhouse"                   (list "altinity-clickhouse-operator" "external-secrets-operator" "kafka-cluster" "mysql")
   "external-secrets-operator"    (list)
@@ -382,9 +414,10 @@ repositories:
   "evalm8-wfs"                    (list "temporal" "lakefs" "argilla" "mysql" "external-secrets-operator" "evalm8-server")
   "evalm8-ui"                     (list "evalm8-server")
   "evalm8-ingress"                (list)
-  "self-serve-server"             (list "mysql" "external-secrets-operator" "divyam-router-controller")
-  "self-serve-ui"                 (list)
-  "self-serve-ingress"            (list)
+  "self-serve-postgres"           (list "cloudnative-pg-operator" "external-secrets-operator")
+  "self-serve-server"             (list "mysql" "external-secrets-operator" "divyam-router-controller" "self-serve-postgres")
+  "self-serve-ui"                 (list "self-serve-server" "external-secrets-operator")
+  "self-serve-ingress"            (list "self-serve-ui" "self-serve-server")
 
 -}}
 
@@ -407,6 +440,7 @@ repositories:
   "temporal-postgres"            "temporal-postgres-%s-rw"
   "lakefs-postgres"              "lakefs-postgres-%s-rw"
   "argilla-postgres"             "argilla-postgres-%s-rw"
+  "self-serve-postgres"          "self-serve-postgres-%s-rw"
   "argilla-opensearch"           "argilla-opensearch-%s-svc"
   "argilla-redis"                "argilla-redis"
 -}}
@@ -466,6 +500,10 @@ releases:
   {{- if hasKey ($rawCfg | default dict) "enabled" }}{{- $enabled = (index ($rawCfg | default dict) "enabled") }}{{- end }}
   {{- /* Stack selector gate: a chart not in the selected stack is treated as disabled. */ -}}
   {{- if not (index $stackEnabled $name) }}{{- $enabled = false }}{{- end }}
+  {{- /* self-serve-postgres is the in-cluster FALLBACK for the switch database, so an environment
+         that declares a host (Cloud SQL) does not also get a Postgres nobody connects to. The same
+         declaration is what self-serve-server is pointed at below, so the two cannot disagree. */ -}}
+  {{- if hasKey $forceDisabled $name }}{{- $enabled = false }}{{- end }}
   {{- if $enabled }}
 
     {{/* Optional per-chart override: `<chart>.chart.repository` (oci:// base or local dir) wins over the
@@ -510,6 +548,7 @@ releases:
       {{- $depEnabled := true }}
       {{- if hasKey $depRaw "enabled" }}{{- $depEnabled = (index $depRaw "enabled") }}{{- end }}
       {{- if not (index $stackEnabled $depName) }}{{- $depEnabled = false }}{{- end }}
+      {{- if hasKey $forceDisabled $depName }}{{- $depEnabled = false }}{{- end }}
       {{- if $depEnabled }}
 
         {{- $depNs := include "namespace" (dict
@@ -576,6 +615,7 @@ releases:
       {{- $depEnabled := true }}
       {{- if hasKey $depRaw "enabled" }}{{- $depEnabled = (index $depRaw "enabled") }}{{- end }}
       {{- if not (index $stackEnabled $dep) }}{{- $depEnabled = false }}{{- end }}
+      {{- if hasKey $forceDisabled $dep }}{{- $depEnabled = false }}{{- end }}
       {{- if $depEnabled }}
 
         {{- $depNs := include "namespace" (dict
@@ -657,6 +697,34 @@ releases:
     {{- if and (eq $name "divyam-persistent-storage") ($settings.storage_class) }}
     - storageClasses:
         default: {{ $settings.storage_class }}
+    {{- end }}
+
+    {{- if eq $name "self-serve-server" }}
+    {{- /* The switch database address. Only the helmfile knows it when it is in-cluster, because
+           only the helmfile knows which namespace and Service the self-serve-postgres release
+           produced — the same reason mysql_integration exists below. A declared host (provider.yaml
+           `databases.self-serve-postgres.host`, or this chart's own `database.host`) is carried
+           through unchanged, so an environment on Cloud SQL is unaffected.
+
+           Only host and port are emitted. `name`, `username` and `connection` stay chart/env values:
+           they are application facts, not deployment topology, and writing them here would override
+           what an environment already declares. Keep them in step with the self-serve-postgres
+           chart's `databases.bootstrap` and `role.name`. */}}
+    {{- $ssPgNs := include "namespace" (dict
+        "namespace" (dig "self-serve-postgres" "namespace" nil $values.charts)
+        "name" "self-serve-postgres"
+        "env" $env
+        "namespaceGroupMap" $namespaceGroupMap
+    ) }}
+    {{- $ssPgSvc := include "serviceName" (dict
+        "service" (dig "self-serve-postgres" "values" "service" dict $values.charts)
+        "name" "self-serve-postgres"
+        "env" $env
+        "serviceOverrideMap" $serviceOverrideMap
+    ) }}
+    - database:
+        host: {{ $selfServeDbHost | default (printf "%s.%s.%s" $ssPgSvc $ssPgNs $clusterDomain | trimSuffix ".") }}
+        port: {{ $values | dig "databases" "self-serve-postgres" "port" 5432 }}
     {{- end }}
 
     {{- $mysqlNs := include "namespace" (dict
