@@ -387,6 +387,10 @@ locals {
     create                        = local.self_serve_in_stack
     create_private_service_access = false
     instance_name                 = "${local.deployment_prefix}-cloudsql-pg"
+    database_version              = "POSTGRES_16"
+    tier                          = "db-f1-micro"
+    # ENTERPRISE required for the shared-core db-f1-micro tier; ENTERPRISE_PLUS rejects it.
+    edition = "ENTERPRISE"
   }
 
   # --- Terraform outputs file for Helm ---

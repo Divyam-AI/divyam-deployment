@@ -15,6 +15,24 @@ variable "instance_name" {
   type        = string
 }
 
+variable "database_version" {
+  description = "The Postgres database version for the Cloud SQL instance"
+  type        = string
+  default     = "POSTGRES_16"
+}
+
+variable "tier" {
+  description = "The machine tier for the Cloud SQL instance"
+  type        = string
+  default     = "db-f1-micro"
+}
+
+variable "edition" {
+  description = "The Cloud SQL edition. ENTERPRISE is required for shared-core tiers (db-f1-micro); ENTERPRISE_PLUS rejects them."
+  type        = string
+  default     = "ENTERPRISE"
+}
+
 variable "project_id" {
   description = "The GCP Project to deploy the Cloud SQL instance in"
   type        = string

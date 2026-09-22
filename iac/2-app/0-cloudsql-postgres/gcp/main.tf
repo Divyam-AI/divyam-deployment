@@ -23,14 +23,14 @@ resource "google_sql_database_instance" "default" {
   count            = var.create ? 1 : 0
   depends_on       = [google_service_networking_connection.private_vpc_connection]
   name             = var.instance_name
-  database_version = "POSTGRES_16"
+  database_version = var.database_version
   project          = var.project_id
   region           = var.region
 
   settings {
-    # Postgres defaults to ENTERPRISE_PLUS, which rejects shared-core tiers; pin ENTERPRISE for db-f1-micro.
-    tier    = "db-f1-micro"
-    edition = "ENTERPRISE"
+    # Postgres defaults to ENTERPRISE_PLUS, which rejects shared-core tiers; ENTERPRISE is required for db-f1-micro.
+    tier    = var.tier
+    edition = var.edition
     user_labels = {
       for k, v in local.rendered_tags : k => v
     }
