@@ -131,6 +131,15 @@ locals {
       namespace_prefix = "self-serve"
       roles            = ["secret_reader"]
     }
+    # The in-cluster switch database. Its ServiceAccount is what the chart's SecretStore
+    # authenticates as to read the owner password it bootstraps CNPG with — the same remote key
+    # the server reads as SWITCH_DB_PASSWORD, which is the only thing keeping the two in step.
+    # Created even where the database is Cloud SQL and the chart is skipped: an unbound identity
+    # costs nothing, and gating it on a value this module does not see would be guesswork.
+    self-serve-postgres = {
+      namespace_prefix = "self-serve"
+      roles            = ["secret_reader"]
+    }
   }
 
   self_serve_in_stack = var.stack == "all" || contains([for s in split(",", var.stack) : trimspace(s)], "self-serve")

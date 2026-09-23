@@ -24,6 +24,8 @@ class SelfServeDeploymentTests(unittest.TestCase):
                 "provider.yaml": {"environment": "preprod", "stack": "self-serve", "deployment_mode": "managed", "clusterDomain": "svc.cluster.local",
                     "platform": {"provider": "GCP", "gcp": {"secretsProjectId": "test-project"}},
                     "imagePullSecretConfig": {"enabled": False}, "ingress": {"deploy": True},
+                    # This environment ships no self-serve-postgres, so it has to say where its database is.
+                    "databases": {"self-serve-postgres": {"host": "10.25.0.12"}},
                     "secrets": {"provider": "OPENBAO", "openbao": {"addr": "http://global"}}},
                 "artifacts.yaml": {"chartBasePath": str(ROOT.parent / "divyam-helm-charts/charts"),
                     "self-serve-server": {"values": {}}, "self-serve-ui": {"values": {}},
@@ -63,6 +65,137 @@ class SelfServeDeploymentTests(unittest.TestCase):
             self.assertIn("self-serve-preprod-ns/self-serve-server-preprod", ui["needs"])
             dependencies = next(value["dependencies"] for value in ui["values"] if "dependencies" in value)
             self.assertEqual(dependencies["self-serve-server"], "self-serve-server-private-preprod-svc.self-serve-preprod-ns.svc.cluster.local")
+
+    def _build(self, fixtures):
+        """Render the real Helmfile against a throwaway values directory and return releases by name."""
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            for filename, content in fixtures.items():
+                (folder / filename).write_text(yaml.safe_dump(content))
+            env = {**os.environ, "HELMFILE_VALUES_DIR": directory}
+            env.pop("ARTIFACTS_CHANNEL", None)
+            env.pop("ARTIFACTS_VERSION", None)
+            result = subprocess.run([
+                os.environ.get("HELMFILE_BIN", "helmfile"), "--helm-binary", os.environ.get("HELM_BIN", "helm"),
+                "--file", str(ROOT / "k8s/helmfile.yaml.gotmpl"), "build",
+            ], cwd=ROOT / "k8s", env=env, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            documents = list(yaml.safe_load_all(result.stdout))
+            releases = [release for document in documents if document for release in document.get("releases", [])]
+            return {release["name"]: release for release in releases}
+
+    @staticmethod
+    def _values(release):
+        merged = {}
+        for block in release["values"]:
+            merged.update(block)
+        return merged
+
+    def _switch_fixtures(self, **provider_extra):
+        """A self-serve-only environment with nothing said about its database."""
+        provider = {
+            "environment": "preprod", "stack": "self-serve", "deployment_mode": "managed",
+            "clusterDomain": "svc.cluster.local",
+            "platform": {"provider": "GCP", "gcp": {"secretsProjectId": "test-project"}},
+            "imagePullSecretConfig": {"enabled": False}, "ingress": {"deploy": True},
+            "secrets": {"provider": "OPENBAO", "openbao": {"addr": "http://global"}},
+        }
+        provider.update(provider_extra)
+        return {
+            "provider.yaml": provider,
+            "artifacts.yaml": {
+                "chartBasePath": str(ROOT.parent / "divyam-helm-charts/charts"),
+                "self-serve-server": {"values": {}}, "self-serve-ui": {"values": {}},
+                "self-serve-postgres": {"values": {}},
+                "cloudnative-pg-operator": {"values": {}},
+                "divyam-router-controller": {"values": {}}, "mysql": {"enabled": False, "values": {}},
+            },
+            "resources.yaml": {"settings": {}, "charts": {}},
+        }
+
+    def test_an_undeclared_switch_database_deploys_in_cluster_and_is_pointed_at(self):
+        """No declared host: self-serve-postgres comes up and the server gets its CNPG read-write Service."""
+        by_name = self._build(self._switch_fixtures())
+        self.assertIn("self-serve-postgres-preprod", by_name)
+        self.assertEqual(by_name["self-serve-postgres-preprod"]["namespace"], "self-serve-preprod-ns")
+        # The operator has to be selected even though its namespace group belongs to evalm8.
+        self.assertIn("cloudnative-pg-operator-preprod", by_name)
+        self.assertIn(
+            "cnpg-operator-preprod-ns/cloudnative-pg-operator-preprod",
+            by_name["self-serve-postgres-preprod"]["needs"],
+        )
+        server = by_name["self-serve-server-preprod"]
+        self.assertIn("self-serve-preprod-ns/self-serve-postgres-preprod", server["needs"])
+        self.assertEqual(
+            self._values(server)["database"],
+            {"host": "self-serve-postgres-preprod-rw.self-serve-preprod-ns.svc.cluster.local", "port": 5432},
+        )
+
+    def test_a_declared_switch_database_skips_the_chart_and_leaves_no_dangling_need(self):
+        """Cloud SQL: the chart is not deployed, the declared host is used, and nothing needs the absent release."""
+        by_name = self._build(self._switch_fixtures(
+            databases={"self-serve-postgres": {"host": "10.25.0.12", "port": 5433}}))
+        self.assertNotIn("self-serve-postgres-preprod", by_name)
+        server = by_name["self-serve-server-preprod"]
+        self.assertEqual(self._values(server)["database"], {"host": "10.25.0.12", "port": 5433})
+        # A need on a release that was never rendered is an undefined-release error, not a dropped edge.
+        self.assertNotIn("self-serve-preprod-ns/self-serve-postgres-preprod", server.get("needs", []))
+
+    def test_a_host_declared_the_old_way_on_the_chart_still_wins(self):
+        """preprod sets database.host in its own config.yaml; that predates the provider.yaml key and must keep working."""
+        fixtures = self._switch_fixtures()
+        fixtures["resources.yaml"]["charts"]["self-serve-server"] = {
+            "values": {"database": {"connection": "tcp", "host": "10.25.0.12"}}}
+        by_name = self._build(fixtures)
+        self.assertNotIn("self-serve-postgres-preprod", by_name)
+        self.assertEqual(self._values(by_name["self-serve-server-preprod"])["database"]["host"], "10.25.0.12")
+
+    def test_self_serve_selects_the_kafka_the_billing_worker_publishes_to(self):
+        """kafka's namespace group belongs to router, but `stack: self-serve` still has to bring the broker."""
+        fixtures = self._switch_fixtures()
+        fixtures["artifacts.yaml"]["kafka-cluster"] = {"values": {}}
+        fixtures["artifacts.yaml"]["strimzi-kafka-operator"] = {"values": {}}
+        by_name = self._build(fixtures)
+        self.assertIn("kafka-cluster-preprod", by_name)
+        self.assertIn("strimzi-kafka-operator-preprod", by_name)
+        server = by_name["self-serve-server-preprod"]
+        self.assertIn("kafka-preprod-ns/kafka-cluster-preprod", server["needs"])
+        dependencies = next(value["dependencies"] for value in server["values"] if "dependencies" in value)
+        self.assertEqual(
+            dependencies["kafka-cluster"],
+            "kafka-preprod-kafka-bootstrap.kafka-preprod-ns.svc.cluster.local",
+        )
+
+    def test_an_evalm8_only_stack_does_not_pull_kafka_in(self):
+        """Borrowing is per-stack: evalm8 has no use for a broker and must not get one."""
+        fixtures = self._switch_fixtures()
+        fixtures["provider.yaml"]["stack"] = "evalm8"
+        fixtures["artifacts.yaml"]["kafka-cluster"] = {"values": {}}
+        fixtures["artifacts.yaml"]["strimzi-kafka-operator"] = {"values": {}}
+        self.assertNotIn("kafka-cluster-preprod", self._build(fixtures))
+
+    def test_no_database_anywhere_fails_at_render_time(self):
+        """No declared host and no self-serve-postgres release: the fallback would name a Service nobody creates."""
+        fixtures = self._switch_fixtures()
+        del fixtures["artifacts.yaml"]["self-serve-postgres"]
+        with self.assertRaises(AssertionError) as raised:
+            self._build(fixtures)
+        self.assertIn("self-serve-server has no database", str(raised.exception))
+
+    def test_a_port_declared_on_the_chart_is_not_overwritten(self):
+        """The helmfile's database block is emitted last, so it has to read the chart's own port too."""
+        fixtures = self._switch_fixtures()
+        fixtures["resources.yaml"]["charts"]["self-serve-server"] = {"values": {"database": {"port": 6432}}}
+        self.assertEqual(self._values(self._build(fixtures)["self-serve-server-preprod"])["database"]["port"], 6432)
+
+    def test_a_renamed_cluster_moves_the_read_write_service(self):
+        """CNPG derives <cluster>-rw from the Cluster CR's name, not from the release name."""
+        fixtures = self._switch_fixtures()
+        fixtures["resources.yaml"]["charts"]["self-serve-postgres"] = {"values": {"cluster": {"name": "switch-db"}}}
+        self.assertEqual(
+            self._values(self._build(fixtures)["self-serve-server-preprod"])["database"]["host"],
+            "switch-db-rw.self-serve-preprod-ns.svc.cluster.local",
+        )
 
     def test_identity_module_matches_the_chart_namespace(self):
         """Evaluate stack gating and the workload-identity namespace using OpenTofu plans."""
