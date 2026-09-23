@@ -24,6 +24,8 @@ class SelfServeDeploymentTests(unittest.TestCase):
                 "provider.yaml": {"environment": "preprod", "stack": "self-serve", "deployment_mode": "managed", "clusterDomain": "svc.cluster.local",
                     "platform": {"provider": "GCP", "gcp": {"secretsProjectId": "test-project"}},
                     "imagePullSecretConfig": {"enabled": False}, "ingress": {"deploy": True},
+                    # This environment ships no self-serve-postgres, so it has to say where its database is.
+                    "databases": {"self-serve-postgres": {"host": "10.25.0.12"}},
                     "secrets": {"provider": "OPENBAO", "openbao": {"addr": "http://global"}}},
                 "artifacts.yaml": {"chartBasePath": str(ROOT.parent / "divyam-helm-charts/charts"),
                     "self-serve-server": {"values": {}}, "self-serve-ui": {"values": {}},
@@ -147,6 +149,53 @@ class SelfServeDeploymentTests(unittest.TestCase):
         by_name = self._build(fixtures)
         self.assertNotIn("self-serve-postgres-preprod", by_name)
         self.assertEqual(self._values(by_name["self-serve-server-preprod"])["database"]["host"], "10.25.0.12")
+
+    def test_self_serve_selects_the_kafka_the_billing_worker_publishes_to(self):
+        """kafka's namespace group belongs to router, but `stack: self-serve` still has to bring the broker."""
+        fixtures = self._switch_fixtures()
+        fixtures["artifacts.yaml"]["kafka-cluster"] = {"values": {}}
+        fixtures["artifacts.yaml"]["strimzi-kafka-operator"] = {"values": {}}
+        by_name = self._build(fixtures)
+        self.assertIn("kafka-cluster-preprod", by_name)
+        self.assertIn("strimzi-kafka-operator-preprod", by_name)
+        server = by_name["self-serve-server-preprod"]
+        self.assertIn("kafka-preprod-ns/kafka-cluster-preprod", server["needs"])
+        dependencies = next(value["dependencies"] for value in server["values"] if "dependencies" in value)
+        self.assertEqual(
+            dependencies["kafka-cluster"],
+            "kafka-preprod-kafka-bootstrap.kafka-preprod-ns.svc.cluster.local",
+        )
+
+    def test_an_evalm8_only_stack_does_not_pull_kafka_in(self):
+        """Borrowing is per-stack: evalm8 has no use for a broker and must not get one."""
+        fixtures = self._switch_fixtures()
+        fixtures["provider.yaml"]["stack"] = "evalm8"
+        fixtures["artifacts.yaml"]["kafka-cluster"] = {"values": {}}
+        fixtures["artifacts.yaml"]["strimzi-kafka-operator"] = {"values": {}}
+        self.assertNotIn("kafka-cluster-preprod", self._build(fixtures))
+
+    def test_no_database_anywhere_fails_at_render_time(self):
+        """No declared host and no self-serve-postgres release: the fallback would name a Service nobody creates."""
+        fixtures = self._switch_fixtures()
+        del fixtures["artifacts.yaml"]["self-serve-postgres"]
+        with self.assertRaises(AssertionError) as raised:
+            self._build(fixtures)
+        self.assertIn("self-serve-server has no database", str(raised.exception))
+
+    def test_a_port_declared_on_the_chart_is_not_overwritten(self):
+        """The helmfile's database block is emitted last, so it has to read the chart's own port too."""
+        fixtures = self._switch_fixtures()
+        fixtures["resources.yaml"]["charts"]["self-serve-server"] = {"values": {"database": {"port": 6432}}}
+        self.assertEqual(self._values(self._build(fixtures)["self-serve-server-preprod"])["database"]["port"], 6432)
+
+    def test_a_renamed_cluster_moves_the_read_write_service(self):
+        """CNPG derives <cluster>-rw from the Cluster CR's name, not from the release name."""
+        fixtures = self._switch_fixtures()
+        fixtures["resources.yaml"]["charts"]["self-serve-postgres"] = {"values": {"cluster": {"name": "switch-db"}}}
+        self.assertEqual(
+            self._values(self._build(fixtures)["self-serve-server-preprod"])["database"]["host"],
+            "switch-db-rw.self-serve-preprod-ns.svc.cluster.local",
+        )
 
     def test_identity_module_matches_the_chart_namespace(self):
         """Evaluate stack gating and the workload-identity namespace using OpenTofu plans."""

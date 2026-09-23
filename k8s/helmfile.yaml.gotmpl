@@ -168,6 +168,14 @@ repositories:
 {{- end }}
 {{- $selfServeDbDeclared := ne $selfServeDbHost "" }}
 
+{{/* The port resolves the same two ways as the host, and in the same order. Reading only
+     provider.yaml here would silently overwrite a port an environment set on the chart in its own
+     config.yaml, because this block is emitted after that chart's values. */}}
+{{- $selfServeDbPort := $values | dig "databases" "self-serve-postgres" "port" 0 }}
+{{- if not $selfServeDbPort }}
+  {{- $selfServeDbPort = $values | dig "charts" "self-serve-server" "values" "database" "port" 5432 }}
+{{- end }}
+
 {{/* Charts switched off by something other than the `enabled` key or the stack selector. Read in
      all three places a chart's enablement is decided — the release gate, the `needs` list and the
      dependency DNS map — because a need pointing at a release that was never rendered is an
@@ -275,6 +283,19 @@ repositories:
 -}}
 
 {{/*
+  Charts one stack borrows from another stack's group. The group map gives each group a single
+  owning stack; kafka is owned by router, but the self-serve billing worker publishes to it and
+  reads the broker address out of `dependencies."kafka-cluster"`, so `stack: self-serve` has to
+  bring the broker — and the operator that reconciles it — along. Values are the extra stacks that
+  select the chart, on top of its own. Not $sharedCharts: an evalm8-only cluster still has no use
+  for kafka.
+*/}}
+{{- $borrowedCharts := dict
+  "strimzi-kafka-operator"      (list "self-serve")
+  "kafka-cluster"               (list "self-serve")
+-}}
+
+{{/*
   Per-chart stack membership. A chart is selected when the selection is "all", when it is a shared
   chart, or when the stack owning its namespace group is in the selection. Each group belongs to
   exactly one stack; a cluster composes by naming several. A chart's group is
@@ -287,6 +308,9 @@ repositories:
   {{- if hasKey $evalm8Groups $grp }}{{- $grpStack = "evalm8" }}
   {{- else if hasKey $selfServeGroups $grp }}{{- $grpStack = "self-serve" }}{{- end }}
   {{- $sel := or $allStacks (hasKey $sharedCharts $cName) (has $grpStack $stacks) }}
+  {{- range $borrowStack := (index $borrowedCharts $cName | default (list)) }}
+    {{- if has $borrowStack $stacks }}{{- $sel = true }}{{- end }}
+  {{- end }}
   {{- $_ := set $stackEnabled $cName $sel }}
 {{- end }}
 
@@ -722,9 +746,26 @@ releases:
         "env" $env
         "serviceOverrideMap" $serviceOverrideMap
     ) }}
+    {{- /* CNPG derives the read-write Service from the Cluster CR's name, not from the release, so
+           an environment that renames the cluster (`self-serve-postgres.values.cluster.name`) moves
+           the Service with it. The serviceOverrideMap entry above is that chart's own default. */ -}}
+    {{- $ssPgCluster := $values | dig "charts" "self-serve-postgres" "values" "cluster" "name" "" }}
+    {{- if $ssPgCluster }}{{- $ssPgSvc = printf "%s-rw" $ssPgCluster }}{{- end }}
+    {{- /* Nothing to point at: no host declared in either place AND no self-serve-postgres release
+           in this environment — absent from artifacts.yaml, `enabled: false`, or outside the
+           selected stack. The fallback below would then name a Service nobody creates, and the
+           `needs` edge on it is dropped rather than raised, so neither helmfile nor the release
+           complains. Say it here instead. */ -}}
+    {{- $ssPgRaw := index $values.charts "self-serve-postgres" | default dict }}
+    {{- $ssPgEnabled := hasKey $values.charts "self-serve-postgres" }}
+    {{- if hasKey $ssPgRaw "enabled" }}{{- $ssPgEnabled = (index $ssPgRaw "enabled") }}{{- end }}
+    {{- if not (index $stackEnabled "self-serve-postgres") }}{{- $ssPgEnabled = false }}{{- end }}
+    {{- if not (or $selfServeDbDeclared $ssPgEnabled) }}
+    {{- fail "ERROR: self-serve-server has no database. Declare 'databases.self-serve-postgres.host' in provider.yaml (or 'charts.self-serve-server.values.database.host'), or ship the self-serve-postgres chart in this environment's artifacts so it is deployed in-cluster." }}
+    {{- end }}
     - database:
         host: {{ $selfServeDbHost | default (printf "%s.%s.%s" $ssPgSvc $ssPgNs $clusterDomain | trimSuffix ".") }}
-        port: {{ $values | dig "databases" "self-serve-postgres" "port" 5432 }}
+        port: {{ $selfServeDbPort }}
     {{- end }}
 
     {{- $mysqlNs := include "namespace" (dict
