@@ -1,0 +1,202 @@
+# 1.0.1-nightly.20260923.1
+#
+# Hand-seeded, not pipeline-produced -- `build_id: manually seeded`, which VERSIONING.md
+# allows for exactly this.
+#
+# Taken whole from the preprod set rather than bumped off the previous nightly. That nightly
+# is 1.0.1-nightly.20260817.1, five weeks old, and the components in it do not work together
+# any more: router 0.1.213 refuses the eval create, route_selector 0.1.80 has no bundle-import
+# endpoint, and 0.1.101 will not start under the bundle's older chart. Pinning around it one
+# component at a time does not converge. Preprod's set is coherent and running, so it is the
+# base, and it is newer on all 38 charts the old nightly carried.
+#
+# New here: the self-serve (Divyam Switch) stack. Those charts and images publish to the DEV
+# GAR rather than the public one, so each carries a per-chart repository override -- that
+# override is the only lane change, and no other chart is affected. Promotion is what moves
+# them to the prod registry, at which point the overrides come off.
+#
+# self-serve-postgres is pinned here although preprod does not pin it: a box runs switch
+# against an in-cluster CNPG cluster, where preprod uses an external Postgres.
+release:
+  channel: nightly
+  version: 1.0.1-nightly.20260923.1
+  base: 1.0.1
+  created: '2026-09-23T12:56:52Z'
+  build_id: manually seeded
+  seq: 1
+chartBasePath: oci://asia-south1-docker.pkg.dev/prod-benchmarking/divyam-public-helm-as1
+altinity-clickhouse-operator:
+  chart:
+    version: 0.24.99
+argilla:
+  chart:
+    version: 0.1.7
+argilla-opensearch:
+  chart:
+    version: 0.1.6
+argilla-postgres:
+  chart:
+    version: 0.1.5
+argilla-redis:
+  chart:
+    version: 0.1.7
+clickhouse:
+  chart:
+    version: 0.2.89
+cloudnative-pg-operator:
+  chart:
+    version: 0.2.6
+divyam-control-plane-exporter:
+  chart:
+    version: 0.2.17
+  values:
+    image:
+      tag: 0.1.22
+divyam-db-upgrades:
+  chart:
+    version: 0.1.17
+  values:
+    image:
+      tag: 0.0.46
+divyam-e2e-test-runner:
+  chart:
+    version: 0.1.16
+  values:
+    image:
+      tag: 0.0.37
+divyam-evaluator:
+  chart:
+    version: 0.2.18
+  values:
+    image:
+      tag: 0.1.68
+divyam-persistent-storage:
+  chart:
+    version: 0.2.15
+divyam-redis:
+  chart:
+    version: 0.1.17
+divyam-route-selector:
+  chart:
+    version: 0.1.20
+  values:
+    image:
+      repository: asia-south1-docker.pkg.dev/prod-benchmarking/divyam-docker-dev-as1
+      tag: 0.1.101-dev-main-20260918110418
+divyam-router-controller:
+  chart:
+    version: 0.1.187
+  values:
+    image:
+      tag: 0.1.218
+divyam-router-controller-ingress:
+  chart:
+    version: 0.1.14
+divyam-selector-training:
+  chart:
+    version: 0.0.56
+  values:
+    image:
+      repository: asia-south1-docker.pkg.dev/prod-benchmarking/divyam-docker-dev-as1
+      tag: 0.0.137-dev-main-20260918110921
+evalm8-ingress:
+  chart:
+    version: 0.1.7
+evalm8-server:
+  chart:
+    version: 0.1.7
+  values:
+    image:
+      tag: 0.1.9
+evalm8-ui:
+  chart:
+    version: 0.1.6
+  values:
+    image:
+      tag: 0.1.15
+evalm8-wfs:
+  chart:
+    version: 0.1.8
+  values:
+    image:
+      tag: 0.1.8
+external-secrets-operator:
+  chart:
+    version: 2.10.0
+infinity:
+  chart:
+    version: 0.0.111
+kafka-cluster:
+  chart:
+    version: 0.1.95
+kafka-connect:
+  chart:
+    version: 0.1.66
+lakefs:
+  chart:
+    version: 0.1.8
+lakefs-postgres:
+  chart:
+    version: 0.1.5
+mysql:
+  chart:
+    version: 0.2.18
+opensearch-operator:
+  chart:
+    version: 0.2.7
+otel-collector:
+  chart:
+    version: 0.1.17
+qdrant:
+  chart:
+    version: 2.0.110
+redis-operator:
+  chart:
+    version: 0.24.107
+self-serve-ingress:
+  chart:
+    version: 0.1.0-dev-main.20260918104956
+    repository: oci://asia-south1-docker.pkg.dev/prod-benchmarking/divyam-helm-dev-as1
+self-serve-postgres:
+  chart:
+    version: 0.1.0-dev-main.20260923125110
+    repository: oci://asia-south1-docker.pkg.dev/prod-benchmarking/divyam-helm-dev-as1
+self-serve-server:
+  chart:
+    version: 0.1.0-dev-main.20260923125104
+    repository: oci://asia-south1-docker.pkg.dev/prod-benchmarking/divyam-helm-dev-as1
+  values:
+    image:
+      repository: asia-south1-docker.pkg.dev/prod-benchmarking/divyam-docker-dev-as1
+      tag: 0.1.0.dev5-main.275c3c2
+      pullPolicy: IfNotPresent
+self-serve-ui:
+  chart:
+    version: 0.1.0-dev-main.20260918105008
+    repository: oci://asia-south1-docker.pkg.dev/prod-benchmarking/divyam-helm-dev-as1
+  values:
+    image:
+      repository: asia-south1-docker.pkg.dev/prod-benchmarking/divyam-docker-dev-as1
+      tag: 0.1.1.dev71-main.b3f3c8f
+      pullPolicy: IfNotPresent
+strimzi-kafka-operator:
+  chart:
+    version: 0.45.102
+superset:
+  chart:
+    version: 0.15.14
+superset-ingress:
+  chart:
+    version: 0.0.79
+superset-postgres:
+  chart:
+    version: 0.1.14
+tei:
+  chart:
+    version: 0.0.2
+temporal:
+  chart:
+    version: 0.1.8
+temporal-postgres:
+  chart:
+    version: 0.1.6
