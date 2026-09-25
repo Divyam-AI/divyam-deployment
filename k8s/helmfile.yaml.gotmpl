@@ -182,6 +182,12 @@ repositories:
      "undefined release" error, not a dropped edge. */}}
 {{- $forceDisabled := dict }}
 {{- if $selfServeDbDeclared }}{{- $_ := set $forceDisabled "self-serve-postgres" true }}{{- end }}
+{{- /* self-serve-ingress is implemented for GCP and AZURE only: its validate.yaml fails the install on
+       any other platform whenever ingress.deploy is on, which it is globally in a sandbox. Off by
+       platform here, so a MICROK8S/k3d environment need not remember to disable it by name (they
+       reach the UI through self-serve-ui's own public Service instead). */}}
+{{- $platformProvider := dig "platform" "provider" "" $values.global | upper }}
+{{- if not (has $platformProvider (list "GCP" "AZURE")) }}{{- $_ := set $forceDisabled "self-serve-ingress" true }}{{- end }}
 
 ###############################################################################
 # 2. Namespace Group Map
