@@ -1,4 +1,4 @@
-# GKE cluster (1-platform). Config from values/defaults.hcl k8s. VNet/subnet by name; service/pod CIDRs from vnet config (GCP API has no single VPC address_space).
+# GKE cluster (1-platform). Config from values/defaults.hcl k8s. VNet/subnet by name; pod/service CIDRs from k8s config, or left to GKE when unset.
 
 include "root" {
   path   = find_in_parent_folders("root.hcl")
@@ -11,7 +11,9 @@ dependency "app_gw" {
     load_balancer_ip = ""
     cloud_armor_policy_id = null
   }
-  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply", "import", "force-unlock"]
+  # "destroy" included: tearing this unit down still resolves the dependency, and 0-app_gw has no
+  # state, so without a mock the destroy aborts on "detected no outputs".
+  mock_outputs_allowed_terraform_commands = ["init", "validate", "plan", "apply", "destroy", "import", "force-unlock"]
 }
 
 terraform {
@@ -27,7 +29,7 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = ">= 5.0.0"
+      version = ">= 7.0.0"
     }
   }
 }
@@ -50,24 +52,27 @@ locals {
   region  = local.root.region
   datadog_enabled = try(local.root.datadog.enabled, false)
 
-  # K8s pod/services CIDRs from vnet config (GCP VPC has no address_space in API; use config so they don't overlap node/app_gw subnets).
-  vnet_address_space = try(local.vnet.address_space[0], "10.0.0.0/16")
-  k8s_pod_cidr       = cidrsubnet(local.vnet_address_space, 4, 2)
-  k8s_services_cidr = cidrsubnet(local.vnet_address_space, 4, 3)
-
   # Single cluster: k8s.name; region/vnet from root. enable_autopilot from cloud-agnostic node_provisioning_mode ("Auto" = Autopilot).
   cluster_config = {
     region                    = local.region
     release_channel           = try(local.k8s.release_channel, "REGULAR")
     enable_autopilot          = try(local.k8s.node_provisioning_mode, "Manual") == "Auto"
     machine_type              = try(local.pools.default.instance_type, "e2-standard-4")
+    use_spot                  = try(local.pools.default.spot_instance, false)
+    enable_cost_allocation    = try(local.k8s.enable_cost_allocation, false)
+    remove_default_node_pool  = try(local.k8s.remove_default_node_pool, false)
+    node_auto_provisioning    = try({
+      max_cpu          = local.k8s.node_auto_provisioning.max_cpu
+      max_memory_gb    = local.k8s.node_auto_provisioning.max_memory_gb
+      max_accelerators = try(local.k8s.node_auto_provisioning.max_accelerators, {})
+    }, null)
     enable_private_nodes      = true
-    enable_private_endpoint   = true
+    enable_private_endpoint   = try(local.k8s.enable_private_endpoint, true)
     network                   = "projects/${local.project}/global/networks/${try(local.vnet.name, "default")}"
     subnetwork                = "projects/${local.project}/regions/${local.region}/subnetworks/${try(local.vnet.subnet.name, "default")}"
     master_authorized_networks_cidr = [for c in try(local.k8s.api_server_authorized_ip_ranges, []) : { cidr_block = c, display_name = c }]
-    cluster_ipv4_cidr        = local.k8s_pod_cidr
-    services_ipv4_cidr       = local.k8s_services_cidr
+    cluster_ipv4_cidr        = try(local.k8s.cluster_ipv4_cidr, null)
+    services_ipv4_cidr       = try(local.k8s.services_ipv4_cidr, null)
     additional_pod_range_names = []
     binauthz_evaluation_mode  = "DISABLED"
     dns_scope  = "CLUSTER_SCOPE"
@@ -93,6 +98,7 @@ inputs = merge(
     enabled               = local.k8s.create
     project_id            = local.project
     region                = local.region
+    location              = try(local.k8s.location, null)
     cluster_name          = local.k8s.create ? null : local.k8s.name
     clusters              = local.k8s.create ? local.clusters_with_links : {}
     additional_node_pools = local.additional_node_pools
