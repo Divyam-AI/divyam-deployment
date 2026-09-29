@@ -38,6 +38,7 @@ variable "clusters" {
     # can be attributed per workload rather than per node.
     enable_cost_allocation = optional(bool, false)
     remove_default_node_pool = optional(bool, false)
+    deletion_protection      = optional(bool, false)
     # Cluster-wide growth cap for node auto-provisioning. Required to enable it on a standard
     # cluster; GKE expresses the cap as total cores and memory, not a node count.
     node_auto_provisioning = optional(object({
