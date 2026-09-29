@@ -253,8 +253,17 @@ locals {
     kubernetes_version = "1.34"
 
     # Use spot/preemptible nodes per pool (GKE: spot; AKS: priority Spot). Set spot_instance = true on each pool that should use spot.
-    # "Auto" = platform-managed nodes (Azure NAP, GKE Autopilot). "Manual" = explicit node pools / VM size.
-    node_provisioning_mode = "Auto" #"Manual"
+    # Cluster mode. The same value means different things per cloud - check before editing.
+    #   Auto    GCP: Autopilot                  | Azure: Standard, auto-provisioned
+    #   Manual  GCP: Standard, auto-provisioned | Azure: Standard, pools from node_pools below
+    # On GCP, Standard turns node auto-provisioning on when node_auto_provisioning is set below;
+    # omit that block for a Standard cluster with only the node pools declared here.
+    node_provisioning_mode = "Manual" # GCP: Standard cluster, pools declared below (NAP off — see node_auto_provisioning)
+
+    # GCP cluster location. A single zone (e.g. asia-south1-c) makes a ZONAL cluster; leave unset/null
+    # for a regional cluster spanning the region. Zonal keeps node counts literal (regional applies
+    # min/max/count per zone) and is what park/unpark (issue #428) uses. Other resources stay regional.
+    location = "asia-south1-a"
 
     # Optional AKS network ranges. Keep them non-overlapping with VNet/subnets.
     # VNet: 10.0.0.0/16 | AKS subnet: 10.0.0.0/21 | App GW subnet: 10.0.8.0/26
@@ -262,20 +271,52 @@ locals {
     dns_service_ip = "170.20.0.10"
     pod_cidr       = null
 
+    # Public control-plane endpoint: CI/CD runs outside the VPC and cannot reach a private one.
+    enable_private_endpoint = false
+
+    # Attribute spend per namespace and workload instead of per node. Only visible once detailed
+    # billing export to BigQuery is configured; the cluster flag alone just emits the labels.
+    enable_cost_allocation = true
+
+    # Drop the implicit multi-zone default pool; the system pool is declared in node_pools.additional.
+    remove_default_node_pool = true
+
+    # Source ranges permitted to reach the API server. Empty leaves it unrestricted; listing
+    # ranges restricts to them.
     api_server_authorized_ip_ranges = []
 
     # NAP NodePool instance families/sizes (list). Override per environment as needed.
     # cpu_instance_types = null
     # gpu_instance_types = null
 
+    # Node auto-provisioning (NAP). Uncomment to enable NAP: GKE then provisions node pools on demand
+    # up to these cluster-wide caps (total cores/memory — GKE has no max-node count). Left off here;
+    # issue #428 runs a single fixed autoscaled spot pool (node_pools.additional) instead of NAP.
+    # GCP only, and only when node_provisioning_mode = "Manual".
+    # node_auto_provisioning = {
+    #   max_cpu       = 200
+    #   max_memory_gb = 800
+    #
+    #   # Accelerator type -> ceiling. Auto-provisioning cannot create GPU nodes for a type with no
+    #   # entry here, however a Pod asks for one.
+    #   max_accelerators = {
+    #     "nvidia-l4" = 4
+    #   }
+    # }
+
     node_pools = {
-      default = {
-        instance_type = local.cloud_provider == "azure" ? "Standard_D4s_v3" : "e2-standard-4"
-        spot_instance = false # system agent should not be spot
-        auto_scaling  = false
-        count         = 2
+      # Single fixed spot pool hosting the whole stack, system pods included (remove_default_node_pool
+      # drops GKE's implicit pool, so this is the only one). No autoscaling: park/unpark (issue #428)
+      # is a pure node-pool resize — park drains it to 0, wake resizes back to count. Zonal cluster
+      # (k8s.location), so count is the literal node total.
+      additional = {
+        spot = {
+          instance_type = "e2-standard-4"
+          spot_instance = true
+          auto_scaling  = false
+          count         = 5
+        }
       }
-      additional = {}
     }
 
     observability = {

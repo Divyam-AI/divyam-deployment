@@ -5,7 +5,7 @@
 data "google_container_cluster" "existing" {
   count    = var.enabled ? 0 : 1
   name     = var.cluster_name
-  location = var.region
+  location = coalesce(var.location, var.region)
   project  = var.project_id
 }
 
@@ -45,17 +45,26 @@ locals {
 resource "google_container_cluster" "gke_cluster" {
   for_each = var.enabled ? var.clusters : {}
   name     = each.key
-  location = var.region
+  location = coalesce(var.location, var.region)
 
   deletion_protection = false
 
-  initial_node_count = each.value.enable_autopilot ? 1 : 1
-  enable_autopilot   = each.value.enable_autopilot
+  initial_node_count = 1
+  # Autopilot manages its own nodes, so there is no default pool to remove. Sent as null rather
+  # than false for the same reason as enable_autopilot below: the conflict check fires on the
+  # attribute being present, whatever it is set to.
+  remove_default_node_pool = each.value.enable_autopilot ? null : each.value.remove_default_node_pool
+  # null rather than false: the provider rejects enable_autopilot alongside cluster_autoscaling
+  # whenever the attribute is present at all, regardless of its value.
+  enable_autopilot = each.value.enable_autopilot ? true : null
 
   resource_labels = local.rendered_tags_for_cluster[each.key]
 
+  # Describes the default pool GKE creates at cluster creation. Omitted when that pool is being
+  # removed: the block would otherwise keep drifting against a pool that no longer exists, and
+  # oauth_scopes is replace-only, so the drift reads as "recreate the cluster".
   dynamic "node_config" {
-    for_each = each.value.enable_autopilot ? [] : [1]
+    for_each = each.value.enable_autopilot || each.value.remove_default_node_pool ? [] : [1]
     content {
       machine_type = each.value.machine_type
       disk_size_gb = 100
@@ -64,7 +73,47 @@ resource "google_container_cluster" "gke_cluster" {
         "https://www.googleapis.com/auth/cloud-platform"
       ]
       labels = local.rendered_tags_for_cluster[each.key]
+
+      # Serves the KSA token that workload_identity_config above federates. Without it a pod falls
+      # back to the node's service account, which is the wrong identity, not a failure to authenticate.
+      workload_metadata_config {
+        mode = "GKE_METADATA"
+      }
     }
+  }
+
+  # Node auto-provisioning. Autopilot manages this itself, so it is set only for standard clusters.
+  # Pods drive it directly: a Pod selecting cloud.google.com/gke-spot (plus the matching toleration)
+  # gets a spot pool, one selecting cloud.google.com/gke-accelerator gets a GPU pool. No default
+  # ComputeClass, so nothing lands on spot or on-demand without having asked for it.
+  dynamic "cluster_autoscaling" {
+    for_each = !each.value.enable_autopilot && each.value.node_auto_provisioning != null ? [1] : []
+    content {
+      enabled                       = true
+      default_compute_class_enabled = false
+      # Pack pods tighter and scale nodes down sooner; the point of auto-provisioning here is cost.
+      autoscaling_profile = "OPTIMIZE_UTILIZATION"
+
+      resource_limits {
+        resource_type = "cpu"
+        maximum       = each.value.node_auto_provisioning.max_cpu
+      }
+      resource_limits {
+        resource_type = "memory"
+        maximum       = each.value.node_auto_provisioning.max_memory_gb
+      }
+      dynamic "resource_limits" {
+        for_each = each.value.node_auto_provisioning.max_accelerators
+        content {
+          resource_type = resource_limits.key
+          maximum       = resource_limits.value
+        }
+      }
+    }
+  }
+
+  cost_management_config {
+    enabled = each.value.enable_cost_allocation
   }
 
   release_channel {
@@ -97,18 +146,32 @@ resource "google_container_cluster" "gke_cluster" {
     master_ipv4_cidr_block  = null
   }
 
-  master_authorized_networks_config {
-    dynamic "cidr_blocks" {
-      for_each = each.value.master_authorized_networks_cidr
-      content {
-        cidr_block   = cidr_blocks.value.cidr_block
-        display_name = cidr_blocks.value.display_name
+  # Omitted when no ranges are given. An empty block is not "unrestricted" — it means authorized
+  # networks are on with nothing permitted, which locks every caller out of the API server.
+  dynamic "master_authorized_networks_config" {
+    for_each = length(each.value.master_authorized_networks_cidr) > 0 ? [1] : []
+    content {
+      dynamic "cidr_blocks" {
+        for_each = each.value.master_authorized_networks_cidr
+        content {
+          cidr_block   = cidr_blocks.value.cidr_block
+          display_name = cidr_blocks.value.display_name
+        }
       }
     }
   }
 
   binary_authorization {
     evaluation_mode = each.value.binauthz_evaluation_mode
+  }
+
+  # Workload Identity Federation. Not optional: 2-app/1-iam_bindings grants
+  # roles/iam.workloadIdentityUser to serviceAccount:<project>.svc.id.goog[<ns>/<ksa>], and that
+  # principal only exists once the cluster declares the pool. Without it every token exchange 404s,
+  # so External Secrets cannot reach Secret Manager and no chart that reads a secret can start.
+  # The pool name is fixed by GCP — derived, never configurable, so it cannot drift from the bindings.
+  workload_identity_config {
+    workload_pool = "${var.project_id}.svc.id.goog"
   }
 
   lifecycle {
@@ -126,7 +189,7 @@ resource "google_container_cluster" "gke_cluster" {
 resource "google_container_node_pool" "additional" {
   for_each   = local.additional_pool_key
   cluster    = google_container_cluster.gke_cluster[each.value.cluster_key].name
-  location   = var.region
+  location   = coalesce(var.location, var.region)
   name       = each.value.pool_key
   node_count = var.additional_node_pools[each.value.pool_key].auto_scaling ? null : var.additional_node_pools[each.value.pool_key].node_count
 
@@ -149,6 +212,10 @@ resource "google_container_node_pool" "additional" {
       var.additional_node_pools[each.value.pool_key].node_labels,
       local.rendered_tags_for_pool[each.key]
     )
+
+    workload_metadata_config {
+      mode = "GKE_METADATA"
+    }
     dynamic "taint" {
       for_each = local.taints_parsed[each.key]
       content {
@@ -157,5 +224,12 @@ resource "google_container_node_pool" "additional" {
         effect = taint.value.effect
       }
     }
+  }
+
+  # node_count is resized out of band (a fixed pool is scaled to 0 and back to
+  # park/wake the cluster), so a routine apply must not read that as drift and
+  # revert it. An autoscaling pool has node_count = null, so ignoring it is a no-op.
+  lifecycle {
+    ignore_changes = [node_count]
   }
 }
