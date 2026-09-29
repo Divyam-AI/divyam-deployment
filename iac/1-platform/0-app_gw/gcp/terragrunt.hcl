@@ -82,3 +82,8 @@ inputs = {
   network_name          = local.network_name
   app_gw_subnet_name    = local.app_gw_subnet_name
 }
+
+exclude {
+  if      = !local.lb_enabled
+  actions = ["apply", "plan", "destroy", "refresh", "import"]
+}
