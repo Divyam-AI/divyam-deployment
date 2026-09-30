@@ -169,7 +169,7 @@ prints the fix: `make iac -- unlock -l <layer1.layer2> -- <lock-id>`. API-enable
   change* even though the config value differs, and the instance is silently created with the wrong
   password while the matching Secret-Manager secret holds the intended one. The tell is a `google_sql_user`
   that plans clean but fails live auth; unsetting the `TF_VAR_divyam_db_*` names flips the plan to "will
-  update". Give a new unit its own variable names (here `divyam_selfserve_pg_*`) so they map to
+  update". Give a new unit its own variable names (here `divyam_switch_pg_*`) so they map to
   purpose-specific `TF_VAR_*` that nothing else sets.
 
 ## Phase 2 — deploy the stack (`k8s/`, Helmfile)
