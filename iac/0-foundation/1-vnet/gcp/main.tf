@@ -92,3 +92,23 @@ resource "google_compute_shared_vpc_service_project" "service_projects" {
   host_project    = var.vnet.scope_name
   service_project = each.key
 }
+
+# --- GCP private service access (Cloud SQL private IP peering) ---
+resource "google_compute_global_address" "private_service_access" {
+  count = var.vnet.private_service_access.create ? 1 : 0
+
+  name          = "google-managed-services-${var.vnet.name}"
+  purpose       = "VPC_PEERING"
+  address_type  = "INTERNAL"
+  prefix_length = var.vnet.private_service_access.prefix_length
+  network       = local.network_id
+  project       = var.vnet.scope_name
+}
+
+resource "google_service_networking_connection" "private_service_access" {
+  count = var.vnet.private_service_access.create ? 1 : 0
+
+  network                 = local.network_id
+  service                 = "servicenetworking.googleapis.com"
+  reserved_peering_ranges = [google_compute_global_address.private_service_access[0].name]
+}
