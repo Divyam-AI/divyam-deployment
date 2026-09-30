@@ -1,6 +1,6 @@
 
 resource "google_compute_global_address" "private_ip_address" {
-  count         = var.create ? 1 : 0
+  count         = var.create && var.create_private_service_access ? 1 : 0
   name          = "google-managed-services-${var.vpc_network_name}"
   purpose       = "VPC_PEERING"
   address_type  = "INTERNAL"
@@ -10,7 +10,7 @@ resource "google_compute_global_address" "private_ip_address" {
 }
 
 resource "google_service_networking_connection" "private_vpc_connection" {
-  count                   = var.create ? 1 : 0
+  count                   = var.create && var.create_private_service_access ? 1 : 0
   network                 = var.vpc_network
   service                 = "servicenetworking.googleapis.com"
   reserved_peering_ranges = [google_compute_global_address.private_ip_address[0].name]

@@ -27,6 +27,13 @@ variable "vnet" {
     shared_vpc_host = optional(bool, false)
     # GCP: project IDs to attach as service projects to this Shared VPC (requires shared_vpc_host = true and vnet.create = true).
     service_project_ids = optional(list(string), [])
+
+    # GCP: private service access (the VPC peering Cloud SQL private IPs need). One per VPC, so it lives
+    # with the network; a database unit that still creates its own must not be enabled alongside it.
+    private_service_access = optional(object({
+      create        = optional(bool, false)
+      prefix_length = optional(number, 16)
+    }), {})
   })
 }
 
