@@ -83,6 +83,10 @@ the ledger rows (or `nightly/<base>-nightly.*` files) sharing the same `base`.
   2. only `ARTIFACTS_VERSION` set → `releases/<v>-artifacts.yaml` (legacy flat) → `stable/<v>` → `nightly/<v>`.
   3. neither → local `<valuesDir>/artifacts.yaml` → `stable/latest` → legacy newest (`sort -V`).
 
+- `--releases-dir <dir>` → `DIVYAM_RELEASES_DIR` (same flag > env > `.k8s.conf` precedence) moves the
+  `releases/` root used by every step above. Default `releases` (relative to `k8s/`, the helmfile's dir);
+  an absolute path is used as-is. Errors name the resolved path.
+
 Examples: `make k8s -- install -C stable` (latest stable) · `-C stable -a 1.0.0` · `-C nightly -a latest`.
 A consumer can keep its local `artifacts.yaml` as default and opt into a channel via flags
 (`--artifacts-channel/--artifacts-version`).

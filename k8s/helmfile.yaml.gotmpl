@@ -63,17 +63,20 @@ repositories:
          ("latest" = the releases/<channel>/latest pointer, else newest by `sort -V`)
      (2) only ARTIFACTS_VERSION set -> releases/<v> (legacy flat) | releases/stable/<v> | releases/nightly/<v>
      (3) neither -> local <valuesDir>/artifacts.yaml | releases/stable/latest | legacy newest (`sort -V`) */}}
+{{/* Directory holding the release manifests. Default "releases" (relative to this helmfile's dir, as exec/readFile
+     resolve it); set DIVYAM_RELEASES_DIR to an absolute path (or another relative one) to read them elsewhere. */}}
+{{- $releasesDir := (env "DIVYAM_RELEASES_DIR" | default "releases") | trimSuffix "/" }}
 {{- $channel := env "ARTIFACTS_CHANNEL" }}
 {{- $artifactsVersion := env "ARTIFACTS_VERSION" }}
 {{- $artifactsFile := "" }}
 
 {{- if $channel }}
-  {{- $cdir := printf "releases/%s" $channel }}
+  {{- $cdir := printf "%s/%s" $releasesDir $channel }}
   {{- $ver := $artifactsVersion }}
   {{- if or (not $ver) (eq $ver "latest") }}
     {{- $ver = exec "sh" (list "-c" (printf "if [ -f '%s/latest' ]; then tr -d '[:space:]' < '%s/latest'; else ls -1 '%s'/*-artifacts.yaml 2>/dev/null | sed 's#.*/##; s/-artifacts.yaml$//' | sort -V | tail -1; fi" $cdir $cdir $cdir)) | trim }}
     {{- if eq $ver "" }}
-      {{- fail (printf "ERROR: no artifacts in channel '%s' (releases/%s/ empty?). Has the pipeline populated it?" $channel $channel) }}
+      {{- fail (printf "ERROR: no artifacts in channel '%s' ('%s/' missing or empty? releases dir is '%s'; check DIVYAM_RELEASES_DIR). Has the pipeline populated it?" $channel $cdir $releasesDir) }}
     {{- end }}
   {{- end }}
   {{- $artifactsFile = printf "%s/%s-artifacts.yaml" $cdir $ver }}
@@ -82,22 +85,22 @@ repositories:
     {{- fail (printf "ERROR: artifacts file not found at '%s' (channel=%s version=%s)." $artifactsFile $channel $ver) }}
   {{- end }}
 {{- else if $artifactsVersion }}
-  {{- range $cand := (list (printf "releases/%s-artifacts.yaml" $artifactsVersion) (printf "releases/stable/%s-artifacts.yaml" $artifactsVersion) (printf "releases/nightly/%s-artifacts.yaml" $artifactsVersion)) }}
+  {{- range $cand := (list (printf "%s/%s-artifacts.yaml" $releasesDir $artifactsVersion) (printf "%s/stable/%s-artifacts.yaml" $releasesDir $artifactsVersion) (printf "%s/nightly/%s-artifacts.yaml" $releasesDir $artifactsVersion)) }}
     {{- if and (eq $artifactsFile "") (eq (exec "sh" (list "-c" (printf "test -f '%s' && echo true || echo false" $cand)) | trim) "true") }}
       {{- $artifactsFile = $cand }}
     {{- end }}
   {{- end }}
   {{- if eq $artifactsFile "" }}
-    {{- fail (printf "ERROR: ARTIFACTS_VERSION '%s' not found in releases/, releases/stable/, or releases/nightly/." $artifactsVersion) }}
+    {{- fail (printf "ERROR: ARTIFACTS_VERSION '%s' not found in %s/, %s/stable/, or %s/nightly/ (releases dir '%s'; check DIVYAM_RELEASES_DIR)." $artifactsVersion $releasesDir $releasesDir $releasesDir $releasesDir) }}
   {{- end }}
 {{- else }}
   {{- $localExists := exec "sh" (list "-c" (printf "test -f '%s/artifacts.yaml' && echo true || echo false" $valuesDir)) | trim }}
   {{- if eq $localExists "true" }}
     {{- $artifactsFile = printf "%s/artifacts.yaml" $valuesDir }}
   {{- else }}
-    {{- $auto := exec "sh" (list "-c" "if [ -f releases/stable/latest ]; then v=$(tr -d '[:space:]' < releases/stable/latest); echo releases/stable/${v}-artifacts.yaml; else ls -1 releases/stable/*-artifacts.yaml releases/*-artifacts.yaml 2>/dev/null | sort -V | tail -1; fi") | trim }}
+    {{- $auto := exec "sh" (list "-c" (printf "R='%s'; if [ -f \"$R/stable/latest\" ]; then v=$(tr -d '[:space:]' < \"$R/stable/latest\"); echo \"$R/stable/${v}-artifacts.yaml\"; else ls -1 \"$R\"/stable/*-artifacts.yaml \"$R\"/*-artifacts.yaml 2>/dev/null | sort -V | tail -1; fi" $releasesDir)) | trim }}
     {{- if eq $auto "" }}
-      {{- fail (printf "ERROR: No artifacts found. Set ARTIFACTS_CHANNEL/ARTIFACTS_VERSION, place artifacts.yaml in '%s', or populate releases/." $valuesDir) }}
+      {{- fail (printf "ERROR: No artifacts found. Set ARTIFACTS_CHANNEL/ARTIFACTS_VERSION, place artifacts.yaml in '%s', or populate '%s' (DIVYAM_RELEASES_DIR)." $valuesDir $releasesDir) }}
     {{- end }}
     {{- $artifactsFile = $auto }}
     {{- $_ := exec "sh" (list "-c" (printf "echo '[INFO] No ARTIFACTS_CHANNEL/VERSION set. Auto-selected artifacts: %s' >&2" $artifactsFile)) }}

@@ -179,6 +179,7 @@ kubectl get ns
 |----------|----------|---------|-------------|
 | `HELMFILE_VALUES_DIR` | No | `.` (current directory) | Path to the directory containing your values files. |
 | `ARTIFACTS_VERSION` | No | _(unset)_ | When set, loads `releases/<VERSION>-artifacts.yaml` instead of `artifacts.yaml`. |
+| `DIVYAM_RELEASES_DIR` | No | `releases` (relative to `k8s/`) | Where the `releases/` manifests live (absolute path, or relative to the helmfile's dir). `k8s.sh --releases-dir <dir>` sets it. |
 ---
 
 ## 2. Expected Directory Structure
@@ -237,6 +238,7 @@ make k8s -- upgrade -d /path/to/values  # point at a different values directory
 
 ```bash
 make k8s -- upgrade -l clickhouse     # → helmfile -l name=clickhouse-<env> apply
+make k8s -- upgrade -l router,selector  # several charts: one -l name=<chart>-<env> each (ORed)
 ```
 
 ### Selecting Stacks (router / evalm8 / self-serve)
