@@ -24,7 +24,8 @@
 #   help              This help
 #
 # Options:
-#   -l, --release <chart>   Target a single release -> `helmfile -l name=<chart>-<env>`.
+#   -l, --release <chart[,chart...]>  Target one or more releases -> one `helmfile -l name=<chart>-<env>` per
+#                           comma-separated name (helmfile ORs them), e.g. -l router,selector.
 #                           A value containing '=' (e.g. name=foo, tier=db) is passed as a raw label.
 #                           Omit to target the whole stack.
 #   -f, --filter <sel>      Raw helmfile selector override (-> `helmfile -l <sel>`).
@@ -34,6 +35,9 @@
 #                           / .k8s.conf / helmfile default). With -C, resolves within that channel.
 #   -C, --channel <stable|nightly>  Set ARTIFACTS_CHANNEL -> releases/<channel>/<-a|latest>-artifacts.yaml.
 #                           Omit to use a local artifacts.yaml or stable/latest. See k8s/releases/VERSIONING.md.
+#       --releases-dir <dir>  Set DIVYAM_RELEASES_DIR — where releases/<channel>/*-artifacts.yaml live
+#                           (default: k8s/releases). Absolute, or relative to k8s/ (the helmfile's dir).
+#                           Falls back to $DIVYAM_RELEASES_DIR / .k8s.conf.
 #   -o, --out-dir <dir>     diagnose: where to write the bundle (default ~/sandbox-run/debug/<ts>).
 #   Deploy-default overrides (opt-in; unset ⇒ prod defaults; prod never passes these):
 #       --no-atomic           install/upgrade: don't roll back on failure (keep failed pods to diagnose).
@@ -64,6 +68,8 @@
 #   scripts/k8s.sh upgrade -C nightly -a latest         # upgrade to the latest nightly
 #   scripts/k8s.sh install -a 26.04.01-rc1              # legacy flat release id (back-compat)
 #   scripts/k8s.sh upgrade -l router                    # upgrade one release
+#   scripts/k8s.sh upgrade -l router,selector           # upgrade several releases in one run
+#   scripts/k8s.sh install -C stable --releases-dir /srv/divyam-releases/releases   # manifests from another checkout
 #   scripts/k8s.sh status --tui                         # release state in the terminal UI
 #   scripts/k8s.sh delete -l clickhouse                 # uninstall one release (type-to-confirm)
 set -euo pipefail
@@ -78,7 +84,7 @@ source "$REPO_ROOT/scripts/lib/cli.sh"
 # --- arg parsing (supports -x, --x, and --x=value) -------------------------
 SUBCMD=""; RELEASE=""; FILTER=""; ASSUME_YES=0; DRYRUN=0
 STATUS_TUI=0; STATUS_DASH=0; PASSTHRU=()
-CLI_VDIR=""; CLI_ENV=""; CLI_ARTIFACTS=""; CLI_CHANNEL=""; CLI_OUTDIR=""
+CLI_VDIR=""; CLI_ENV=""; CLI_ARTIFACTS=""; CLI_CHANNEL=""; CLI_OUTDIR=""; CLI_RELEASES_DIR=""
 # Helm-default overrides (opt-in; unset ⇒ helmfile's prod defaults verbatim) + diagnose-on-fail.
 HF_ATOMIC_OVERRIDE=""; HF_WAIT_OVERRIDE=""; HF_TIMEOUT_OVERRIDE=""; DIAGNOSE_ON_FAIL=0
 CLI_CLOUD=""; CLUSTER=""; PROJECT=""; REGION_F=""; ZONE_F=""; RESOURCE_GROUP=""; DO_LOGIN=0; NO_TF=0
@@ -99,6 +105,8 @@ while [[ $# -gt 0 ]]; do
     --artifacts-version=*)  CLI_ARTIFACTS="${1#*=}"; shift;;
     -C|--channel) CLI_CHANNEL="${2:?--channel needs a value}"; shift 2;;
     --channel=*)  CLI_CHANNEL="${1#*=}"; shift;;
+    --releases-dir) CLI_RELEASES_DIR="${2:?--releases-dir needs a value}"; shift 2;;
+    --releases-dir=*) CLI_RELEASES_DIR="${1#*=}"; shift;;
     -o|--out-dir) CLI_OUTDIR="${2:?--out-dir needs a value}"; shift 2;;
     --out-dir=*)  CLI_OUTDIR="${1#*=}"; shift;;
     --no-atomic)      HF_ATOMIC_OVERRIDE="false"; shift;;
@@ -133,7 +141,7 @@ done
 [[ -n "$SUBCMD" ]] || { usage; exit 0; }
 
 # --- config resolution: flag > env var > .k8s.conf > default ---------------
-CONF_VDIR=""; CONF_ENV=""; CONF_ARTIFACTS=""; CONF_CHANNEL=""
+CONF_VDIR=""; CONF_ENV=""; CONF_ARTIFACTS=""; CONF_CHANNEL=""; CONF_RELEASES_DIR=""
 if [[ -f "$CONF" ]]; then
   # shellcheck disable=SC1090
   source "$CONF"
@@ -142,6 +150,7 @@ VALUES_DIR="${CLI_VDIR:-${HELMFILE_VALUES_DIR:-${CONF_VDIR:-k8s/helm-values}}}"
 ENV_OVERRIDE="${CLI_ENV:-${ENV:-$CONF_ENV}}"
 ARTIFACTS_VERSION="${CLI_ARTIFACTS:-${ARTIFACTS_VERSION:-$CONF_ARTIFACTS}}"
 ARTIFACTS_CHANNEL="${CLI_CHANNEL:-${ARTIFACTS_CHANNEL:-$CONF_CHANNEL}}"
+DIVYAM_RELEASES_DIR="${CLI_RELEASES_DIR:-${DIVYAM_RELEASES_DIR:-$CONF_RELEASES_DIR}}"
 # Channel/version are passed through `make k8s -- …`; reject `=` (make would eat NAME=VALUE as a var).
 case "${ARTIFACTS_CHANNEL}${ARTIFACTS_VERSION}" in *=*) die "channel/version must be plain tokens (no '=')";; esac
 # Accept an absolute --values-dir (e.g. an out-of-repo dir like the sandbox's sky_workdir values);
@@ -182,7 +191,15 @@ build_selector() {
   [[ -n "$RELEASE" ]] || return 0
   if [[ "$RELEASE" == *=* ]]; then SEL=(-l "$RELEASE"); return; fi
   [[ -n "$ENV_NAME" ]] || die "cannot build name=$RELEASE-<env>: env unknown — pass -e <env> or install yq to read provider.yaml"
-  SEL=(-l "name=$RELEASE-$ENV_NAME")
+  # -l accepts a comma-separated list: one -l name=<chart>-<env> per entry (helmfile ORs repeated -l).
+  local rest="$RELEASE" n
+  while :; do
+    n="${rest%%,*}"
+    [[ -n "$n" ]] || die "empty release name in -l/--release '$RELEASE' (stray comma?)"
+    SEL+=(-l "name=$n-$ENV_NAME")
+    [[ "$rest" == *,* ]] || break
+    rest="${rest#*,}"
+  done
 }
 
 # Run a helmfile verb from inside the values dir with the selector + artifacts context.
@@ -192,6 +209,7 @@ hf() {  # <diff|sync|apply|destroy|template> [extra args...]
   local -a cmd=(helmfile -f "$HELMFILE" "${SEL[@]}" "$verb" "$@" "${PASSTHRU[@]}")
   local ctx="env=${ENV_NAME:-<auto>}"; [[ -n "$ARTIFACTS_VERSION" ]] && ctx+=" ARTIFACTS_VERSION=$ARTIFACTS_VERSION"
   [[ -n "$ARTIFACTS_CHANNEL" ]] && ctx+=" ARTIFACTS_CHANNEL=$ARTIFACTS_CHANNEL"
+  ctx+=" releases-dir=${DIVYAM_RELEASES_DIR:-<default: k8s/releases>}"
   [[ -n "$HF_ATOMIC_OVERRIDE" ]] && ctx+=" atomic=$HF_ATOMIC_OVERRIDE"
   [[ -n "$HF_WAIT_OVERRIDE" ]] && ctx+=" wait=$HF_WAIT_OVERRIDE"
   [[ -n "$HF_TIMEOUT_OVERRIDE" ]] && ctx+=" timeout=$HF_TIMEOUT_OVERRIDE"
@@ -209,6 +227,7 @@ hf() {  # <diff|sync|apply|destroy|template> [extra args...]
   ( cd "$BASE" && export HELMFILE_VALUES_DIR="$BASE"; \
     [[ -n "$ARTIFACTS_VERSION" ]] && export ARTIFACTS_VERSION; \
     [[ -n "$ARTIFACTS_CHANNEL" ]] && export ARTIFACTS_CHANNEL; \
+    [[ -n "$DIVYAM_RELEASES_DIR" ]] && export DIVYAM_RELEASES_DIR; \
     [[ -n "$HF_ATOMIC_OVERRIDE" ]] && export HF_ATOMIC="$HF_ATOMIC_OVERRIDE"; \
     [[ -n "$HF_WAIT_OVERRIDE" ]] && export HF_WAIT="$HF_WAIT_OVERRIDE"; \
     [[ -n "$HF_TIMEOUT_OVERRIDE" ]] && export HF_TIMEOUT="$HF_TIMEOUT_OVERRIDE"; \
@@ -217,10 +236,10 @@ hf() {  # <diff|sync|apply|destroy|template> [extra args...]
 
 # --- commands ---------------------------------------------------------------
 cmd_config() {
-  local d="${CLI_VDIR:-$CONF_VDIR}" e="${CLI_ENV:-$CONF_ENV}" a="${CLI_ARTIFACTS:-$CONF_ARTIFACTS}" c="${CLI_CHANNEL:-$CONF_CHANNEL}"
-  if [[ -n "$CLI_VDIR" || -n "$CLI_ENV" || -n "$CLI_ARTIFACTS" || -n "$CLI_CHANNEL" ]]; then
-    { echo "# k8s.sh remembered config (gitignored). Set via: k8s.sh config -d <dir> -e <env> -a <ver> -C <channel>"
-      echo "CONF_VDIR=$d"; echo "CONF_ENV=$e"; echo "CONF_ARTIFACTS=$a"; echo "CONF_CHANNEL=$c"; } > "$CONF"
+  local d="${CLI_VDIR:-$CONF_VDIR}" e="${CLI_ENV:-$CONF_ENV}" a="${CLI_ARTIFACTS:-$CONF_ARTIFACTS}" c="${CLI_CHANNEL:-$CONF_CHANNEL}" rd="${CLI_RELEASES_DIR:-$CONF_RELEASES_DIR}"
+  if [[ -n "$CLI_VDIR" || -n "$CLI_ENV" || -n "$CLI_ARTIFACTS" || -n "$CLI_CHANNEL" || -n "$CLI_RELEASES_DIR" ]]; then
+    { echo "# k8s.sh remembered config (gitignored). Set via: k8s.sh config -d <dir> -e <env> -a <ver> -C <channel> --releases-dir <dir>"
+      echo "CONF_VDIR=$d"; echo "CONF_ENV=$e"; echo "CONF_ARTIFACTS=$a"; echo "CONF_CHANNEL=$c"; echo "CONF_RELEASES_DIR=$rd"; } > "$CONF"
     chmod 600 "$CONF"
     echo "saved $CONF"
   fi
@@ -228,6 +247,7 @@ cmd_config() {
   echo "env               = ${e:-<auto from provider.yaml>}"
   echo "artifacts-channel = ${c:-<none: local artifacts.yaml / stable latest>}"
   echo "artifacts-version = ${a:-<latest in channel / helmfile default>}"
+  echo "releases-dir      = ${rd:-<default: k8s/releases>}"
   [[ -f "$CONF" ]] || echo "(nothing persisted yet — run: k8s.sh config -d k8s/helm-values -e prod)"
 }
 
@@ -283,7 +303,7 @@ run_diagnose() {  # [error_log] [exit_code]
   local outdir="${CLI_OUTDIR:-$HOME/sandbox-run/debug/$(date -u +%Y%m%d-%H%M%S)}"
   local cmdstr="make k8s -- ${SUBCMD}${RELEASE:+ -l $RELEASE}${ENV_NAME:+ -e $ENV_NAME}"
   # Only forward --release for a bare chart name (no '=' label) the collector can turn into <chart>-<env>.
-  local rel_arg=""; [[ -n "$RELEASE" && "$RELEASE" != *=* ]] && rel_arg="$RELEASE"
+  local rel_arg=""; [[ -n "$RELEASE" && "$RELEASE" != *=* && "$RELEASE" != *,* ]] && rel_arg="$RELEASE"  # a list => scan whole stack
   echo "+ k8s-diagnose.sh --out-dir $outdir${rel_arg:+ --release $rel_arg}${ENV_NAME:+ --env $ENV_NAME}"
   [[ "$DRYRUN" -eq 1 ]] && { echo "  (dry-run: not executed)"; return 0; }
   bash "$REPO_ROOT/scripts/k8s-diagnose.sh" \
