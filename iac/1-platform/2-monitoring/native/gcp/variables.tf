@@ -12,6 +12,12 @@ variable "region" {
   type        = string
 }
 
+variable "location" {
+  description = "GKE cluster location (same as 1-k8s/gcp). A zone for a zonal cluster; null falls back to region."
+  type        = string
+  default     = null
+}
+
 variable "cluster_name" {
   description = "GKE cluster name from values k8s.name (or monitoring.native.gmp_cluster_name override)."
   type        = string
