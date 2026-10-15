@@ -174,7 +174,9 @@ locals {
     # DIVYAM_SWITCH_<PROVIDER>_API_KEY and its ExternalSecret names the synced keys to match.
     var.input.divyam_switch_deepinfra_api_key != "" ? { "divyam-switch-deepinfra-api-key" = var.input.divyam_switch_deepinfra_api_key } : {},
     var.input.divyam_switch_openai_api_key != "" ? { "divyam-switch-openai-api-key" = var.input.divyam_switch_openai_api_key } : {},
-    var.input.divyam_switch_gemini_api_key != "" ? { "divyam-switch-gemini-api-key" = var.input.divyam_switch_gemini_api_key } : {}
+    var.input.divyam_switch_gemini_api_key != "" ? { "divyam-switch-gemini-api-key" = var.input.divyam_switch_gemini_api_key } : {},
+    # Issued by Google with each environment's OAuth web client, for sign-in with Google.
+    var.input.divyam_switch_google_client_secret != "" ? { "divyam-switch-google-client-secret" = var.input.divyam_switch_google_client_secret } : {}
   ) : {}
 
   secrets = merge(

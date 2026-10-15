@@ -32,6 +32,7 @@ variable "input" {
     divyam_switch_deepinfra_api_key     = optional(string, "")
     divyam_switch_openai_api_key        = optional(string, "")
     divyam_switch_gemini_api_key        = optional(string, "")
+    divyam_switch_google_client_secret  = optional(string, "")
     divyam_clickhouse_user_name         = optional(string, "default")
     divyam_clickhouse_password          = optional(string, "")
     divyam_superset_pg_password         = optional(string)
