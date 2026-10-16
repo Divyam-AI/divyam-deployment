@@ -22,9 +22,9 @@ variable "input" {
     divyam_db_user_name                  = optional(string)
     divyam_db_password                   = string
     self_serve_enabled                   = optional(bool, false)
-    divyam_selfserve_pg_user_name        = optional(string, "divyam")
-    divyam_selfserve_pg_password         = optional(string, "")
-    divyam_selfserve_pg_root_password    = optional(string, "")
+    divyam_switch_pg_user_name           = optional(string, "divyam")
+    divyam_switch_pg_password            = optional(string, "")
+    divyam_switch_pg_root_password       = optional(string, "")
     # divyam-switch app keys provided by the caller (empty until set; the four generated switch
     # secrets need no input). Created only when self_serve_enabled.
     divyam_router_admin_api_key         = optional(string, "")
