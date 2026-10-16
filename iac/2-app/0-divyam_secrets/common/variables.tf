@@ -27,18 +27,20 @@ variable "input" {
     divyam_selfserve_pg_root_password    = optional(string, "")
     # divyam-switch app keys provided by the caller (empty until set; the four generated switch
     # secrets need no input). Created only when self_serve_enabled.
-    divyam_router_admin_api_key         = optional(string, "")
-    divyam_switch_resend_api_key        = optional(string, "")
-    divyam_switch_deepinfra_api_key     = optional(string, "")
-    divyam_switch_openai_api_key        = optional(string, "")
-    divyam_switch_gemini_api_key        = optional(string, "")
-    divyam_clickhouse_user_name         = optional(string, "default")
-    divyam_clickhouse_password          = optional(string, "")
-    divyam_superset_pg_password         = optional(string)
-    divyam_superset_password            = optional(string)
-    divyam_jwt_secret_key               = string
-    divyam_provider_keys_encryption_key = string
-    divyam_openai_billing_admin_api_key = optional(string, "")
+    divyam_router_admin_api_key                = optional(string, "")
+    divyam_switch_resend_api_key               = optional(string, "")
+    divyam_switch_deepinfra_api_key            = optional(string, "")
+    divyam_switch_openai_api_key               = optional(string, "")
+    divyam_switch_gemini_api_key               = optional(string, "")
+    divyam_switch_google_auth_client_secret    = optional(string, "")
+    divyam_switch_microsoft_auth_client_secret = optional(string, "")
+    divyam_clickhouse_user_name                = optional(string, "default")
+    divyam_clickhouse_password                 = optional(string, "")
+    divyam_superset_pg_password                = optional(string)
+    divyam_superset_password                   = optional(string)
+    divyam_jwt_secret_key                      = string
+    divyam_provider_keys_encryption_key        = string
+    divyam_openai_billing_admin_api_key        = optional(string, "")
     # Private-registry image-pull auth (deployment-wide). When true, divyam_artifactory_docker_auth is required (validated below).
     image_pull_secret_enabled      = optional(bool, false)
     divyam_artifactory_docker_auth = optional(string, "")
