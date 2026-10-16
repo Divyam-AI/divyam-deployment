@@ -175,9 +175,8 @@ locals {
     var.input.divyam_switch_deepinfra_api_key != "" ? { "divyam-switch-deepinfra-api-key" = var.input.divyam_switch_deepinfra_api_key } : {},
     var.input.divyam_switch_openai_api_key != "" ? { "divyam-switch-openai-api-key" = var.input.divyam_switch_openai_api_key } : {},
     var.input.divyam_switch_gemini_api_key != "" ? { "divyam-switch-gemini-api-key" = var.input.divyam_switch_gemini_api_key } : {},
-    # Issued with each environment's OAuth client, by Google for sign-in with Google and by Microsoft Entra ID for sign-in with Microsoft.
-    var.input.divyam_switch_google_client_secret != "" ? { "divyam-switch-google-client-secret" = var.input.divyam_switch_google_client_secret } : {},
-    var.input.divyam_switch_microsoft_client_secret != "" ? { "divyam-switch-microsoft-client-secret" = var.input.divyam_switch_microsoft_client_secret } : {}
+    var.input.divyam_switch_google_auth_client_secret != "" ? { "divyam-switch-google-auth-client-secret" = var.input.divyam_switch_google_auth_client_secret } : {},
+    var.input.divyam_switch_microsoft_auth_client_secret != "" ? { "divyam-switch-microsoft-auth-client-secret" = var.input.divyam_switch_microsoft_auth_client_secret } : {}
   ) : {}
 
   secrets = merge(
