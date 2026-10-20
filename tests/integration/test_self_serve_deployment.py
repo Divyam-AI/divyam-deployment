@@ -197,6 +197,41 @@ class SelfServeDeploymentTests(unittest.TestCase):
             "switch-db-rw.self-serve-preprod-ns.svc.cluster.local",
         )
 
+    def test_switch_receives_the_platform_monitoring_block(self):
+        """The server is in the chart list that merges provider.yaml's monitoring, as Router and Selector are."""
+        monitoring = {"metrics": {"enabled": True}}
+        server = self._build(self._switch_fixtures(monitoring=monitoring))["self-serve-server-preprod"]
+        self.assertEqual(self._values(server)["monitoring"], monitoring)
+
+    def test_a_datadog_provider_reaches_the_switch_chart(self):
+        """The chart renders pod annotations instead of a scrape resource only when it is told the provider."""
+        monitoring = {"metrics": {"enabled": True}, "provider": "datadog"}
+        server = self._build(self._switch_fixtures(monitoring=monitoring))["self-serve-server-preprod"]
+        self.assertEqual(self._values(server)["monitoring"], monitoring)
+
+    def test_no_platform_monitoring_block_leaves_the_switch_chart_on_its_defaults(self):
+        """An environment that exports no monitoring gets an empty block, so the chart's own off default stands."""
+        server = self._build(self._switch_fixtures())["self-serve-server-preprod"]
+        self.assertFalse(self._values(server).get("monitoring"))
+
+    def test_the_monitoring_block_does_not_reach_charts_outside_the_list(self):
+        """Membership is explicit: the UI has no monitoring value, so it must not be handed one."""
+        by_name = self._build(self._switch_fixtures(monitoring={"metrics": {"enabled": True}}))
+        self.assertNotIn("monitoring", self._values(by_name["self-serve-ui-preprod"]))
+
+    def test_router_and_selector_still_receive_the_monitoring_block(self):
+        """Adding Switch to the list must leave the entries it was modelled on exactly as they were."""
+        monitoring = {"metrics": {"enabled": True}, "provider": "datadog"}
+        fixtures = self._switch_fixtures(
+            stack="router,self-serve", monitoring=monitoring,
+            databases={"self-serve-postgres": {"host": "10.25.0.12"}})
+        fixtures["artifacts.yaml"]["divyam-route-selector"] = {"values": {}}
+        fixtures["artifacts.yaml"]["mysql"] = {"values": {}}
+        by_name = self._build(fixtures)
+        for release in ("divyam-router-controller-preprod", "divyam-route-selector-preprod", "self-serve-server-preprod"):
+            self.assertEqual(self._values(by_name[release])["monitoring"], monitoring, release)
+        self.assertNotIn("monitoring", self._values(by_name["self-serve-ui-preprod"]))
+
     def test_identity_module_matches_the_chart_namespace(self):
         """Evaluate stack gating and the workload-identity namespace using OpenTofu plans."""
         with tempfile.TemporaryDirectory() as directory:

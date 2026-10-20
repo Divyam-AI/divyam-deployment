@@ -184,6 +184,48 @@ Per-rule `notification.*` overrides these module-level defaults:
 | `no_data_timeframe` | `15` (min) | Minutes without data before a no-data alert |
 | `renotify_interval` | `30` (min) | Re-page CRITICAL/paging monitors while still firing |
 
+## Datadog minimum-volume floor (`datadog.floor`)
+
+A Datadog metric query cannot say "the ratio is above X **and** there were at least N attempts" in one
+query that is known to evaluate correctly. A rule that needs that adds an optional `datadog.floor`:
+
+```jsonc
+"datadog": {
+  "query": "sum(last_{{window}}):... / ... < {{threshold}}",       // the condition, as for any rule
+  "floor": {
+    "query": "sum(last_{{window}}):...as_count() >= {{threshold}}", // the minimum-volume condition
+    "threshold": 10                                                // {{threshold}} in floor.query
+  }
+}
+```
+
+The Datadog module then creates **three** monitors for that rule instead of one: `<alert>-ratio` (the
+rule's `datadog.query`) and `<alert>-volume` (the floor query), both silent, and a composite named
+`<alert>` that combines them with `&&` and is the only one that notifies. `{{cluster_name}}`, `{{env}}`
+and `{{window}}` are substituted in the floor query as in `datadog.query`. Prometheus backends ignore
+`floor`; a floored rule states its minimum on that side inside `expr`.
+
+- None of the three notifies on missing data, and a floored rule may not set
+  `notification.notify_no_data: true` (the module refuses). Datadog needs the members and the composite
+  to notify for a no-data alert, and these rules treat missing data as normal.
+- With no-data notification off, Datadog documents that a composite keeps its **last known state** when
+  its members have no data (alert-worthy statuses are Alert, Warn and No Data), so a composite that was
+  alerting would stay alerting and keep re-notifying after Switch's metrics stop. Setting
+  `require_full_window` to false does not change that. The members and the composite therefore have
+  auto-resolve (`timeout_h`) of one hour: it resolves them once data has stopped being submitted, and
+  never while data is still reporting, so a live outage keeps alerting. Expect at most two stale
+  re-notifications (the interval is 30 minutes) before it clears.
+- The two members do not require a full window. Datadog cancels an evaluation over an unfilled window
+  and leaves the monitor in its previous state, so a sparse counter could freeze a member. A partial
+  window is safe because it can only lower the volume count, and the composite needs that to be high.
+  Every other monitor keeps its existing setting.
+- `default_zero()` is not used: Datadog documents that it has no effect when the window holds no data
+  at all, and that count metrics queried with `as_count()` are already aligned as zero.
+- The composite is created after its members and deleted before them. Datadog refuses both a composite
+  over monitors that do not exist and the deletion of a member a composite still uses.
+- `datadog_monitor.alerts[...]` addresses of every other rule are unchanged.
+- Unrelated to the floor: the module does not apply `for` to any Datadog monitor.
+
 ## Adding a rule
 
 1. Add the metric(s) to `metric_map.json` if not present (or rely on as-is fallback).

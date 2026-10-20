@@ -134,6 +134,20 @@ locals {
     )
   }
 
+  # ---- Datadog floor query (optional, floored rules only) -------------------
+  # A rule with datadog.floor.query states a minimum-volume condition that the Datadog module turns
+  # into a second monitor, combined with the rule's own query by a composite. {{threshold}} here is
+  # the floor's own threshold (datadog.floor.threshold), not the rule's. null for every other rule.
+  dd_floor_query = {
+    for r in local.rules : r.alert => try(
+      replace(replace(replace(replace(r.datadog.floor.query,
+        "{{cluster_name}}", local.dd_cluster),
+        "{{env}}", var.env),
+        "{{window}}", local.window[r.alert]),
+      "{{threshold}}", tostring(r.datadog.floor.threshold)),
+    null)
+  }
+
   # ---- Common per-rule metadata shared by all backends ----------------------
   common = {
     for r in local.rules : r.alert => {
@@ -197,7 +211,10 @@ locals {
     for r in local.rules : r.alert => merge(r, local.common[r.alert], {
       query    = local.dd_query[r.alert]
       severity = try(r.severity, "CRITICAL")
-    })
+      },
+      # Only floored rules carry the key, so every other monitor's object is exactly what it was.
+      { for k, v in { floor_query = local.dd_floor_query[r.alert] } : k => v if v != null }
+    )
     if local.dd_query[r.alert] != null && local.dd_query[r.alert] != ""
   }
 }

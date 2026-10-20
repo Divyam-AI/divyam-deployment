@@ -1,0 +1,812 @@
+{
+  "clickhouse-disk-usage-high": {
+    "_comment": "Escape hatch: disk-used % is (total-free)/total â€” not expressible in the structured query IR. The clickhouse.disks.free_space / clickhouse.disks.total_space metrics are emitted by a custom_queries block in the Datadog ClickHouse check (1-platform/2-monitoring/.../datadog/common/main.tf), tagged with disk_name and kube_cluster_name.",
+    "_group_desc": "ClickHouse alerts (disk, ingestion, write failures).",
+    "_group_enabled": true,
+    "_group_interval": "1m",
+    "_group_name": "clickhouse",
+    "_group_title": "clickhouse",
+    "_labels": {
+      "alert_rule": "AlwaysOn",
+      "rule_group": "ClickHouse"
+    },
+    "alert": "clickhouse-disk-usage-high",
+    "annotations": {
+      "description": "Warn when ClickHouse disk usage exceeds 80%; critical at 90%. Recovery at 75% (warn) / 85% (critical).",
+      "summary": "ClickHouse Disk Usage High"
+    },
+    "auto_resolve": "30m",
+    "dashboard_url": null,
+    "datadog": {
+      "message": "ClickHouse disk {{disk_name.name}} on {{host.name}} (cluster {{kube_cluster_name.name}}) has exceeded disk usage thresholds (warn 80%, critical 90%).",
+      "notify": true,
+      "query": "max(last_{{window}}):(avg:clickhouse.disks.total_space{kube_cluster_name:{{cluster_name}}} by {host,disk_name} - avg:clickhouse.disks.free_space{kube_cluster_name:{{cluster_name}}} by {host,disk_name}) / avg:clickhouse.disks.total_space{kube_cluster_name:{{cluster_name}}} by {host,disk_name} * 100 > {{threshold}}"
+    },
+    "description": "Warn when ClickHouse disk usage exceeds 80%; critical at 90%. Recovery at 75% (warn) / 85% (critical).",
+    "enabled": true,
+    "for": "5m",
+    "gcp_notification_channels": null,
+    "group_description": "ClickHouse alerts (disk, ingestion, write failures).",
+    "group_enabled": true,
+    "group_name": "clickhouse",
+    "group_title": "clickhouse",
+    "interval": "1m",
+    "labels": {
+      "alert_rule": "AlwaysOn",
+      "rule_group": "ClickHouse"
+    },
+    "notify": false,
+    "query": "max(last_15m):(avg:clickhouse.disks.total_space{kube_cluster_name:test-cluster} by {host,disk_name} - avg:clickhouse.disks.free_space{kube_cluster_name:test-cluster} by {host,disk_name}) / avg:clickhouse.disks.total_space{kube_cluster_name:test-cluster} by {host,disk_name} * 100 > 90",
+    "renotify_interval": null,
+    "runbook_url": null,
+    "severity": "WARNING",
+    "summary": "ClickHouse Disk Usage High",
+    "thresholds": {
+      "critical": "90",
+      "critical_recovery": "85",
+      "warning": "80",
+      "warning_recovery": "75"
+    },
+    "window": "15m"
+  },
+  "clickhouse-ingestion-delay": {
+    "_comment": "P1: ingestion delay exceeds SLA â€” delayed inserts building up for 10+ min. clickhouse.query.insert.delayed counts INSERT queries currently queued/delayed due to back-pressure (e.g. max_insert_delay_ms). A sustained non-zero value signals pipeline back-pressure exceeding SLA. For true end-to-end delay (now()-max(event_time)), add a custom_query to main.tf against a known ingestion table. Verified metric name against live agent check.",
+    "_group_desc": "ClickHouse alerts (disk, ingestion, write failures).",
+    "_group_enabled": true,
+    "_group_interval": "1m",
+    "_group_name": "clickhouse",
+    "_group_title": "clickhouse",
+    "_labels": {
+      "alert_rule": "AlwaysOn",
+      "rule_group": "ClickHouse"
+    },
+    "alert": "clickhouse-ingestion-delay",
+    "annotations": {
+      "description": "ClickHouse has delayed INSERT queries â€” back-pressure may be causing ingestion delay exceeding SLA.",
+      "summary": "ClickHouse Ingestion Delay"
+    },
+    "auto_resolve": "20m",
+    "dashboard_url": null,
+    "datadog": {
+      "message": "ClickHouse on cluster {{kube_cluster_name.name}} has delayed INSERT queries for 10+ minutes. Investigate ingestion pipeline back-pressure.",
+      "notify": true,
+      "query": "max(last_{{window}}):max:clickhouse.query.insert.delayed{kube_cluster_name:{{cluster_name}}} > {{threshold}}"
+    },
+    "description": "ClickHouse has delayed INSERT queries â€” back-pressure may be causing ingestion delay exceeding SLA.",
+    "enabled": true,
+    "for": "10m",
+    "gcp_notification_channels": null,
+    "group_description": "ClickHouse alerts (disk, ingestion, write failures).",
+    "group_enabled": true,
+    "group_name": "clickhouse",
+    "group_title": "clickhouse",
+    "interval": "1m",
+    "labels": {
+      "alert_rule": "AlwaysOn",
+      "rule_group": "ClickHouse"
+    },
+    "notify": false,
+    "query": "max(last_15m):max:clickhouse.query.insert.delayed{kube_cluster_name:test-cluster} > 0",
+    "renotify_interval": null,
+    "runbook_url": null,
+    "severity": "WARNING",
+    "summary": "ClickHouse Ingestion Delay",
+    "thresholds": {
+      "critical": "0"
+    },
+    "window": "15m"
+  },
+  "clickhouse-ingestion-slow": {
+    "_comment": "P2: minor ingestion slowdown â€” insert row rate slightly below baseline. clickhouse.table.insert.row.total delta over 15m below a threshold indicates a slowdown not yet causing delays. The threshold (rows per 15m window) must be calibrated per environment; placeholder is 50. Verified metric name against live agent check.",
+    "_group_desc": "ClickHouse alerts (disk, ingestion, write failures).",
+    "_group_enabled": true,
+    "_group_interval": "1m",
+    "_group_name": "clickhouse",
+    "_group_title": "clickhouse",
+    "_labels": {
+      "alert_rule": "AlwaysOn",
+      "rule_group": "ClickHouse"
+    },
+    "alert": "clickhouse-ingestion-slow",
+    "annotations": {
+      "description": "ClickHouse insert row rate is running below the expected baseline â€” minor slowdown, not yet at SLA breach. Threshold needs env-specific calibration.",
+      "summary": "ClickHouse Ingestion Slowdown"
+    },
+    "auto_resolve": "30m",
+    "dashboard_url": null,
+    "datadog": {
+      "message": "ClickHouse on cluster {{kube_cluster_name.name}} insert rate is below the minor slowdown threshold. No immediate action required but monitor for escalation.",
+      "notify": true,
+      "query": "sum(last_{{window}}):sum:clickhouse.table.insert.row.total{kube_cluster_name:{{cluster_name}}}.as_count() < {{threshold}}"
+    },
+    "description": "ClickHouse insert row rate is running below the expected baseline â€” minor slowdown, not yet at SLA breach. Threshold needs env-specific calibration.",
+    "enabled": true,
+    "for": "15m",
+    "gcp_notification_channels": null,
+    "group_description": "ClickHouse alerts (disk, ingestion, write failures).",
+    "group_enabled": true,
+    "group_name": "clickhouse",
+    "group_title": "clickhouse",
+    "interval": "1m",
+    "labels": {
+      "alert_rule": "AlwaysOn",
+      "rule_group": "ClickHouse"
+    },
+    "notify": false,
+    "query": "sum(last_15m):sum:clickhouse.table.insert.row.total{kube_cluster_name:test-cluster}.as_count() < 10",
+    "renotify_interval": null,
+    "runbook_url": null,
+    "severity": "WARNING",
+    "summary": "ClickHouse Ingestion Slowdown",
+    "thresholds": {
+      "critical": "10",
+      "warning": "50"
+    },
+    "window": "15m"
+  },
+  "clickhouse-no-ingestion": {
+    "_comment": "P0: complete ingestion halt â€” no rows inserted for 5 min. clickhouse.table.insert.row.total is a monotonic counter emitted by the standard Datadog ClickHouse integration; .as_count() gives the per-window delta so a zero delta means no rows inserted. Verified against live agent check output on the sandbox.",
+    "_group_desc": "ClickHouse alerts (disk, ingestion, write failures).",
+    "_group_enabled": true,
+    "_group_interval": "1m",
+    "_group_name": "clickhouse",
+    "_group_title": "clickhouse",
+    "_labels": {
+      "alert_rule": "AlwaysOn",
+      "rule_group": "ClickHouse"
+    },
+    "alert": "clickhouse-no-ingestion",
+    "annotations": {
+      "description": "No rows have been inserted into ClickHouse for 5 minutes â€” possible ingestion pipeline halt.",
+      "summary": "ClickHouse No Ingestion"
+    },
+    "auto_resolve": "10m",
+    "dashboard_url": null,
+    "datadog": {
+      "message": "ClickHouse on cluster {{kube_cluster_name.name}} has had zero row insertions for the past 5 minutes. Check the ingestion pipeline (Kafka consumer, OTel collector, or upstream producers).",
+      "notify": true,
+      "query": "sum(last_{{window}}):sum:clickhouse.table.insert.row.total{kube_cluster_name:{{cluster_name}}}.as_count() < {{threshold}}"
+    },
+    "description": "No rows have been inserted into ClickHouse for 5 minutes â€” possible ingestion pipeline halt.",
+    "enabled": true,
+    "for": "5m",
+    "gcp_notification_channels": null,
+    "group_description": "ClickHouse alerts (disk, ingestion, write failures).",
+    "group_enabled": true,
+    "group_name": "clickhouse",
+    "group_title": "clickhouse",
+    "interval": "1m",
+    "labels": {
+      "alert_rule": "AlwaysOn",
+      "rule_group": "ClickHouse"
+    },
+    "notify": false,
+    "query": "sum(last_5m):sum:clickhouse.table.insert.row.total{kube_cluster_name:test-cluster}.as_count() < 1",
+    "renotify_interval": null,
+    "runbook_url": null,
+    "severity": "CRITICAL",
+    "summary": "ClickHouse No Ingestion",
+    "thresholds": {
+      "critical": "1"
+    },
+    "window": "5m"
+  },
+  "clickhouse-write-failures": {
+    "_comment": "P0: any insert/write failure. clickhouse.log.messages.error.total is a monotonic counter for all ClickHouse error-level log messages â€” not insert-specific, but the most direct write-failure signal in the standard integration without a custom_query. For a targeted signal, add a custom_query against system.query_log WHERE type='ExceptionBeforeStart' AND query_kind='Insert' to main.tf. Threshold of 0 means any new error triggers. Verified metric name against live agent check.",
+    "_group_desc": "ClickHouse alerts (disk, ingestion, write failures).",
+    "_group_enabled": true,
+    "_group_interval": "1m",
+    "_group_name": "clickhouse",
+    "_group_title": "clickhouse",
+    "_labels": {
+      "alert_rule": "AlwaysOn",
+      "rule_group": "ClickHouse"
+    },
+    "alert": "clickhouse-write-failures",
+    "annotations": {
+      "description": "ClickHouse is logging errors â€” possible insert/write failures. Investigate immediately.",
+      "summary": "ClickHouse Write Failures"
+    },
+    "auto_resolve": "10m",
+    "dashboard_url": null,
+    "datadog": {
+      "message": "ClickHouse on cluster {{kube_cluster_name.name}} is logging errors. Check system.query_log for insert/write failures.",
+      "notify": true,
+      "query": "sum(last_{{window}}):sum:clickhouse.log.messages.error.total{kube_cluster_name:{{cluster_name}}}.as_count() > {{threshold}}"
+    },
+    "description": "ClickHouse is logging errors â€” possible insert/write failures. Investigate immediately.",
+    "enabled": true,
+    "for": "1m",
+    "gcp_notification_channels": null,
+    "group_description": "ClickHouse alerts (disk, ingestion, write failures).",
+    "group_enabled": true,
+    "group_name": "clickhouse",
+    "group_title": "clickhouse",
+    "interval": "1m",
+    "labels": {
+      "alert_rule": "AlwaysOn",
+      "rule_group": "ClickHouse"
+    },
+    "notify": false,
+    "query": "sum(last_5m):sum:clickhouse.log.messages.error.total{kube_cluster_name:test-cluster}.as_count() > 0",
+    "renotify_interval": null,
+    "runbook_url": null,
+    "severity": "CRITICAL",
+    "summary": "ClickHouse Write Failures",
+    "thresholds": {
+      "critical": "0"
+    },
+    "window": "5m"
+  },
+  "deployment-replica-mismatch": {
+    "_group_desc": "Kubernetes alerts (deployment / pod / pvc / statefulset health).",
+    "_group_enabled": true,
+    "_group_interval": "1m",
+    "_group_name": "k8s",
+    "_group_title": "kubernetes",
+    "_labels": {
+      "alert_rule": "AlwaysOn",
+      "rule_group": "Kubernetes"
+    },
+    "alert": "deployment-replica-mismatch",
+    "annotations": {
+      "description": "Warn when < 90% replicas available; critical when < 80%; recover above 85% (crit) / 95% (warn)",
+      "runbook_url": "https://runbooks.divyam.ai/kubernetes/deployment-replica-mismatch",
+      "summary": "Deployment Replica Mismatch"
+    },
+    "auto_resolve": "30m",
+    "dashboard_url": null,
+    "datadog": {
+      "message": "Deployment {{kube_deployment.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} has less than 80% replicas available."
+    },
+    "description": "Warn when < 90% replicas available; critical when < 80%; recover above 85% (crit) / 95% (warn)",
+    "enabled": true,
+    "for": "2m",
+    "gcp_notification_channels": null,
+    "group_description": "Kubernetes alerts (deployment / pod / pvc / statefulset health).",
+    "group_enabled": true,
+    "group_name": "k8s",
+    "group_title": "kubernetes",
+    "interval": "1m",
+    "labels": {
+      "alert_rule": "AlwaysOn",
+      "rule_group": "Kubernetes"
+    },
+    "notify": false,
+    "query": "min(last_15m):(avg:kubernetes_state.deployment.replicas_available{kube_cluster_name:test-cluster} by {kube_namespace,kube_deployment} / avg:kubernetes_state.deployment.replicas_desired{kube_cluster_name:test-cluster} by {kube_namespace,kube_deployment}) < 0.8",
+    "renotify_interval": null,
+    "runbook_url": "https://runbooks.divyam.ai/kubernetes/deployment-replica-mismatch",
+    "severity": "CRITICAL",
+    "summary": "Deployment Replica Mismatch",
+    "thresholds": {
+      "critical": "0.8",
+      "critical_recovery": "0.85",
+      "warning": "0.9",
+      "warning_recovery": "0.95"
+    },
+    "window": "15m"
+  },
+  "kafka-consumer-lag-growing": {
+    "_group_desc": "Kafka broker health, consumer lag, and storage alerts",
+    "_group_enabled": true,
+    "_group_interval": "1m",
+    "_group_name": "kafka",
+    "_group_title": "kafka",
+    "_labels": {
+      "rule_group": "Kafka"
+    },
+    "alert": "kafka-consumer-lag-growing",
+    "annotations": {
+      "description": "Consumer group lag is growing at more than {{threshold}} messages over 10 minutes, suggesting the consumer cannot keep up with the producer.",
+      "summary": "Kafka consumer lag growing steadily (P2)"
+    },
+    "auto_resolve": "15m",
+    "dashboard_url": null,
+    "datadog": {
+      "message": "[P2] Consumer group {{consumer_group.name}} on topic {{topic.name}} is accumulating lag at a steady rate on cluster {{kube_cluster_name.name}}. Consumer may not be keeping up with the produce rate.",
+      "query": "change(avg(last_{{window}}),last_{{window}}):max:kafka.consumer_lag{kube_cluster_name:{{cluster_name}},kube_namespace:kafka-{{env}}-ns} by {consumer_group,topic} > {{threshold}}",
+      "type": "query alert"
+    },
+    "description": "Consumer group lag is growing at more than {{threshold}} messages over 10 minutes, suggesting the consumer cannot keep up with the producer.",
+    "enabled": true,
+    "expr": "max by (consumergroup, topic) (deriv(kafka_consumergroup_lag{namespace=\"kafka-{{env}}-ns\"}[10m])) > {{threshold}}",
+    "for": "10m",
+    "gcp_notification_channels": null,
+    "group_description": "Kafka broker health, consumer lag, and storage alerts",
+    "group_enabled": true,
+    "group_name": "kafka",
+    "group_title": "kafka",
+    "interval": "1m",
+    "labels": {
+      "rule_group": "Kafka"
+    },
+    "notification": {
+      "priority": 3
+    },
+    "notify": false,
+    "query": "change(avg(last_10m),last_10m):max:kafka.consumer_lag{kube_cluster_name:test-cluster,kube_namespace:kafka-preprod-ns} by {consumer_group,topic} > 1000",
+    "renotify_interval": null,
+    "runbook_url": null,
+    "severity": "WARNING",
+    "summary": "Kafka consumer lag growing steadily (P2)",
+    "thresholds": {
+      "critical": "1000"
+    },
+    "window": "10m"
+  },
+  "kafka-consumer-lag-sla": {
+    "_group_desc": "Kafka broker health, consumer lag, and storage alerts",
+    "_group_enabled": true,
+    "_group_interval": "1m",
+    "_group_name": "kafka",
+    "_group_title": "kafka",
+    "_labels": {
+      "rule_group": "Kafka"
+    },
+    "alert": "kafka-consumer-lag-sla",
+    "annotations": {
+      "description": "Consumer group lag has exceeded {{threshold}} messages for more than 10 minutes. Tune threshold to match your team's SLA.",
+      "summary": "Kafka consumer lag exceeds SLA (P1)"
+    },
+    "auto_resolve": "10m",
+    "dashboard_url": null,
+    "datadog": {
+      "message": "[P1] Consumer group {{consumer_group.name}} on topic {{topic.name}} has been lagging above the SLA threshold for over 10 minutes on cluster {{kube_cluster_name.name}}.",
+      "query": "max(last_{{window}}):max:kafka.consumer_lag{kube_cluster_name:{{cluster_name}},kube_namespace:kafka-{{env}}-ns} by {consumer_group,topic} > {{threshold}}"
+    },
+    "description": "Consumer group lag has exceeded {{threshold}} messages for more than 10 minutes. Tune threshold to match your team's SLA.",
+    "enabled": true,
+    "expr": "max by (consumergroup, topic) (kafka_consumergroup_lag{namespace=\"kafka-{{env}}-ns\"}) > {{threshold}}",
+    "for": "10m",
+    "gcp_notification_channels": null,
+    "group_description": "Kafka broker health, consumer lag, and storage alerts",
+    "group_enabled": true,
+    "group_name": "kafka",
+    "group_title": "kafka",
+    "interval": "1m",
+    "labels": {
+      "rule_group": "Kafka"
+    },
+    "notification": {
+      "notify": true,
+      "priority": 2
+    },
+    "notify": true,
+    "query": "max(last_10m):max:kafka.consumer_lag{kube_cluster_name:test-cluster,kube_namespace:kafka-preprod-ns} by {consumer_group,topic} > 50000",
+    "renotify_interval": null,
+    "runbook_url": null,
+    "severity": "WARNING",
+    "summary": "Kafka consumer lag exceeds SLA (P1)",
+    "thresholds": {
+      "critical": "50000"
+    },
+    "window": "10m"
+  },
+  "kafka-disk-full": {
+    "_group_desc": "Kafka broker health, consumer lag, and storage alerts",
+    "_group_enabled": true,
+    "_group_interval": "1m",
+    "_group_name": "kafka",
+    "_group_title": "kafka",
+    "_labels": {
+      "rule_group": "Kafka"
+    },
+    "alert": "kafka-disk-full",
+    "annotations": {
+      "description": "Kafka PVC is over 90% capacity. Write failures are imminent. Expand storage or purge topic data immediately.",
+      "summary": "Kafka disk full (P0)"
+    },
+    "auto_resolve": "10m",
+    "dashboard_url": null,
+    "datadog": {
+      "message": "[P0] Kafka PVC {{persistentvolumeclaim.name}} is over 90% full on cluster {{kube_cluster_name.name}}. Broker write failures are imminent. Expand the PVC or purge old topic data immediately.",
+      "query": "max(last_{{window}}):max:kubernetes.io.persistentvolumeclaim.used_bytes{kube_cluster_name:{{cluster_name}},kube_namespace:kafka-{{env}}-ns} by {persistentvolumeclaim} / max:kubernetes.io.persistentvolumeclaim.capacity_bytes{kube_cluster_name:{{cluster_name}},kube_namespace:kafka-{{env}}-ns} by {persistentvolumeclaim} * 100 > {{threshold}}"
+    },
+    "description": "Kafka PVC is over 90% capacity. Write failures are imminent. Expand storage or purge topic data immediately.",
+    "enabled": true,
+    "expr": "max by (namespace, persistentvolumeclaim) (kubelet_volume_stats_used_bytes{namespace=\"kafka-{{env}}-ns\"} / kubelet_volume_stats_capacity_bytes{namespace=\"kafka-{{env}}-ns\"} * 100) > {{threshold}}",
+    "for": "5m",
+    "gcp_notification_channels": null,
+    "group_description": "Kafka broker health, consumer lag, and storage alerts",
+    "group_enabled": true,
+    "group_name": "kafka",
+    "group_title": "kafka",
+    "interval": "1m",
+    "labels": {
+      "rule_group": "Kafka"
+    },
+    "notification": {
+      "priority": 1
+    },
+    "notify": false,
+    "query": "max(last_5m):max:kubernetes.io.persistentvolumeclaim.used_bytes{kube_cluster_name:test-cluster,kube_namespace:kafka-preprod-ns} by {persistentvolumeclaim} / max:kubernetes.io.persistentvolumeclaim.capacity_bytes{kube_cluster_name:test-cluster,kube_namespace:kafka-preprod-ns} by {persistentvolumeclaim} * 100 > 90",
+    "renotify_interval": null,
+    "runbook_url": null,
+    "severity": "CRITICAL",
+    "summary": "Kafka disk full (P0)",
+    "thresholds": {
+      "critical": "90"
+    },
+    "window": "5m"
+  },
+  "kafka-disk-usage-elevated": {
+    "_group_desc": "Kafka broker health, consumer lag, and storage alerts",
+    "_group_enabled": true,
+    "_group_interval": "1m",
+    "_group_name": "kafka",
+    "_group_title": "kafka",
+    "_labels": {
+      "rule_group": "Kafka"
+    },
+    "alert": "kafka-disk-usage-elevated",
+    "annotations": {
+      "description": "Kafka PVC usage is above 70%. Informational â€” monitor the growth trend.",
+      "summary": "Kafka disk usage elevated (P2)"
+    },
+    "auto_resolve": "15m",
+    "dashboard_url": null,
+    "datadog": {
+      "message": "[P2] Kafka PVC {{persistentvolumeclaim.name}} disk usage is above 70% on cluster {{kube_cluster_name.name}}. Monitor growth trend.",
+      "query": "max(last_{{window}}):max:kubernetes.io.persistentvolumeclaim.used_bytes{kube_cluster_name:{{cluster_name}},kube_namespace:kafka-{{env}}-ns} by {persistentvolumeclaim} / max:kubernetes.io.persistentvolumeclaim.capacity_bytes{kube_cluster_name:{{cluster_name}},kube_namespace:kafka-{{env}}-ns} by {persistentvolumeclaim} * 100 > {{threshold}}"
+    },
+    "description": "Kafka PVC usage is above 70%. Informational â€” monitor the growth trend.",
+    "enabled": true,
+    "expr": "max by (namespace, persistentvolumeclaim) (kubelet_volume_stats_used_bytes{namespace=\"kafka-{{env}}-ns\"} / kubelet_volume_stats_capacity_bytes{namespace=\"kafka-{{env}}-ns\"} * 100) > {{threshold}}",
+    "for": "5m",
+    "gcp_notification_channels": null,
+    "group_description": "Kafka broker health, consumer lag, and storage alerts",
+    "group_enabled": true,
+    "group_name": "kafka",
+    "group_title": "kafka",
+    "interval": "1m",
+    "labels": {
+      "rule_group": "Kafka"
+    },
+    "notification": {
+      "priority": 3
+    },
+    "notify": false,
+    "query": "max(last_10m):max:kubernetes.io.persistentvolumeclaim.used_bytes{kube_cluster_name:test-cluster,kube_namespace:kafka-preprod-ns} by {persistentvolumeclaim} / max:kubernetes.io.persistentvolumeclaim.capacity_bytes{kube_cluster_name:test-cluster,kube_namespace:kafka-preprod-ns} by {persistentvolumeclaim} * 100 > 70",
+    "renotify_interval": null,
+    "runbook_url": null,
+    "severity": "INFO",
+    "summary": "Kafka disk usage elevated (P2)",
+    "thresholds": {
+      "critical": "70"
+    },
+    "window": "10m"
+  },
+  "kafka-disk-usage-high": {
+    "_group_desc": "Kafka broker health, consumer lag, and storage alerts",
+    "_group_enabled": true,
+    "_group_interval": "1m",
+    "_group_name": "kafka",
+    "_group_title": "kafka",
+    "_labels": {
+      "rule_group": "Kafka"
+    },
+    "alert": "kafka-disk-usage-high",
+    "annotations": {
+      "description": "Kafka PVC usage is above 80%. Plan capacity expansion before it reaches the P0 (90%) threshold.",
+      "summary": "Kafka disk usage high (P1)"
+    },
+    "auto_resolve": "15m",
+    "dashboard_url": null,
+    "datadog": {
+      "message": "[P1] Kafka PVC {{persistentvolumeclaim.name}} disk usage is above 80% on cluster {{kube_cluster_name.name}}. Plan capacity expansion before the disk fills.",
+      "query": "max(last_{{window}}):max:kubernetes.io.persistentvolumeclaim.used_bytes{kube_cluster_name:{{cluster_name}},kube_namespace:kafka-{{env}}-ns} by {persistentvolumeclaim} / max:kubernetes.io.persistentvolumeclaim.capacity_bytes{kube_cluster_name:{{cluster_name}},kube_namespace:kafka-{{env}}-ns} by {persistentvolumeclaim} * 100 > {{threshold}}"
+    },
+    "description": "Kafka PVC usage is above 80%. Plan capacity expansion before it reaches the P0 (90%) threshold.",
+    "enabled": true,
+    "expr": "max by (namespace, persistentvolumeclaim) (kubelet_volume_stats_used_bytes{namespace=\"kafka-{{env}}-ns\"} / kubelet_volume_stats_capacity_bytes{namespace=\"kafka-{{env}}-ns\"} * 100) > {{threshold}}",
+    "for": "5m",
+    "gcp_notification_channels": null,
+    "group_description": "Kafka broker health, consumer lag, and storage alerts",
+    "group_enabled": true,
+    "group_name": "kafka",
+    "group_title": "kafka",
+    "interval": "1m",
+    "labels": {
+      "rule_group": "Kafka"
+    },
+    "notification": {
+      "notify": true,
+      "priority": 2
+    },
+    "notify": true,
+    "query": "max(last_10m):max:kubernetes.io.persistentvolumeclaim.used_bytes{kube_cluster_name:test-cluster,kube_namespace:kafka-preprod-ns} by {persistentvolumeclaim} / max:kubernetes.io.persistentvolumeclaim.capacity_bytes{kube_cluster_name:test-cluster,kube_namespace:kafka-preprod-ns} by {persistentvolumeclaim} * 100 > 80",
+    "renotify_interval": null,
+    "runbook_url": null,
+    "severity": "WARNING",
+    "summary": "Kafka disk usage high (P1)",
+    "thresholds": {
+      "critical": "80"
+    },
+    "window": "10m"
+  },
+  "kafka-write-failures": {
+    "_group_desc": "Kafka broker health, consumer lag, and storage alerts",
+    "_group_enabled": true,
+    "_group_interval": "1m",
+    "_group_name": "kafka",
+    "_group_title": "kafka",
+    "_labels": {
+      "rule_group": "Kafka"
+    },
+    "alert": "kafka-write-failures",
+    "annotations": {
+      "description": "Kafka has under-replicated partitions, indicating broker failures or write bottlenecks. Investigate broker health immediately.",
+      "summary": "Kafka write failures â€” under-replicated partitions (P0)"
+    },
+    "auto_resolve": "10m",
+    "dashboard_url": null,
+    "datadog": {
+      "message": "[P0] Kafka has under-replicated partitions on cluster {{kube_cluster_name.name}}, indicating broker failures or write bottlenecks. Data loss risk elevated.",
+      "query": "max(last_{{window}}):max:kafka.replication.under_replicated_partitions{kube_cluster_name:{{cluster_name}},kube_namespace:kafka-{{env}}-ns} > {{threshold}}"
+    },
+    "description": "Kafka has under-replicated partitions, indicating broker failures or write bottlenecks. Investigate broker health immediately.",
+    "enabled": true,
+    "expr": "sum by (namespace) (kafka_topic_partition_under_replicated_partition{namespace=\"kafka-{{env}}-ns\"}) > {{threshold}}",
+    "for": "5m",
+    "gcp_notification_channels": null,
+    "group_description": "Kafka broker health, consumer lag, and storage alerts",
+    "group_enabled": true,
+    "group_name": "kafka",
+    "group_title": "kafka",
+    "interval": "1m",
+    "labels": {
+      "rule_group": "Kafka"
+    },
+    "notification": {
+      "priority": 1
+    },
+    "notify": false,
+    "query": "max(last_5m):max:kafka.replication.under_replicated_partitions{kube_cluster_name:test-cluster,kube_namespace:kafka-preprod-ns} > 0",
+    "renotify_interval": null,
+    "runbook_url": null,
+    "severity": "CRITICAL",
+    "summary": "Kafka write failures â€” under-replicated partitions (P0)",
+    "thresholds": {
+      "critical": "0"
+    },
+    "window": "5m"
+  },
+  "pods-in-crashloopbackoff": {
+    "_group_desc": "Kubernetes alerts (deployment / pod / pvc / statefulset health).",
+    "_group_enabled": true,
+    "_group_interval": "1m",
+    "_group_name": "k8s",
+    "_group_title": "kubernetes",
+    "_labels": {
+      "alert_rule": "AlwaysOn",
+      "rule_group": "Kubernetes"
+    },
+    "alert": "pods-in-crashloopbackoff",
+    "annotations": {
+      "description": "One or more pods are in CrashLoopBackOff state",
+      "runbook_url": "https://runbooks.divyam.ai/kubernetes/pods-in-crashloopbackoff",
+      "summary": "Pods in CrashLoopBackOff"
+    },
+    "auto_resolve": "30m",
+    "dashboard_url": null,
+    "datadog": {
+      "message": "Pod {{pod_name.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} is in CrashLoopBackOff."
+    },
+    "description": "One or more pods are in CrashLoopBackOff state",
+    "enabled": true,
+    "for": "2m",
+    "gcp_notification_channels": null,
+    "group_description": "Kubernetes alerts (deployment / pod / pvc / statefulset health).",
+    "group_enabled": true,
+    "group_name": "k8s",
+    "group_title": "kubernetes",
+    "interval": "1m",
+    "labels": {
+      "alert_rule": "AlwaysOn",
+      "rule_group": "Kubernetes"
+    },
+    "notify": false,
+    "query": "max(last_15m):sum:kubernetes_state.container.status_report.count.waiting{kube_cluster_name:test-cluster,reason:crashloopbackoff} by {kube_namespace,pod_name} > 0",
+    "renotify_interval": null,
+    "runbook_url": "https://runbooks.divyam.ai/kubernetes/pods-in-crashloopbackoff",
+    "severity": "CRITICAL",
+    "summary": "Pods in CrashLoopBackOff",
+    "thresholds": {
+      "critical": "0"
+    },
+    "window": "15m"
+  },
+  "pods-in-failed-state": {
+    "_group_desc": "Kubernetes alerts (deployment / pod / pvc / statefulset health).",
+    "_group_enabled": true,
+    "_group_interval": "1m",
+    "_group_name": "k8s",
+    "_group_title": "kubernetes",
+    "_labels": {
+      "alert_rule": "AlwaysOn",
+      "rule_group": "Kubernetes"
+    },
+    "alert": "pods-in-failed-state",
+    "annotations": {
+      "description": "One or more pods are in Failed phase",
+      "runbook_url": "https://runbooks.divyam.ai/kubernetes/pods-in-failed-state",
+      "summary": "Pods in Failed State"
+    },
+    "auto_resolve": "30m",
+    "dashboard_url": null,
+    "datadog": {
+      "message": "Pod {{pod_name.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} is in Failed phase."
+    },
+    "description": "One or more pods are in Failed phase",
+    "enabled": true,
+    "for": "2m",
+    "gcp_notification_channels": null,
+    "group_description": "Kubernetes alerts (deployment / pod / pvc / statefulset health).",
+    "group_enabled": true,
+    "group_name": "k8s",
+    "group_title": "kubernetes",
+    "interval": "1m",
+    "labels": {
+      "alert_rule": "AlwaysOn",
+      "rule_group": "Kubernetes"
+    },
+    "notify": false,
+    "query": "max(last_15m):sum:kubernetes_state.pod.status_phase{kube_cluster_name:test-cluster,phase:failed} by {kube_namespace,pod_name} > 0",
+    "renotify_interval": null,
+    "runbook_url": "https://runbooks.divyam.ai/kubernetes/pods-in-failed-state",
+    "severity": "CRITICAL",
+    "summary": "Pods in Failed State",
+    "thresholds": {
+      "critical": "0"
+    },
+    "window": "15m"
+  },
+  "pvc-unbound-state": {
+    "_comment": "Template rule (hybrid escape hatch): PromQL uses phase!='Bound' (negation), Datadog sums the pending + lost series. These shapes diverge per backend, so the query is authored per backend with placeholders rather than via the structured `query` IR.",
+    "_group_desc": "Kubernetes alerts (deployment / pod / pvc / statefulset health).",
+    "_group_enabled": true,
+    "_group_interval": "1m",
+    "_group_name": "k8s",
+    "_group_title": "kubernetes",
+    "_labels": {
+      "alert_rule": "AlwaysOn",
+      "rule_group": "Kubernetes"
+    },
+    "alert": "pvc-unbound-state",
+    "annotations": {
+      "description": "One or more PVCs are not in Bound state",
+      "runbook_url": "https://runbooks.divyam.ai/kubernetes/pvc-unbound-state",
+      "summary": "PVC Unbound State"
+    },
+    "auto_resolve": "30m",
+    "dashboard_url": null,
+    "datadog": {
+      "message": "PVC {{persistentvolumeclaim.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} is not Bound.",
+      "query": "max(last_{{window}}):sum:kubernetes_state.persistentvolumeclaim.status{phase:pending,kube_cluster_name:{{cluster_name}}} by {kube_namespace,persistentvolumeclaim} + sum:kubernetes_state.persistentvolumeclaim.status{phase:lost,kube_cluster_name:{{cluster_name}}} by {kube_namespace,persistentvolumeclaim} > {{threshold}}"
+    },
+    "description": "One or more PVCs are not in Bound state",
+    "enabled": true,
+    "expr": "(kube_persistentvolumeclaim_status_phase{phase!='Bound'}) > {{threshold}}",
+    "for": "1m",
+    "gcp_notification_channels": null,
+    "group_description": "Kubernetes alerts (deployment / pod / pvc / statefulset health).",
+    "group_enabled": true,
+    "group_name": "k8s",
+    "group_title": "kubernetes",
+    "interval": "1m",
+    "labels": {
+      "alert_rule": "AlwaysOn",
+      "rule_group": "Kubernetes"
+    },
+    "notify": false,
+    "query": "max(last_15m):sum:kubernetes_state.persistentvolumeclaim.status{phase:pending,kube_cluster_name:test-cluster} by {kube_namespace,persistentvolumeclaim} + sum:kubernetes_state.persistentvolumeclaim.status{phase:lost,kube_cluster_name:test-cluster} by {kube_namespace,persistentvolumeclaim} > 0",
+    "renotify_interval": null,
+    "runbook_url": "https://runbooks.divyam.ai/kubernetes/pvc-unbound-state",
+    "severity": "CRITICAL",
+    "summary": "PVC Unbound State",
+    "thresholds": {
+      "critical": "0"
+    },
+    "window": "15m"
+  },
+  "pvc-usage-high": {
+    "_group_desc": "Kubernetes alerts (deployment / pod / pvc / statefulset health).",
+    "_group_enabled": true,
+    "_group_interval": "1m",
+    "_group_name": "k8s",
+    "_group_title": "kubernetes",
+    "_labels": {
+      "alert_rule": "AlwaysOn",
+      "rule_group": "Kubernetes"
+    },
+    "alert": "pvc-usage-high",
+    "annotations": {
+      "description": "PVC usage has exceeded warning (60%) or critical (80%) thresholds",
+      "runbook_url": "https://runbooks.divyam.ai/kubernetes/pvc-usage-high",
+      "summary": "PVC Usage High"
+    },
+    "auto_resolve": "30m",
+    "dashboard_url": null,
+    "datadog": {
+      "message": "PVC {{persistentvolumeclaim.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} exceeded usage thresholds (warn 60%, critical 80%).",
+      "notify": true,
+      "thresholds": {
+        "critical": "80",
+        "critical_recovery": "75",
+        "warning": "60",
+        "warning_recovery": "55"
+      }
+    },
+    "description": "PVC usage has exceeded warning (60%) or critical (80%) thresholds",
+    "enabled": true,
+    "for": "1m",
+    "gcp_notification_channels": null,
+    "group_description": "Kubernetes alerts (deployment / pod / pvc / statefulset health).",
+    "group_enabled": true,
+    "group_name": "k8s",
+    "group_title": "kubernetes",
+    "interval": "1m",
+    "labels": {
+      "alert_rule": "AlwaysOn",
+      "rule_group": "Kubernetes"
+    },
+    "notify": false,
+    "query": "min(last_15m):(avg:kubernetes.io.persistentvolumeclaim.used_bytes{kube_cluster_name:test-cluster} by {kube_namespace,persistentvolumeclaim} / avg:kubernetes.io.persistentvolumeclaim.capacity_bytes{kube_cluster_name:test-cluster} by {kube_namespace,persistentvolumeclaim}) * 100 > 80",
+    "renotify_interval": null,
+    "runbook_url": "https://runbooks.divyam.ai/kubernetes/pvc-usage-high",
+    "severity": "WARNING",
+    "summary": "PVC Usage High",
+    "thresholds": {
+      "critical": "60"
+    },
+    "window": "15m"
+  },
+  "statefulset-replica-mismatch": {
+    "_group_desc": "Kubernetes alerts (deployment / pod / pvc / statefulset health).",
+    "_group_enabled": true,
+    "_group_interval": "1m",
+    "_group_name": "k8s",
+    "_group_title": "kubernetes",
+    "_labels": {
+      "alert_rule": "AlwaysOn",
+      "rule_group": "Kubernetes"
+    },
+    "alert": "statefulset-replica-mismatch",
+    "annotations": {
+      "description": "Warn when < 90% replicas ready; critical when < 80%; recover above 85% (crit) / 95% (warn)",
+      "runbook_url": "https://runbooks.divyam.ai/kubernetes/statefulset-replica-mismatch",
+      "summary": "StatefulSet Replica Mismatch"
+    },
+    "auto_resolve": "30m",
+    "dashboard_url": null,
+    "datadog": {
+      "message": "StatefulSet {{kube_statefulset.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} has less than 80% replicas ready."
+    },
+    "description": "Warn when < 90% replicas ready; critical when < 80%; recover above 85% (crit) / 95% (warn)",
+    "enabled": true,
+    "for": "2m",
+    "gcp_notification_channels": null,
+    "group_description": "Kubernetes alerts (deployment / pod / pvc / statefulset health).",
+    "group_enabled": true,
+    "group_name": "k8s",
+    "group_title": "kubernetes",
+    "interval": "1m",
+    "labels": {
+      "alert_rule": "AlwaysOn",
+      "rule_group": "Kubernetes"
+    },
+    "notify": false,
+    "query": "min(last_15m):(avg:kubernetes_state.statefulset.replicas_ready{kube_cluster_name:test-cluster} by {kube_namespace,kube_statefulset} / avg:kubernetes_state.statefulset.replicas_desired{kube_cluster_name:test-cluster} by {kube_namespace,kube_statefulset}) < 0.8",
+    "renotify_interval": null,
+    "runbook_url": "https://runbooks.divyam.ai/kubernetes/statefulset-replica-mismatch",
+    "severity": "CRITICAL",
+    "summary": "StatefulSet Replica Mismatch",
+    "thresholds": {
+      "critical": "0.8",
+      "critical_recovery": "0.85",
+      "warning": "0.9",
+      "warning_recovery": "0.95"
+    },
+    "window": "15m"
+  }
+}
