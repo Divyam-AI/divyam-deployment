@@ -174,7 +174,8 @@ locals {
     # DIVYAM_SWITCH_<PROVIDER>_API_KEY and its ExternalSecret names the synced keys to match.
     var.input.divyam_switch_deepinfra_api_key != "" ? { "divyam-switch-deepinfra-api-key" = var.input.divyam_switch_deepinfra_api_key } : {},
     var.input.divyam_switch_openai_api_key != "" ? { "divyam-switch-openai-api-key" = var.input.divyam_switch_openai_api_key } : {},
-    var.input.divyam_switch_gemini_api_key != "" ? { "divyam-switch-gemini-api-key" = var.input.divyam_switch_gemini_api_key } : {}
+    var.input.divyam_switch_gemini_api_key != "" ? { "divyam-switch-gemini-api-key" = var.input.divyam_switch_gemini_api_key } : {},
+    var.input.divyam_switch_descope_access_key != "" ? { "divyam-switch-descope-access-key" = var.input.divyam_switch_descope_access_key } : {}
   ) : {}
 
   secrets = merge(

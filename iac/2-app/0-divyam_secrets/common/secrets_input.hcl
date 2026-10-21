@@ -42,6 +42,7 @@ locals {
       divyam_switch_deepinfra_api_key   = get_env("TF_VAR_divyam_switch_deepinfra_api_key", "")
       divyam_switch_openai_api_key      = get_env("TF_VAR_divyam_switch_openai_api_key", "")
       divyam_switch_gemini_api_key      = get_env("TF_VAR_divyam_switch_gemini_api_key", "")
+      divyam_switch_descope_access_key  = get_env("TF_VAR_divyam_switch_descope_access_key", "")
       divyam_clickhouse_user_name          = get_env("TF_VAR_divyam_clickhouse_user_name", "default")
       divyam_clickhouse_password           = get_env("TF_VAR_divyam_clickhouse_password", "")
       divyam_superset_pg_password          = get_env("TF_VAR_divyam_superset_pg_password", "")
