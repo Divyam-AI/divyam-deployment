@@ -302,6 +302,20 @@ class SelfServeDeploymentTests(unittest.TestCase):
                 result = subprocess.run([tofu, *command], cwd=folder, capture_output=True, text=True)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_uptime_checks_are_planned_for_the_configured_endpoints(self):
+        """The Google Cloud uptime checks for public HTTPS endpoints, planned against a mocked Google provider."""
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            module = ROOT / "iac/1-platform/2-monitoring/native/gcp"
+            for source in module.glob("*.tf"):
+                shutil.copyfile(source, folder / source.name)
+            (folder / "tests").mkdir()
+            shutil.copyfile(Path(__file__).with_name("uptime_checks.tftest.hcl"), folder / "tests/uptime_checks.tftest.hcl")
+            tofu = os.environ.get("TOFU_BIN", "tofu")
+            for command in (["init", "-backend=false"], ["test"]):
+                result = subprocess.run([tofu, *command], cwd=folder, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

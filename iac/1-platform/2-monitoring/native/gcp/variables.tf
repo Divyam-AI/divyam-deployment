@@ -49,6 +49,17 @@ variable "enable_cloudsql_backup_metric" {
   default     = true
 }
 
+variable "uptime_checks" {
+  description = "Public HTTPS endpoints to watch with a Google Cloud uptime check, by name. Empty means none. host is the DNS name only, without https://."
+  type = map(object({
+    host    = string
+    path    = optional(string, "/")
+    period  = optional(string, "60s")
+    timeout = optional(string, "10s")
+  }))
+  default = {}
+}
+
 variable "cloudsql_backup_metric_name" {
   description = "Name of that metric. Alert policies read it as logging.googleapis.com/user/<name>."
   type        = string

@@ -63,6 +63,8 @@ inputs = {
 
   enable_cloudsql_backup_metric = try(local.native_cfg.enable_cloudsql_backup_metric, true)
 
+  uptime_checks = try(local.native_cfg.uptime_checks, {})
+
   common_tags = try(local.root.common_tags, {})
   tag_globals   = try(include.root.inputs.tag_globals, {})
   tag_context   = { resource_name = "${local.root.deployment_prefix}-monitoring" }

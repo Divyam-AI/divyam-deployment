@@ -286,6 +286,11 @@ locals {
 
       gcp_project_id   = null
       gmp_cluster_name = null
+
+      # Google Cloud uptime checks for public HTTPS endpoints (monitoring metrics check_passed and time_until_ssl_cert_expires).
+      uptime_checks = {
+        console = { host = "console.preview.divyam.ai" }
+      }
     }
   }
 
