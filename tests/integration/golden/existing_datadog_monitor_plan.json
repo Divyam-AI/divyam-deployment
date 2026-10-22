@@ -1,0 +1,504 @@
+{
+  "datadog_monitor.alerts[\"clickhouse-disk-usage-high\"]": {
+    "include_tags": true,
+    "message": "ClickHouse disk {{disk_name.name}} on {{host.name}} (cluster {{kube_cluster_name.name}}) has exceeded disk usage thresholds (warn 80%, critical 90%).\n\n@webhook-divyam-pager-0",
+    "monitor_thresholds": [
+      {
+        "critical": "90",
+        "critical_query": null,
+        "critical_recovery": "85",
+        "critical_recovery_query": null,
+        "ok": null,
+        "unknown": null,
+        "warning": "80",
+        "warning_recovery": "75"
+      }
+    ],
+    "name": "clickhouse-disk-usage-high",
+    "no_data_timeframe": 15,
+    "notify_no_data": true,
+    "priority": "3",
+    "query": "max(last_15m):(avg:clickhouse.disks.total_space{kube_cluster_name:test-cluster} by {host,disk_name} - avg:clickhouse.disks.free_space{kube_cluster_name:test-cluster} by {host,disk_name}) / avg:clickhouse.disks.total_space{kube_cluster_name:test-cluster} by {host,disk_name} * 100 > 90",
+    "renotify_interval": 30,
+    "renotify_statuses": [
+      "alert",
+      "warn"
+    ],
+    "require_full_window": true,
+    "tags": [
+      "alert_rule:AlwaysOn",
+      "cluster:test-cluster",
+      "env:preprod",
+      "managed-by:terraform",
+      "rule_group:ClickHouse",
+      "rule_group:clickhouse",
+      "severity:WARNING"
+    ],
+    "timeout_h": null,
+    "type": "metric alert"
+  },
+  "datadog_monitor.alerts[\"clickhouse-ingestion-delay\"]": {
+    "include_tags": true,
+    "message": "ClickHouse on cluster {{kube_cluster_name.name}} has delayed INSERT queries for 10+ minutes. Investigate ingestion pipeline back-pressure.\n\n@webhook-divyam-pager-0",
+    "monitor_thresholds": [],
+    "name": "clickhouse-ingestion-delay",
+    "no_data_timeframe": 15,
+    "notify_no_data": true,
+    "priority": "3",
+    "query": "max(last_15m):max:clickhouse.query.insert.delayed{kube_cluster_name:test-cluster} > 0",
+    "renotify_interval": 30,
+    "renotify_statuses": [
+      "alert",
+      "warn"
+    ],
+    "require_full_window": true,
+    "tags": [
+      "alert_rule:AlwaysOn",
+      "cluster:test-cluster",
+      "env:preprod",
+      "managed-by:terraform",
+      "rule_group:ClickHouse",
+      "rule_group:clickhouse",
+      "severity:WARNING"
+    ],
+    "timeout_h": null,
+    "type": "metric alert"
+  },
+  "datadog_monitor.alerts[\"clickhouse-ingestion-slow\"]": {
+    "include_tags": true,
+    "message": "ClickHouse on cluster {{kube_cluster_name.name}} insert rate is below the minor slowdown threshold. No immediate action required but monitor for escalation.\n\n@webhook-divyam-pager-0",
+    "monitor_thresholds": [
+      {
+        "critical": "10",
+        "critical_query": null,
+        "critical_recovery": null,
+        "critical_recovery_query": null,
+        "ok": null,
+        "unknown": null,
+        "warning": "50",
+        "warning_recovery": null
+      }
+    ],
+    "name": "clickhouse-ingestion-slow",
+    "no_data_timeframe": 15,
+    "notify_no_data": true,
+    "priority": "3",
+    "query": "sum(last_15m):sum:clickhouse.table.insert.row.total{kube_cluster_name:test-cluster}.as_count() < 10",
+    "renotify_interval": 30,
+    "renotify_statuses": [
+      "alert",
+      "warn"
+    ],
+    "require_full_window": true,
+    "tags": [
+      "alert_rule:AlwaysOn",
+      "cluster:test-cluster",
+      "env:preprod",
+      "managed-by:terraform",
+      "rule_group:ClickHouse",
+      "rule_group:clickhouse",
+      "severity:WARNING"
+    ],
+    "timeout_h": null,
+    "type": "metric alert"
+  },
+  "datadog_monitor.alerts[\"clickhouse-no-ingestion\"]": {
+    "include_tags": true,
+    "message": "ClickHouse on cluster {{kube_cluster_name.name}} has had zero row insertions for the past 5 minutes. Check the ingestion pipeline (Kafka consumer, OTel collector, or upstream producers).\n\n@webhook-divyam-pager-0",
+    "monitor_thresholds": [],
+    "name": "clickhouse-no-ingestion",
+    "no_data_timeframe": 15,
+    "notify_no_data": true,
+    "priority": "1",
+    "query": "sum(last_5m):sum:clickhouse.table.insert.row.total{kube_cluster_name:test-cluster}.as_count() < 1",
+    "renotify_interval": 30,
+    "renotify_statuses": [
+      "alert",
+      "warn"
+    ],
+    "require_full_window": true,
+    "tags": [
+      "alert_rule:AlwaysOn",
+      "cluster:test-cluster",
+      "env:preprod",
+      "managed-by:terraform",
+      "rule_group:ClickHouse",
+      "rule_group:clickhouse",
+      "severity:CRITICAL"
+    ],
+    "timeout_h": null,
+    "type": "metric alert"
+  },
+  "datadog_monitor.alerts[\"clickhouse-write-failures\"]": {
+    "include_tags": true,
+    "message": "ClickHouse on cluster {{kube_cluster_name.name}} is logging errors. Check system.query_log for insert/write failures.\n\n@webhook-divyam-pager-0",
+    "monitor_thresholds": [],
+    "name": "clickhouse-write-failures",
+    "no_data_timeframe": 15,
+    "notify_no_data": true,
+    "priority": "1",
+    "query": "sum(last_5m):sum:clickhouse.log.messages.error.total{kube_cluster_name:test-cluster}.as_count() > 0",
+    "renotify_interval": 30,
+    "renotify_statuses": [
+      "alert",
+      "warn"
+    ],
+    "require_full_window": true,
+    "tags": [
+      "alert_rule:AlwaysOn",
+      "cluster:test-cluster",
+      "env:preprod",
+      "managed-by:terraform",
+      "rule_group:ClickHouse",
+      "rule_group:clickhouse",
+      "severity:CRITICAL"
+    ],
+    "timeout_h": null,
+    "type": "metric alert"
+  },
+  "datadog_monitor.alerts[\"deployment-replica-mismatch\"]": {
+    "include_tags": true,
+    "message": "Deployment {{kube_deployment.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} has less than 80% replicas available.\n\nRunbook: https://runbooks.divyam.ai/kubernetes/deployment-replica-mismatch\n\n@webhook-divyam-pager-0",
+    "monitor_thresholds": [
+      {
+        "critical": "0.8",
+        "critical_query": null,
+        "critical_recovery": "0.85",
+        "critical_recovery_query": null,
+        "ok": null,
+        "unknown": null,
+        "warning": "0.9",
+        "warning_recovery": "0.95"
+      }
+    ],
+    "name": "deployment-replica-mismatch",
+    "no_data_timeframe": 15,
+    "notify_no_data": true,
+    "priority": "1",
+    "query": "min(last_15m):(avg:kubernetes_state.deployment.replicas_available{kube_cluster_name:test-cluster} by {kube_namespace,kube_deployment} / avg:kubernetes_state.deployment.replicas_desired{kube_cluster_name:test-cluster} by {kube_namespace,kube_deployment}) < 0.8",
+    "renotify_interval": 30,
+    "renotify_statuses": [
+      "alert",
+      "warn"
+    ],
+    "require_full_window": true,
+    "tags": [
+      "alert_rule:AlwaysOn",
+      "cluster:test-cluster",
+      "env:preprod",
+      "managed-by:terraform",
+      "rule_group:Kubernetes",
+      "rule_group:k8s",
+      "severity:CRITICAL"
+    ],
+    "timeout_h": null,
+    "type": "metric alert"
+  },
+  "datadog_monitor.alerts[\"kafka-consumer-lag-growing\"]": {
+    "include_tags": true,
+    "message": "[P2] Consumer group {{consumer_group.name}} on topic {{topic.name}} is accumulating lag at a steady rate on cluster {{kube_cluster_name.name}}. Consumer may not be keeping up with the produce rate.",
+    "monitor_thresholds": [],
+    "name": "kafka-consumer-lag-growing",
+    "no_data_timeframe": 15,
+    "notify_no_data": true,
+    "priority": "3",
+    "query": "change(avg(last_10m),last_10m):max:kafka.consumer_lag{kube_cluster_name:test-cluster,kube_namespace:kafka-preprod-ns} by {consumer_group,topic} > 1000",
+    "renotify_interval": 0,
+    "renotify_statuses": null,
+    "require_full_window": true,
+    "tags": [
+      "cluster:test-cluster",
+      "env:preprod",
+      "managed-by:terraform",
+      "rule_group:Kafka",
+      "rule_group:kafka",
+      "severity:WARNING"
+    ],
+    "timeout_h": null,
+    "type": "query alert"
+  },
+  "datadog_monitor.alerts[\"kafka-consumer-lag-sla\"]": {
+    "include_tags": true,
+    "message": "[P1] Consumer group {{consumer_group.name}} on topic {{topic.name}} has been lagging above the SLA threshold for over 10 minutes on cluster {{kube_cluster_name.name}}.\n\n@webhook-divyam-pager-0",
+    "monitor_thresholds": [],
+    "name": "kafka-consumer-lag-sla",
+    "no_data_timeframe": 15,
+    "notify_no_data": true,
+    "priority": "2",
+    "query": "max(last_10m):max:kafka.consumer_lag{kube_cluster_name:test-cluster,kube_namespace:kafka-preprod-ns} by {consumer_group,topic} > 50000",
+    "renotify_interval": 30,
+    "renotify_statuses": [
+      "alert",
+      "warn"
+    ],
+    "require_full_window": true,
+    "tags": [
+      "cluster:test-cluster",
+      "env:preprod",
+      "managed-by:terraform",
+      "rule_group:Kafka",
+      "rule_group:kafka",
+      "severity:WARNING"
+    ],
+    "timeout_h": null,
+    "type": "metric alert"
+  },
+  "datadog_monitor.alerts[\"kafka-disk-full\"]": {
+    "include_tags": true,
+    "message": "[P0] Kafka PVC {{persistentvolumeclaim.name}} is over 90% full on cluster {{kube_cluster_name.name}}. Broker write failures are imminent. Expand the PVC or purge old topic data immediately.\n\n@webhook-divyam-pager-0",
+    "monitor_thresholds": [],
+    "name": "kafka-disk-full",
+    "no_data_timeframe": 15,
+    "notify_no_data": true,
+    "priority": "1",
+    "query": "max(last_5m):max:kubernetes.io.persistentvolumeclaim.used_bytes{kube_cluster_name:test-cluster,kube_namespace:kafka-preprod-ns} by {persistentvolumeclaim} / max:kubernetes.io.persistentvolumeclaim.capacity_bytes{kube_cluster_name:test-cluster,kube_namespace:kafka-preprod-ns} by {persistentvolumeclaim} * 100 > 90",
+    "renotify_interval": 30,
+    "renotify_statuses": [
+      "alert",
+      "warn"
+    ],
+    "require_full_window": true,
+    "tags": [
+      "cluster:test-cluster",
+      "env:preprod",
+      "managed-by:terraform",
+      "rule_group:Kafka",
+      "rule_group:kafka",
+      "severity:CRITICAL"
+    ],
+    "timeout_h": null,
+    "type": "metric alert"
+  },
+  "datadog_monitor.alerts[\"kafka-disk-usage-elevated\"]": {
+    "include_tags": true,
+    "message": "[P2] Kafka PVC {{persistentvolumeclaim.name}} disk usage is above 70% on cluster {{kube_cluster_name.name}}. Monitor growth trend.",
+    "monitor_thresholds": [],
+    "name": "kafka-disk-usage-elevated",
+    "no_data_timeframe": 15,
+    "notify_no_data": true,
+    "priority": "3",
+    "query": "max(last_10m):max:kubernetes.io.persistentvolumeclaim.used_bytes{kube_cluster_name:test-cluster,kube_namespace:kafka-preprod-ns} by {persistentvolumeclaim} / max:kubernetes.io.persistentvolumeclaim.capacity_bytes{kube_cluster_name:test-cluster,kube_namespace:kafka-preprod-ns} by {persistentvolumeclaim} * 100 > 70",
+    "renotify_interval": 0,
+    "renotify_statuses": null,
+    "require_full_window": true,
+    "tags": [
+      "cluster:test-cluster",
+      "env:preprod",
+      "managed-by:terraform",
+      "rule_group:Kafka",
+      "rule_group:kafka",
+      "severity:INFO"
+    ],
+    "timeout_h": null,
+    "type": "metric alert"
+  },
+  "datadog_monitor.alerts[\"kafka-disk-usage-high\"]": {
+    "include_tags": true,
+    "message": "[P1] Kafka PVC {{persistentvolumeclaim.name}} disk usage is above 80% on cluster {{kube_cluster_name.name}}. Plan capacity expansion before the disk fills.\n\n@webhook-divyam-pager-0",
+    "monitor_thresholds": [],
+    "name": "kafka-disk-usage-high",
+    "no_data_timeframe": 15,
+    "notify_no_data": true,
+    "priority": "2",
+    "query": "max(last_10m):max:kubernetes.io.persistentvolumeclaim.used_bytes{kube_cluster_name:test-cluster,kube_namespace:kafka-preprod-ns} by {persistentvolumeclaim} / max:kubernetes.io.persistentvolumeclaim.capacity_bytes{kube_cluster_name:test-cluster,kube_namespace:kafka-preprod-ns} by {persistentvolumeclaim} * 100 > 80",
+    "renotify_interval": 30,
+    "renotify_statuses": [
+      "alert",
+      "warn"
+    ],
+    "require_full_window": true,
+    "tags": [
+      "cluster:test-cluster",
+      "env:preprod",
+      "managed-by:terraform",
+      "rule_group:Kafka",
+      "rule_group:kafka",
+      "severity:WARNING"
+    ],
+    "timeout_h": null,
+    "type": "metric alert"
+  },
+  "datadog_monitor.alerts[\"kafka-write-failures\"]": {
+    "include_tags": true,
+    "message": "[P0] Kafka has under-replicated partitions on cluster {{kube_cluster_name.name}}, indicating broker failures or write bottlenecks. Data loss risk elevated.\n\n@webhook-divyam-pager-0",
+    "monitor_thresholds": [],
+    "name": "kafka-write-failures",
+    "no_data_timeframe": 15,
+    "notify_no_data": true,
+    "priority": "1",
+    "query": "max(last_5m):max:kafka.replication.under_replicated_partitions{kube_cluster_name:test-cluster,kube_namespace:kafka-preprod-ns} > 0",
+    "renotify_interval": 30,
+    "renotify_statuses": [
+      "alert",
+      "warn"
+    ],
+    "require_full_window": true,
+    "tags": [
+      "cluster:test-cluster",
+      "env:preprod",
+      "managed-by:terraform",
+      "rule_group:Kafka",
+      "rule_group:kafka",
+      "severity:CRITICAL"
+    ],
+    "timeout_h": null,
+    "type": "metric alert"
+  },
+  "datadog_monitor.alerts[\"pods-in-crashloopbackoff\"]": {
+    "include_tags": true,
+    "message": "Pod {{pod_name.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} is in CrashLoopBackOff.\n\nRunbook: https://runbooks.divyam.ai/kubernetes/pods-in-crashloopbackoff\n\n@webhook-divyam-pager-0",
+    "monitor_thresholds": [],
+    "name": "pods-in-crashloopbackoff",
+    "no_data_timeframe": 15,
+    "notify_no_data": true,
+    "priority": "1",
+    "query": "max(last_15m):sum:kubernetes_state.container.status_report.count.waiting{kube_cluster_name:test-cluster,reason:crashloopbackoff} by {kube_namespace,pod_name} > 0",
+    "renotify_interval": 30,
+    "renotify_statuses": [
+      "alert",
+      "warn"
+    ],
+    "require_full_window": true,
+    "tags": [
+      "alert_rule:AlwaysOn",
+      "cluster:test-cluster",
+      "env:preprod",
+      "managed-by:terraform",
+      "rule_group:Kubernetes",
+      "rule_group:k8s",
+      "severity:CRITICAL"
+    ],
+    "timeout_h": null,
+    "type": "metric alert"
+  },
+  "datadog_monitor.alerts[\"pods-in-failed-state\"]": {
+    "include_tags": true,
+    "message": "Pod {{pod_name.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} is in Failed phase.\n\nRunbook: https://runbooks.divyam.ai/kubernetes/pods-in-failed-state\n\n@webhook-divyam-pager-0",
+    "monitor_thresholds": [],
+    "name": "pods-in-failed-state",
+    "no_data_timeframe": 15,
+    "notify_no_data": true,
+    "priority": "1",
+    "query": "max(last_15m):sum:kubernetes_state.pod.status_phase{kube_cluster_name:test-cluster,phase:failed} by {kube_namespace,pod_name} > 0",
+    "renotify_interval": 30,
+    "renotify_statuses": [
+      "alert",
+      "warn"
+    ],
+    "require_full_window": true,
+    "tags": [
+      "alert_rule:AlwaysOn",
+      "cluster:test-cluster",
+      "env:preprod",
+      "managed-by:terraform",
+      "rule_group:Kubernetes",
+      "rule_group:k8s",
+      "severity:CRITICAL"
+    ],
+    "timeout_h": null,
+    "type": "metric alert"
+  },
+  "datadog_monitor.alerts[\"pvc-unbound-state\"]": {
+    "include_tags": true,
+    "message": "PVC {{persistentvolumeclaim.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} is not Bound.\n\nRunbook: https://runbooks.divyam.ai/kubernetes/pvc-unbound-state\n\n@webhook-divyam-pager-0",
+    "monitor_thresholds": [],
+    "name": "pvc-unbound-state",
+    "no_data_timeframe": 15,
+    "notify_no_data": true,
+    "priority": "1",
+    "query": "max(last_15m):sum:kubernetes_state.persistentvolumeclaim.status{phase:pending,kube_cluster_name:test-cluster} by {kube_namespace,persistentvolumeclaim} + sum:kubernetes_state.persistentvolumeclaim.status{phase:lost,kube_cluster_name:test-cluster} by {kube_namespace,persistentvolumeclaim} > 0",
+    "renotify_interval": 30,
+    "renotify_statuses": [
+      "alert",
+      "warn"
+    ],
+    "require_full_window": true,
+    "tags": [
+      "alert_rule:AlwaysOn",
+      "cluster:test-cluster",
+      "env:preprod",
+      "managed-by:terraform",
+      "rule_group:Kubernetes",
+      "rule_group:k8s",
+      "severity:CRITICAL"
+    ],
+    "timeout_h": null,
+    "type": "metric alert"
+  },
+  "datadog_monitor.alerts[\"pvc-usage-high\"]": {
+    "include_tags": true,
+    "message": "PVC {{persistentvolumeclaim.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} exceeded usage thresholds (warn 60%, critical 80%).\n\nRunbook: https://runbooks.divyam.ai/kubernetes/pvc-usage-high\n\n@webhook-divyam-pager-0",
+    "monitor_thresholds": [
+      {
+        "critical": "80",
+        "critical_query": null,
+        "critical_recovery": "75",
+        "critical_recovery_query": null,
+        "ok": null,
+        "unknown": null,
+        "warning": "60",
+        "warning_recovery": "55"
+      }
+    ],
+    "name": "pvc-usage-high",
+    "no_data_timeframe": 15,
+    "notify_no_data": true,
+    "priority": "3",
+    "query": "min(last_15m):(avg:kubernetes.io.persistentvolumeclaim.used_bytes{kube_cluster_name:test-cluster} by {kube_namespace,persistentvolumeclaim} / avg:kubernetes.io.persistentvolumeclaim.capacity_bytes{kube_cluster_name:test-cluster} by {kube_namespace,persistentvolumeclaim}) * 100 > 80",
+    "renotify_interval": 30,
+    "renotify_statuses": [
+      "alert",
+      "warn"
+    ],
+    "require_full_window": true,
+    "tags": [
+      "alert_rule:AlwaysOn",
+      "cluster:test-cluster",
+      "env:preprod",
+      "managed-by:terraform",
+      "rule_group:Kubernetes",
+      "rule_group:k8s",
+      "severity:WARNING"
+    ],
+    "timeout_h": null,
+    "type": "metric alert"
+  },
+  "datadog_monitor.alerts[\"statefulset-replica-mismatch\"]": {
+    "include_tags": true,
+    "message": "StatefulSet {{kube_statefulset.name}} in namespace {{kube_namespace.name}} on cluster {{kube_cluster_name.name}} has less than 80% replicas ready.\n\nRunbook: https://runbooks.divyam.ai/kubernetes/statefulset-replica-mismatch\n\n@webhook-divyam-pager-0",
+    "monitor_thresholds": [
+      {
+        "critical": "0.8",
+        "critical_query": null,
+        "critical_recovery": "0.85",
+        "critical_recovery_query": null,
+        "ok": null,
+        "unknown": null,
+        "warning": "0.9",
+        "warning_recovery": "0.95"
+      }
+    ],
+    "name": "statefulset-replica-mismatch",
+    "no_data_timeframe": 15,
+    "notify_no_data": true,
+    "priority": "1",
+    "query": "min(last_15m):(avg:kubernetes_state.statefulset.replicas_ready{kube_cluster_name:test-cluster} by {kube_namespace,kube_statefulset} / avg:kubernetes_state.statefulset.replicas_desired{kube_cluster_name:test-cluster} by {kube_namespace,kube_statefulset}) < 0.8",
+    "renotify_interval": 30,
+    "renotify_statuses": [
+      "alert",
+      "warn"
+    ],
+    "require_full_window": true,
+    "tags": [
+      "alert_rule:AlwaysOn",
+      "cluster:test-cluster",
+      "env:preprod",
+      "managed-by:terraform",
+      "rule_group:Kubernetes",
+      "rule_group:k8s",
+      "severity:CRITICAL"
+    ],
+    "timeout_h": null,
+    "type": "metric alert"
+  }
+}

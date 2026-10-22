@@ -27,7 +27,7 @@ Apply order: **`1-k8s` before `2-monitoring`**. Do not add `1-k8s` → `2-monito
 | `datadog/{gcp,azure}` | `datadog.enabled`, cluster from `1-k8s` | Operator + agent |
 | `datadog/custom` | `datadog.enabled`, **custom K8s** (`k8s.create = false`) | Same install; auth via external kubeconfig |
 | `native/azure` | `datadog.enabled = false` | AMW, Prometheus DCR, Managed Grafana |
-| `native/gcp` | `datadog.enabled = false` | Project log bucket + GKE logging/GMP |
+| `native/gcp` | `datadog.enabled = false` | Project log bucket + GKE logging/GMP + a log-based metric for Cloud SQL automated backups (`monitoring.native.enable_cloudsql_backup_metric`, default `true`) + Google Cloud uptime checks for public HTTPS endpoints (`monitoring.native.uptime_checks`, default none) |
 
 Shared Helm/CR logic: `datadog/common/`.
 

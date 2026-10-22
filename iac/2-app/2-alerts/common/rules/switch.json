@@ -1,0 +1,62 @@
+{
+  "name": "switch",
+  "description": "Switch (self-serve) P0 alerts: verification email acceptance and account provisioning",
+  "interval": "1m",
+  "labels": {
+    "rule_group": "Switch"
+  },
+  "rules": [
+    {
+      "alert": "switch-verification-email-failing",
+      "_comment": "Template rule. The structured query IR has no counter windows or regex matchers, so the queries are authored here. Prometheus: numerator counts failed plus unknown sends, because an unknown send is accepted-pending and an outage that hangs connections ends there instead of in failed. The 'and' clause is the minimum-attempts floor, so a quiet period cannot page. A sign-in code uses the same verification_code template as a signup code. Datadog: every send is exactly one of success, failed or unknown, so (failed + unknown) / total > 0.5 is the same condition as success / total < 0.5, the documented ratio-of-sums form for as_count() queries. The minimum-attempts floor is datadog.floor: the Datadog module makes this rule a composite of a silent ratio monitor (datadog.query) and a silent volume monitor (datadog.floor.query), and only the composite notifies. Neither member nor the composite notifies on missing data, because zero signups is normal and an environment without Switch has no data at all. The Datadog name is <app>-<env> with hyphens read as underscores, and the openmetrics check strips _total and adds .count (verified by running the real check against Switch's /metrics). Thresholds are pending team confirmation.",
+      "for": "2m",
+      "window": "10m",
+      "severity": "CRITICAL",
+      "expr": "(sum(increase(switch_email_send_total{namespace=\"self-serve-{{env}}-ns\",template=\"verification_code\",result=~\"failed|unknown\"}[10m])) / sum(increase(switch_email_send_total{namespace=\"self-serve-{{env}}-ns\",template=\"verification_code\"}[10m]))) > {{threshold}} and sum(increase(switch_email_send_total{namespace=\"self-serve-{{env}}-ns\",template=\"verification_code\"}[10m])) >= 10",
+      "thresholds": {
+        "critical": "0.5"
+      },
+      "notification": {
+        "notify_no_data": false
+      },
+      "datadog": {
+        "query": "sum(last_{{window}}):sum:self_serve_server_{{env}}.switch_email_send.count{kube_cluster_name:{{cluster_name}},kube_namespace:self-serve-{{env}}-ns,template:verification_code,result:success}.as_count() / sum:self_serve_server_{{env}}.switch_email_send.count{kube_cluster_name:{{cluster_name}},kube_namespace:self-serve-{{env}}-ns,template:verification_code}.as_count() < {{threshold}}",
+        "floor": {
+          "query": "sum(last_{{window}}):sum:self_serve_server_{{env}}.switch_email_send.count{kube_cluster_name:{{cluster_name}},kube_namespace:self-serve-{{env}}-ns,template:verification_code}.as_count() >= {{threshold}}",
+          "threshold": 10
+        },
+        "message": "[P0] Fewer than half of the verification email sends over the last 10 minutes were confirmed as accepted by the email provider (Resend), with at least 10 attempts. Failed and unknown sends are both unconfirmed, so some of these emails may still have been delivered. New users and sign-ins may not be receiving their code. Check the email provider status and the Switch logs for refusals and timeouts."
+      },
+      "annotations": {
+        "summary": "Switch verification emails are failing (P0)",
+        "description": "More than 50% of verification email sends over the last 10 minutes were not confirmed as accepted by the email provider (Resend), with at least 10 attempts. A send counts here when it failed or ended with an unknown outcome, so some of these emails may still have been delivered. New users and sign-ins may not be receiving their code. Check the email provider status and the Switch logs for refusals and timeouts."
+      }
+    },
+    {
+      "alert": "switch-account-provisioning-failing",
+      "_comment": "Template rule, for the same reasons as the email rule. Only setup attempts are counted: the signup that sets an account up, and a sign-in that recovers one that failed. Logins on healthy accounts and a failed account lookup are deliberately not counted, so a database outage does not read as provisioning failing. Prometheus has the minimum-attempts floor as the 'and' clause. Datadog has the same ratio as success / total < 0.5 and the floor as datadog.floor, which makes the rule a composite of two silent members, exactly as on the email rule, with the same missing-data handling. Thresholds are pending team confirmation.",
+      "for": "2m",
+      "window": "15m",
+      "severity": "CRITICAL",
+      "expr": "(sum(increase(switch_provisioning_total{namespace=\"self-serve-{{env}}-ns\",result=\"failed\"}[15m])) / sum(increase(switch_provisioning_total{namespace=\"self-serve-{{env}}-ns\"}[15m]))) > {{threshold}} and sum(increase(switch_provisioning_total{namespace=\"self-serve-{{env}}-ns\"}[15m])) >= 5",
+      "thresholds": {
+        "critical": "0.5"
+      },
+      "notification": {
+        "notify_no_data": false
+      },
+      "datadog": {
+        "query": "sum(last_{{window}}):sum:self_serve_server_{{env}}.switch_provisioning.count{kube_cluster_name:{{cluster_name}},kube_namespace:self-serve-{{env}}-ns,result:success}.as_count() / sum:self_serve_server_{{env}}.switch_provisioning.count{kube_cluster_name:{{cluster_name}},kube_namespace:self-serve-{{env}}-ns}.as_count() < {{threshold}}",
+        "floor": {
+          "query": "sum(last_{{window}}):sum:self_serve_server_{{env}}.switch_provisioning.count{kube_cluster_name:{{cluster_name}},kube_namespace:self-serve-{{env}}-ns}.as_count() >= {{threshold}}",
+          "threshold": 5
+        },
+        "message": "[P0] Fewer than half of the account setup attempts Switch made over the last 15 minutes succeeded, with at least 5 attempts. Users who verify their code cannot get an account. Check the Switch logs for provisioning errors from the Router, Evalm8 or the database."
+      },
+      "annotations": {
+        "summary": "Switch account setup is failing (P0)",
+        "description": "More than 50% of account setup attempts failed over the last 15 minutes, with at least 5 attempts. Users who verify their code cannot get an account. Check the Switch logs for provisioning errors from the Router, Evalm8 or the database."
+      }
+    }
+  ]
+}

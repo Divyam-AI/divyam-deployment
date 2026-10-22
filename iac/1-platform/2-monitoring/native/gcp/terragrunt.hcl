@@ -61,6 +61,10 @@ inputs = {
   logs_retention_days       = min(3650, max(1, try(local.native_cfg.logs_retention_days, try(local.k8s_obs.logs_retention_days, 30))))
   manage_project_log_bucket = try(local.native_cfg.manage_project_log_bucket, true)
 
+  enable_cloudsql_backup_metric = try(local.native_cfg.enable_cloudsql_backup_metric, true)
+
+  uptime_checks = try(local.native_cfg.uptime_checks, {})
+
   common_tags = try(local.root.common_tags, {})
   tag_globals   = try(include.root.inputs.tag_globals, {})
   tag_context   = { resource_name = "${local.root.deployment_prefix}-monitoring" }

@@ -197,6 +197,83 @@ class SelfServeDeploymentTests(unittest.TestCase):
             "switch-db-rw.self-serve-preprod-ns.svc.cluster.local",
         )
 
+    def test_switch_receives_the_platform_monitoring_block(self):
+        """The server is in the chart list that merges provider.yaml's monitoring, as Router and Selector are."""
+        monitoring = {"metrics": {"enabled": True}}
+        server = self._build(self._switch_fixtures(monitoring=monitoring))["self-serve-server-preprod"]
+        self.assertEqual(self._values(server)["monitoring"], monitoring)
+
+    def test_a_datadog_provider_reaches_the_switch_chart(self):
+        """The chart renders pod annotations instead of a scrape resource only when it is told the provider."""
+        monitoring = {"metrics": {"enabled": True}, "provider": "datadog"}
+        server = self._build(self._switch_fixtures(monitoring=monitoring))["self-serve-server-preprod"]
+        self.assertEqual(self._values(server)["monitoring"], monitoring)
+
+    def test_no_platform_monitoring_block_leaves_the_switch_chart_on_its_defaults(self):
+        """An environment that exports no monitoring gets an empty block, so the chart's own off default stands."""
+        server = self._build(self._switch_fixtures())["self-serve-server-preprod"]
+        self.assertFalse(self._values(server).get("monitoring"))
+
+    def test_the_monitoring_block_does_not_reach_charts_outside_the_list(self):
+        """Membership is explicit: the UI has no monitoring value, so it must not be handed one."""
+        by_name = self._build(self._switch_fixtures(monitoring={"metrics": {"enabled": True}}))
+        self.assertNotIn("monitoring", self._values(by_name["self-serve-ui-preprod"]))
+
+    def test_router_and_selector_still_receive_the_monitoring_block(self):
+        """Adding Switch to the list must leave the entries it was modelled on exactly as they were."""
+        monitoring = {"metrics": {"enabled": True}, "provider": "datadog"}
+        fixtures = self._switch_fixtures(
+            stack="router,self-serve", monitoring=monitoring,
+            databases={"self-serve-postgres": {"host": "10.25.0.12"}})
+        fixtures["artifacts.yaml"]["divyam-route-selector"] = {"values": {}}
+        fixtures["artifacts.yaml"]["mysql"] = {"values": {}}
+        by_name = self._build(fixtures)
+        for release in ("divyam-router-controller-preprod", "divyam-route-selector-preprod", "self-serve-server-preprod"):
+            self.assertEqual(self._values(by_name[release])["monitoring"], monitoring, release)
+        self.assertNotIn("monitoring", self._values(by_name["self-serve-ui-preprod"]))
+
+    def _external_secrets_fixtures(self, **provider_extra):
+        """A self-serve-only environment that also deploys External Secrets."""
+        fixtures = self._switch_fixtures(**provider_extra)
+        fixtures["artifacts.yaml"]["external-secrets-operator"] = {"values": {}}
+        return fixtures
+
+    def test_external_secrets_is_scraped_by_a_podmonitoring_on_gcp(self):
+        """The upstream chart cannot render a PodMonitoring, so the helmfile hands it one through `extraObjects`."""
+        by_name = self._build(self._external_secrets_fixtures())
+        release = by_name["external-secrets-operator-preprod"]
+        extra = self._values(release)["extraObjects"]
+        self.assertEqual(extra, [{
+            "apiVersion": "monitoring.googleapis.com/v1",
+            "kind": "PodMonitoring",
+            "metadata": {"name": "external-secrets-operator-preprod-metrics", "namespace": release["namespace"]},
+            "spec": {
+                # The controller serves externalsecret_*; the webhook and cert-controller pods carry a different name.
+                "selector": {"matchLabels": {
+                    "app.kubernetes.io/name": "external-secrets",
+                    "app.kubernetes.io/instance": "external-secrets-operator-preprod",
+                }},
+                "endpoints": [{"port": "metrics", "path": "/metrics", "interval": "30s"}],
+            },
+        }])
+        for name, other in by_name.items():
+            if name != "external-secrets-operator-preprod":
+                self.assertNotIn("extraObjects", self._values(other), name)
+
+    def test_external_secrets_gets_no_scrape_resource_off_gcp(self):
+        """A PodMonitoring is a Google Managed Prometheus resource; another platform must render as it always did."""
+        for provider in ("AZURE", "MICROK8S"):
+            by_name = self._build(self._external_secrets_fixtures(platform={"provider": provider}))
+            release = by_name["external-secrets-operator-preprod"]
+            self.assertNotIn("extraObjects", self._values(release), provider)
+
+    def test_an_environments_own_extra_objects_replace_the_external_secrets_podmonitoring(self):
+        """The stanza sits before the environment's values, so an environment can swap or drop it."""
+        fixtures = self._external_secrets_fixtures()
+        fixtures["resources.yaml"]["charts"]["external-secrets-operator"] = {"values": {"extraObjects": []}}
+        release = self._build(fixtures)["external-secrets-operator-preprod"]
+        self.assertEqual(self._values(release)["extraObjects"], [])
+
     def test_identity_module_matches_the_chart_namespace(self):
         """Evaluate stack gating and the workload-identity namespace using OpenTofu plans."""
         with tempfile.TemporaryDirectory() as directory:
@@ -206,6 +283,34 @@ class SelfServeDeploymentTests(unittest.TestCase):
                 shutil.copyfile(source, folder / source.name)
             (folder / "tests").mkdir()
             shutil.copyfile(Path(__file__).with_name("self_serve_iam.tftest.hcl"), folder / "tests/self_serve_iam.tftest.hcl")
+            tofu = os.environ.get("TOFU_BIN", "tofu")
+            for command in (["init", "-backend=false"], ["test"]):
+                result = subprocess.run([tofu, *command], cwd=folder, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_cloudsql_backup_metric_is_planned_with_the_documented_filter(self):
+        """The log-based metric for Cloud SQL automated backups, planned against a mocked Google provider."""
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            module = ROOT / "iac/1-platform/2-monitoring/native/gcp"
+            for source in module.glob("*.tf"):
+                shutil.copyfile(source, folder / source.name)
+            (folder / "tests").mkdir()
+            shutil.copyfile(Path(__file__).with_name("cloudsql_backup_metric.tftest.hcl"), folder / "tests/cloudsql_backup_metric.tftest.hcl")
+            tofu = os.environ.get("TOFU_BIN", "tofu")
+            for command in (["init", "-backend=false"], ["test"]):
+                result = subprocess.run([tofu, *command], cwd=folder, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_uptime_checks_are_planned_for_the_configured_endpoints(self):
+        """The Google Cloud uptime checks for public HTTPS endpoints, planned against a mocked Google provider."""
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            module = ROOT / "iac/1-platform/2-monitoring/native/gcp"
+            for source in module.glob("*.tf"):
+                shutil.copyfile(source, folder / source.name)
+            (folder / "tests").mkdir()
+            shutil.copyfile(Path(__file__).with_name("uptime_checks.tftest.hcl"), folder / "tests/uptime_checks.tftest.hcl")
             tofu = os.environ.get("TOFU_BIN", "tofu")
             for command in (["init", "-backend=false"], ["test"]):
                 result = subprocess.run([tofu, *command], cwd=folder, capture_output=True, text=True)
