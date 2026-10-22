@@ -674,6 +674,29 @@ releases:
 
     - use_spot_nodes: {{ $settings.use_spot_nodes | default false }}
 
+    {{- /* External Secrets is the upstream chart, which can only scrape through a Prometheus Operator
+           ServiceMonitor, a CRD Google Managed Prometheus does not read. So on GCP the release is given a
+           PodMonitoring through the chart's own `extraObjects`, selecting the controller pod (the one that serves
+           externalsecret_*; the webhook and cert-controller pods have a different app.kubernetes.io/name). It sits
+           before `$cfg.values` on purpose: an environment that sets its own `extraObjects` replaces this. */}}
+    {{- if and (eq $name "external-secrets-operator") (eq $platformProvider "GCP") }}
+    - extraObjects:
+        - apiVersion: monitoring.googleapis.com/v1
+          kind: PodMonitoring
+          metadata:
+            name: {{ $name }}-{{ $env }}-metrics
+            namespace: {{ $ns }}
+          spec:
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: external-secrets
+                app.kubernetes.io/instance: {{ $name }}-{{ $env }}
+            endpoints:
+              - port: metrics
+                path: /metrics
+                interval: 30s
+    {{- end }}
+
     {{- if hasKey $chartsWithDeploymentMode $name }}
     - deployment_mode: {{ $deploymentMode | quote }}
     {{- end }}
