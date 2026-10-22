@@ -232,6 +232,48 @@ class SelfServeDeploymentTests(unittest.TestCase):
             self.assertEqual(self._values(by_name[release])["monitoring"], monitoring, release)
         self.assertNotIn("monitoring", self._values(by_name["self-serve-ui-preprod"]))
 
+    def _external_secrets_fixtures(self, **provider_extra):
+        """A self-serve-only environment that also deploys External Secrets."""
+        fixtures = self._switch_fixtures(**provider_extra)
+        fixtures["artifacts.yaml"]["external-secrets-operator"] = {"values": {}}
+        return fixtures
+
+    def test_external_secrets_is_scraped_by_a_podmonitoring_on_gcp(self):
+        """The upstream chart cannot render a PodMonitoring, so the helmfile hands it one through `extraObjects`."""
+        by_name = self._build(self._external_secrets_fixtures())
+        release = by_name["external-secrets-operator-preprod"]
+        extra = self._values(release)["extraObjects"]
+        self.assertEqual(extra, [{
+            "apiVersion": "monitoring.googleapis.com/v1",
+            "kind": "PodMonitoring",
+            "metadata": {"name": "external-secrets-operator-preprod-metrics", "namespace": release["namespace"]},
+            "spec": {
+                # The controller serves externalsecret_*; the webhook and cert-controller pods carry a different name.
+                "selector": {"matchLabels": {
+                    "app.kubernetes.io/name": "external-secrets",
+                    "app.kubernetes.io/instance": "external-secrets-operator-preprod",
+                }},
+                "endpoints": [{"port": "metrics", "path": "/metrics", "interval": "30s"}],
+            },
+        }])
+        for name, other in by_name.items():
+            if name != "external-secrets-operator-preprod":
+                self.assertNotIn("extraObjects", self._values(other), name)
+
+    def test_external_secrets_gets_no_scrape_resource_off_gcp(self):
+        """A PodMonitoring is a Google Managed Prometheus resource; another platform must render as it always did."""
+        for provider in ("AZURE", "MICROK8S"):
+            by_name = self._build(self._external_secrets_fixtures(platform={"provider": provider}))
+            release = by_name["external-secrets-operator-preprod"]
+            self.assertNotIn("extraObjects", self._values(release), provider)
+
+    def test_an_environments_own_extra_objects_replace_the_external_secrets_podmonitoring(self):
+        """The stanza sits before the environment's values, so an environment can swap or drop it."""
+        fixtures = self._external_secrets_fixtures()
+        fixtures["resources.yaml"]["charts"]["external-secrets-operator"] = {"values": {"extraObjects": []}}
+        release = self._build(fixtures)["external-secrets-operator-preprod"]
+        self.assertEqual(self._values(release)["extraObjects"], [])
+
     def test_identity_module_matches_the_chart_namespace(self):
         """Evaluate stack gating and the workload-identity namespace using OpenTofu plans."""
         with tempfile.TemporaryDirectory() as directory:
