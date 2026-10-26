@@ -112,12 +112,9 @@ locals {
     create = true
     # Azure: resource group where the existing NAT gateway and public IP live (only used when create = false).
     # Leave unset or null to fall back to resource_scope.name.
-    nat_resource_group_name = "az-bharath-dev" # Resource group containing the existing NAT gateway
     # Names for data-source lookup (1-platform resolves NAT IP from these; no dependency on 0-foundation).
-    nat_gateway_name = "divyam-ckt-dev-nat-gateway" # Azure: NAT gateway resource name
-    # nat_gateway_name   = "${local.deployment_prefix}-nat-gateway"   # Azure: NAT gateway resource name
-    nat_public_ip_name = "divyam-ckt-dev-nat-ip" # Azure: public IP resource name (used to fetch IP)
-    # nat_public_ip_name = "${local.deployment_prefix}-nat-ip"       # Azure: public IP resource name (used to fetch IP)
+    nat_gateway_name   = "${local.deployment_prefix}-nat-gateway" # Azure: NAT gateway resource name
+    nat_public_ip_name = "${local.deployment_prefix}-nat-ip"      # Azure: public IP resource name (used to fetch IP)
     # GCP: Cloud Router and NAT config names (for lookup if needed)
     router_name     = "${local.deployment_prefix}-nat-router"
     nat_config_name = "${local.deployment_prefix}-nat-config"
@@ -128,8 +125,7 @@ locals {
   bastion = {
     create       = false
     bastion_name = "${local.deployment_prefix}-bastion"
-    bastion_resource_group_name = "az-bharath-dev" # Resource group containing the existing bastion VM and public IP
-    spot_instance               = false
+    spot_instance = false
     # configure_kubectl: use only when cluster is pre-created and only the bastion needs to be set up (installs kubectl + setup-kubectl script on bastion at create time).
     # Once the cluster is created (1-platform), either run on the bastion: setup-kubectl, or set k8s.setup_kubectl_on_bastion = true to run it via Terraform.
     # Azure: vnet_subnet_name, vm_size, admin_username, ssh_public_key_path. GCP: machine_type, tags.
@@ -147,9 +143,9 @@ locals {
     local_state  = false
     region       = "${local.region}"
     zone         = "${local.zone}"
-    scope_name   = "divyam-demo"                        # Azure Resource Group or GCP Project
-    storage_name = ""                                   # Azure Storage Account or GCP - empty
-    bucket_name  = "divyam-demo-terraform-state-bucket" # Azure container + storage account name; GCP bucket name
+    scope_name   = "${local.resource_scope.name}"                          # Azure Resource Group or GCP Project
+    storage_name = ""                                                      # Azure Storage Account or GCP - empty
+    bucket_name  = "${local.resource_scope.name}-terraform-state-bucket" # Azure container + storage account name; GCP bucket name
   }
 
   #################### Platform ##########################
@@ -180,7 +176,6 @@ locals {
   # Mirrors the divyam_object_storages element shape. type = "selectors" identifies the bundle store.
   # The switch reads selector zips and eval definitions from here at startup and never writes, so the
   # service account gets objectViewer and nothing more.
-  # create = false: the bucket is published to by the training side and predates this unit.
   self_serve_object_storages = local.self_serve_in_stack ? [{
     create               = true # No training pipeline publishes to this env yet; starts empty.
     type                 = "selectors"                                              # Identifies this storage as the selector bundle store
@@ -204,7 +199,6 @@ locals {
     enabled   = false
     create_ip = true # If this is set to false, edit the below values that is to be used for setting up Divyam.
     # Private IP (internal LB only): address and optional resource name.
-    ip              = "10.0.8.10"                             # Reserved private IP in VNET app_gw_subnet (ignored when public = true)
     private_ip_name = "${local.deployment_prefix}-private-ip" # Name for the private IP resource (e.g. GCP internal address)
 
     public           = false
@@ -250,7 +244,7 @@ locals {
 
   # --- Azure Application Gateway Ingress Controller (AGIC) ---
   agic = {
-    enabled            = true
+    enabled            = false
     helm_chart_version = "1.8.1"
     namespace          = "kube-system"
     # Defaults to "<k8s.name>-ingress-azure" when null.
@@ -328,8 +322,9 @@ locals {
       azure_monitor_workspace_id   = null
       grafana_endpoint             = null
 
-      gcp_project_id   = null
-      gmp_cluster_name = null
+      gcp_project_id       = null
+      gmp_cluster_name     = null
+      gmp_cluster_location = null # zone or region of gmp_cluster_name; null uses k8s.location
     }
   }
 
@@ -345,7 +340,7 @@ locals {
     enabled  = false
     site     = "ap1.datadoghq.com"
     registry = "asia.gcr.io/datadoghq"
-    env      = "dev" # Datadog Agent env tag only (2-monitoring/datadog). Monitors use env_name via monitor_env.
+    env      = local.env_name # Datadog Agent env tag only (2-monitoring/datadog). Monitors use env_name via monitor_env.
     # monitor_env = null  # optional override for monitor env: tag; default = env_name (e.g. prod)
     # custom_cluster_name = null  # when k8s.create = false; must match {{cluster_name}} in 2-alerts rules
     exclude_namespaces = [
