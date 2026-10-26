@@ -103,6 +103,10 @@ resource "google_compute_global_address" "private_service_access" {
   prefix_length = var.vnet.private_service_access.prefix_length
   network       = local.network_id
   project       = var.vnet.scope_name
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "google_service_networking_connection" "private_service_access" {
@@ -111,4 +115,8 @@ resource "google_service_networking_connection" "private_service_access" {
   network                 = local.network_id
   service                 = "servicenetworking.googleapis.com"
   reserved_peering_ranges = [google_compute_global_address.private_service_access[0].name]
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }

@@ -10,6 +10,12 @@ variable "create_private_service_access" {
   default     = true
 }
 
+variable "private_service_access_prefix_length" {
+  description = "Size of the private service access range, when this unit creates it. Follows vnet.private_service_access.prefix_length."
+  type        = number
+  default     = 16
+}
+
 variable "instance_name" {
   description = "The name of the Cloud SQL instance"
   type        = string

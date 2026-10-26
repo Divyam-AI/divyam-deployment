@@ -4,7 +4,7 @@ resource "google_compute_global_address" "private_ip_address" {
   name          = "google-managed-services-${var.vpc_network_name}"
   purpose       = "VPC_PEERING"
   address_type  = "INTERNAL"
-  prefix_length = 16
+  prefix_length = var.private_service_access_prefix_length
   network       = var.vpc_network
   project       = var.project_id
 }
