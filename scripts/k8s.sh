@@ -39,6 +39,11 @@
 #       --no-atomic           install/upgrade: don't roll back on failure (keep failed pods to diagnose).
 #       --no-wait             install/upgrade: don't wait for resources to become ready.
 #       --deploy-timeout <s>  install/upgrade: helm per-release timeout in seconds (default 1200).
+#       --concurrency <n>     Cap concurrent helm processes (helmfile --concurrency; 0 = unlimited).
+#                           Unset ⇒ helmfile's default (unlimited), i.e. byte-identical behaviour.
+#                           Set it when the API server is REMOTE: an unlimited fan-out opens one
+#                           connection per release (63 on the full stack) and a single TCP handshake
+#                           timing out aborts the whole run with "cluster unreachable".
 #       --diagnose-on-fail    install/upgrade: auto-run `diagnose` if the deploy fails.
 #       --tui                 status: open the helm-tui terminal UI (`helm tui`).
 #       --dashboard           status: open the helm-dashboard web UI (`helm dashboard`).
@@ -81,6 +86,7 @@ STATUS_TUI=0; STATUS_DASH=0; PASSTHRU=()
 CLI_VDIR=""; CLI_ENV=""; CLI_ARTIFACTS=""; CLI_CHANNEL=""; CLI_OUTDIR=""
 # Helm-default overrides (opt-in; unset ⇒ helmfile's prod defaults verbatim) + diagnose-on-fail.
 HF_ATOMIC_OVERRIDE=""; HF_WAIT_OVERRIDE=""; HF_TIMEOUT_OVERRIDE=""; DIAGNOSE_ON_FAIL=0
+HF_CONCURRENCY=""
 CLI_CLOUD=""; CLUSTER=""; PROJECT=""; REGION_F=""; ZONE_F=""; RESOURCE_GROUP=""; DO_LOGIN=0; NO_TF=0
 usage() { cli::usage "$0"; }
 die() { cli::die "$@"; }   # ❌-prefixed to stderr, exit 2 (shared lib; preserves prior exit code)
@@ -105,6 +111,8 @@ while [[ $# -gt 0 ]]; do
     --no-wait)        HF_WAIT_OVERRIDE="false"; shift;;
     --deploy-timeout) HF_TIMEOUT_OVERRIDE="${2:?--deploy-timeout needs a value (seconds)}"; shift 2;;
     --deploy-timeout=*) HF_TIMEOUT_OVERRIDE="${1#*=}"; shift;;
+    --concurrency)    HF_CONCURRENCY="${2:?--concurrency needs a value (count, 0 = unlimited)}"; shift 2;;
+    --concurrency=*)  HF_CONCURRENCY="${1#*=}"; shift;;
     --diagnose-on-fail) DIAGNOSE_ON_FAIL=1; shift;;
     --tui)        STATUS_TUI=1; shift;;
     --dashboard)  STATUS_DASH=1; shift;;
@@ -189,12 +197,19 @@ build_selector() {
 hf() {  # <diff|sync|apply|destroy|template> [extra args...]
   local verb="$1"; shift || true
   require_vdir; resolve_env; build_selector
-  local -a cmd=(helmfile -f "$HELMFILE" "${SEL[@]}" "$verb" "$@" "${PASSTHRU[@]}")
+  local -a conc=()
+  # Unset ⇒ nothing appended ⇒ helmfile's own default, so an existing caller is unaffected.
+  if [[ -n "$HF_CONCURRENCY" ]]; then
+    [[ "$HF_CONCURRENCY" =~ ^[0-9]+$ ]] || die "--concurrency needs a non-negative integer (got '$HF_CONCURRENCY'; 0 = unlimited)"
+    conc=(--concurrency "$HF_CONCURRENCY")
+  fi
+  local -a cmd=(helmfile -f "$HELMFILE" "${SEL[@]}" "$verb" "$@" "${conc[@]}" "${PASSTHRU[@]}")
   local ctx="env=${ENV_NAME:-<auto>}"; [[ -n "$ARTIFACTS_VERSION" ]] && ctx+=" ARTIFACTS_VERSION=$ARTIFACTS_VERSION"
   [[ -n "$ARTIFACTS_CHANNEL" ]] && ctx+=" ARTIFACTS_CHANNEL=$ARTIFACTS_CHANNEL"
   [[ -n "$HF_ATOMIC_OVERRIDE" ]] && ctx+=" atomic=$HF_ATOMIC_OVERRIDE"
   [[ -n "$HF_WAIT_OVERRIDE" ]] && ctx+=" wait=$HF_WAIT_OVERRIDE"
   [[ -n "$HF_TIMEOUT_OVERRIDE" ]] && ctx+=" timeout=$HF_TIMEOUT_OVERRIDE"
+  [[ -n "$HF_CONCURRENCY" ]] && ctx+=" concurrency=$HF_CONCURRENCY"
   echo "+ (cd $VALUES_DIR && ${cmd[*]})   [$ctx]"
   [[ "$DRYRUN" -eq 1 ]] && { echo "  (dry-run: not executed)"; return 0; }
   # Drop helmfile's cached charts so OCI charts are re-pulled fresh: a stale/partial entry
