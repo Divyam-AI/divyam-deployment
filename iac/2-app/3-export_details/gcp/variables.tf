@@ -146,13 +146,13 @@ variable "mysql_database" {
   default     = ""
 }
 
-variable "self_serve_postgres_host" {
+variable "switch_pg_host" {
   description = "Switch Postgres host (Cloud SQL private IP). Empty omits it, so the helmfile deploys the in-cluster Postgres."
   type        = string
   default     = ""
 }
 
-variable "self_serve_postgres_port" {
+variable "switch_pg_port" {
   description = "Switch Postgres port."
   type        = number
   default     = 5432

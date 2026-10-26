@@ -70,10 +70,10 @@ ingress:
     controlplane: "${var.controlplane_ingress_domain}"
 EOT
 
-  mysql_block               = var.cloudsql_created ? "  mysql:\n    host: \"${var.mysql_host}\"\n    port: ${var.mysql_port}\n    database: \"${var.mysql_database}\"\n" : ""
-  self_serve_postgres_block = var.self_serve_postgres_host != "" ? "  self-serve-postgres:\n    host: \"${var.self_serve_postgres_host}\"\n    port: ${var.self_serve_postgres_port}\n" : ""
+  mysql_block     = var.cloudsql_created ? "  mysql:\n    host: \"${var.mysql_host}\"\n    port: ${var.mysql_port}\n    database: \"${var.mysql_database}\"\n" : ""
+  switch_pg_block = var.switch_pg_host != "" ? "  self-serve-postgres:\n    host: \"${var.switch_pg_host}\"\n    port: ${var.switch_pg_port}\n" : ""
 
-  databases_entries = "${local.mysql_block}${local.self_serve_postgres_block}"
+  databases_entries = "${local.mysql_block}${local.switch_pg_block}"
   databases_block   = local.databases_entries != "" ? "\ndatabases:\n${local.databases_entries}" : ""
 
   provider_yaml_content = "${local.platform_block}${local.databases_block}"
