@@ -241,7 +241,7 @@ make iac -- creds          # validate cloud auth
 - **Must be real** (passthrough; never randomized): cloud creds (`ARM_*` / `GOOGLE_APPLICATION_CREDENTIALS`),
   `TF_VAR_divyam_artifactory_docker_auth` (path to Divyam's registry cred file — needed to pull
   images), `NOTIFICATION_WEBHOOK_URLS` (Zenduty), `TF_VAR_datadog_api_key`/`_app_key`,
-  `TF_VAR_grafana_api_token`, `TF_VAR_divyam_openai_billing_admin_api_key`.
+  `TF_VAR_grafana_api_token`, `TF_VAR_divyam_openai_billing_admin_api_key`, `TF_VAR_divyam_jev_api_key`.
 
 `make iac -- secrets` → `make iac -- creds` → `make iac -- plan/apply -l <layer>` is the per-layer flow
 (`/provision` and `/setup` drive it interactively). Use the **terrashark** skill for any HCL edit.
