@@ -63,11 +63,6 @@ else                           def_region="centralindia"; def_zone="centralindia
 REGION="${REGION_ARG:-$(passthru REGION "$def_region")}"
 ZONE="${ZONE_ARG:-$(passthru ZONE "$def_zone")}"
 
-# Same membership rule as the IaC's self_serve_in_stack. STACK is read at generation time only; export the same STACK when you apply.
-STACK_LIST="$(passthru STACK "all")"
-SELF_SERVE_IN_STACK=0
-if [[ "$STACK_LIST" == all || ",${STACK_LIST// /}," == *",self-serve,"* ]]; then SELF_SERVE_IN_STACK=1; fi
-
 umask 077
 {
   echo "# SPDX-License-Identifier: Apache-2.0"
@@ -107,11 +102,9 @@ umask 077
   echo "export TF_VAR_divyam_evalm8_jwt_secret=$(rand 48)"
   echo "export TF_VAR_divyam_evalm8_encryption_key=$(LC_ALL=C tr -dc 'a-f0-9' </dev/urandom | head -c 64)"
   echo "export TF_VAR_divyam_evalm8_admin_password="
-  if [[ "$SELF_SERVE_IN_STACK" -eq 1 ]]; then
-    echo "# self-serve stack: Cloud SQL Postgres credentials."
-    echo "export TF_VAR_divyam_switch_pg_password=$(rand 24)"
-    echo "export TF_VAR_divyam_switch_pg_root_password=$(rand 24)"
-  fi
+  echo "# self-serve stack (used when STACK includes self-serve): Cloud SQL Postgres credentials."
+  echo "export TF_VAR_divyam_switch_pg_password=$(rand 24)"
+  echo "export TF_VAR_divyam_switch_pg_root_password=$(rand 24)"
   echo
 
   echo "# --- identifiers (non-secret; defaults match the IaC, override if needed) ---"
@@ -119,10 +112,8 @@ umask 077
   echo "export TF_VAR_divyam_db_name=$(passthru TF_VAR_divyam_db_name "divyam")"
   echo "export TF_VAR_divyam_db_user_name=$(passthru TF_VAR_divyam_db_user_name "divyam-$ENV_NAME")"
   echo "export TF_VAR_divyam_clickhouse_user_name=$(passthru TF_VAR_divyam_clickhouse_user_name "default")"
-  if [[ "$SELF_SERVE_IN_STACK" -eq 1 ]]; then
-    echo "export TF_VAR_divyam_switch_pg_user_name=$(passthru TF_VAR_divyam_switch_pg_user_name "divyam")"
-    echo "export TF_VAR_divyam_switch_pg_db_name=$(passthru TF_VAR_divyam_switch_pg_db_name "divyam")"
-  fi
+  echo "export TF_VAR_divyam_switch_pg_user_name=$(passthru TF_VAR_divyam_switch_pg_user_name "divyam")"
+  echo "export TF_VAR_divyam_switch_pg_db_name=$(passthru TF_VAR_divyam_switch_pg_db_name "divyam")"
   echo
 
   echo "# --- ISSUED BY DIVYAM: random fallback for a standalone sandbox; replace with the real"
@@ -161,15 +152,13 @@ umask 077
   echo "export TF_VAR_datadog_app_key=$(passthru TF_VAR_datadog_app_key "")"
   echo "export TF_VAR_grafana_api_token=$(passthru TF_VAR_grafana_api_token "")   # Azure Managed Grafana dashboards"
   echo "export TF_VAR_divyam_openai_billing_admin_api_key=$(passthru TF_VAR_divyam_openai_billing_admin_api_key "")"
-  if [[ "$SELF_SERVE_IN_STACK" -eq 1 ]]; then
-    echo "# self-serve stack (divyam-switch): router admin API key, email (Resend) and model-provider keys."
-    echo "# A key left empty is not written to the secret store."
-    echo "export TF_VAR_divyam_router_admin_api_key=$(passthru TF_VAR_divyam_router_admin_api_key "")"
-    echo "export TF_VAR_divyam_switch_resend_api_key=$(passthru TF_VAR_divyam_switch_resend_api_key "")"
-    echo "export TF_VAR_divyam_switch_openai_api_key=$(passthru TF_VAR_divyam_switch_openai_api_key "")"
-    echo "export TF_VAR_divyam_switch_gemini_api_key=$(passthru TF_VAR_divyam_switch_gemini_api_key "")"
-    echo "export TF_VAR_divyam_switch_deepinfra_api_key=$(passthru TF_VAR_divyam_switch_deepinfra_api_key "")"
-  fi
+  echo "# self-serve stack (used when STACK includes self-serve): router admin API key, email (Resend) and model-provider keys."
+  echo "# A key left empty is not written to the secret store."
+  echo "export TF_VAR_divyam_router_admin_api_key=$(passthru TF_VAR_divyam_router_admin_api_key "")"
+  echo "export TF_VAR_divyam_switch_resend_api_key=$(passthru TF_VAR_divyam_switch_resend_api_key "")"
+  echo "export TF_VAR_divyam_switch_openai_api_key=$(passthru TF_VAR_divyam_switch_openai_api_key "")"
+  echo "export TF_VAR_divyam_switch_gemini_api_key=$(passthru TF_VAR_divyam_switch_gemini_api_key "")"
+  echo "export TF_VAR_divyam_switch_deepinfra_api_key=$(passthru TF_VAR_divyam_switch_deepinfra_api_key "")"
 } > "$OUT"
 
 chmod 600 "$OUT"
