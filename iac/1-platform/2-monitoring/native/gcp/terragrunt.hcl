@@ -52,7 +52,7 @@ inputs = {
   enabled    = local.native_enabled
   project_id = coalesce(try(local.native_cfg.gcp_project_id, null), local.root.resource_scope.name)
   region     = local.root.region
-  location   = try(local.root.k8s.location, null)
+  location   = try(coalesce(try(local.native_cfg.gmp_cluster_location, null), try(local.root.k8s.location, null)), null)
   cluster_name = local.cluster_name
 
   enable_workload_logs      = try(local.native_cfg.enable_logs, try(local.k8s_obs.enable_logs, true))

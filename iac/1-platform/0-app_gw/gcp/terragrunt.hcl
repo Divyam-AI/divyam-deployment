@@ -85,5 +85,5 @@ inputs = {
 
 exclude {
   if      = !local.lb_enabled
-  actions = ["apply", "plan", "destroy", "refresh", "import"]
+  actions = ["apply", "plan", "destroy", "refresh", "import", "init"]
 }
