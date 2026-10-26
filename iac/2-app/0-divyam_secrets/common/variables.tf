@@ -45,6 +45,8 @@ variable "input" {
     divyam_router_admin_password   = optional(string, "")
     divyam_deployment_id           = optional(string, "")
     divyam_deployment_api_key      = optional(string, "")
+    # Jev classifier key for the route selector, provided by the caller. Created only when set.
+    divyam_jev_api_key             = optional(string, "")
     # Azure only: used by Kafka to Blob storage consumer. Omit or null for GCP.
     router_requests_logs_storage_account_connection_string = optional(string)
   })

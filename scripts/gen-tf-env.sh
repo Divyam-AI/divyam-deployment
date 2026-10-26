@@ -147,6 +147,8 @@ umask 077
   echo "export TF_VAR_datadog_app_key=$(passthru TF_VAR_datadog_app_key "")"
   echo "export TF_VAR_grafana_api_token=$(passthru TF_VAR_grafana_api_token "")   # Azure Managed Grafana dashboards"
   echo "export TF_VAR_divyam_openai_billing_admin_api_key=$(passthru TF_VAR_divyam_openai_billing_admin_api_key "")"
+  echo "# Jev classifier key for the route selector (only when Jev serving is on). An empty value leaves its secret unmanaged."
+  echo "export TF_VAR_divyam_jev_api_key=$(passthru TF_VAR_divyam_jev_api_key "")"
 } > "$OUT"
 
 chmod 600 "$OUT"

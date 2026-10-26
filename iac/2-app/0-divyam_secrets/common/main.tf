@@ -214,6 +214,9 @@ locals {
     var.input.image_pull_secret_enabled ? {
       "divyam-artifactory-docker-auth" = var.input.divyam_artifactory_docker_auth
     } : {},
+    # Jev classifier key, read by the route selector before its JEV_API_KEY fallback. Deployment-wide,
+    # not self-serve. Managed only when supplied: empty means "leave it", as for the operator keys above.
+    var.input.divyam_jev_api_key != "" ? { "divyam-jev-api-key" = var.input.divyam_jev_api_key } : {},
     # Evalm8 vault keys, TF-generated. Empty unless the evalm8 stack is in scope.
     local.evalm8_secrets,
     # Self-serve secrets (Cloud SQL Postgres creds + divyam-switch app keys). Empty unless self-serve is in scope.
