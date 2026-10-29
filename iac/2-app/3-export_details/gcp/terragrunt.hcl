@@ -26,6 +26,13 @@ dependency "cloudsql" {
   }
 }
 
+dependency "cloudsql_postgres" {
+  config_path = "${get_repo_root()}/iac/2-app/0-cloudsql-postgres/gcp"
+  mock_outputs = {
+    private_ip_address = ""
+  }
+}
+
 locals {
   root      = include.root.locals.merged
   repo_root = get_repo_root()
@@ -43,8 +50,9 @@ locals {
   monitoring_enabled    = local.datadog_enabled || local.observability_enabled
   monitoring_provider   = local.datadog_enabled ? "datadog" : ""
 
-  cloudsql_cfg     = try(local.root.cloudsql, {})
-  cloudsql_created = try(local.cloudsql_cfg.create, false)
+  cloudsql_cfg      = try(local.root.cloudsql, {})
+  cloudsql_created  = try(local.cloudsql_cfg.create, false)
+  switch_pg_created = try(local.root.cloudsql_postgres.create, false)
 
   storage_bucket = try(one([for s in local.root.divyam_object_storages : s.container_name if s.type == "router-requests-logs"]), "")
   # Plan fallback: when the object_storage unit has no state yet, derive the lakeFS bucket name from values.
@@ -98,6 +106,10 @@ inputs = {
   mysql_port       = 3306
   # TO FIX: default value flowing 'divyam', fix it to flow 'divyam_$ENV'
   mysql_database = local.cloudsql_created ? try(dependency.cloudsql.outputs.database_name, "divyam_${local.env}") : "divyam_${local.env}"
+
+  # Empty when the switch has no Cloud SQL Postgres; the helmfile then deploys its in-cluster one.
+  switch_pg_host = local.switch_pg_created ? try(coalesce(dependency.cloudsql_postgres.outputs.private_ip_address, ""), "") : ""
+  switch_pg_port = 5432
 
   common_tags = try(include.root.inputs.common_tags, {})
   tag_globals = try(include.root.inputs.tag_globals, {})
