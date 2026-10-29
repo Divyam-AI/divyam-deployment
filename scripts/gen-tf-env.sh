@@ -159,6 +159,12 @@ umask 077
   echo "export TF_VAR_divyam_switch_openai_api_key=$(passthru TF_VAR_divyam_switch_openai_api_key "")"
   echo "export TF_VAR_divyam_switch_gemini_api_key=$(passthru TF_VAR_divyam_switch_gemini_api_key "")"
   echo "export TF_VAR_divyam_switch_deepinfra_api_key=$(passthru TF_VAR_divyam_switch_deepinfra_api_key "")"
+  echo "# Self-serve sign-in (only when a sign-in method is on). An empty value leaves its secret unmanaged."
+  echo "# The Descope access key, from the environment's Descope project:"
+  echo "export TF_VAR_divyam_switch_descope_access_key=$(passthru TF_VAR_divyam_switch_descope_access_key "")"
+  echo "# OAuth client secrets, for signing in with Google or Microsoft directly:"
+  echo "export TF_VAR_divyam_switch_google_auth_client_secret=$(passthru TF_VAR_divyam_switch_google_auth_client_secret "")"
+  echo "export TF_VAR_divyam_switch_microsoft_auth_client_secret=$(passthru TF_VAR_divyam_switch_microsoft_auth_client_secret "")"
 } > "$OUT"
 
 chmod 600 "$OUT"
