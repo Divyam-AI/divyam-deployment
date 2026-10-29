@@ -41,7 +41,8 @@ locals {
 inputs = merge(
   {
     create                        = try(local.cloudsql_postgres.create, false)
-    create_private_service_access = try(local.cloudsql_postgres.create_private_service_access, true)
+    create_private_service_access = try(local.cloudsql_postgres.create_private_service_access, !try(local.root.vnet.private_service_access.create, false))
+    private_service_access_prefix_length = try(local.root.vnet.private_service_access.prefix_length, 16)
     instance_name                 = try(local.cloudsql_postgres.instance_name, "divyam-${local.root.env_name}-cloudsql-pg")
     database_version              = try(local.cloudsql_postgres.database_version, "POSTGRES_16")
     tier                          = try(local.cloudsql_postgres.tier, "db-f1-micro")

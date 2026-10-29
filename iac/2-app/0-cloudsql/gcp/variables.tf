@@ -4,6 +4,18 @@ variable "create" {
   default     = false
 }
 
+variable "create_private_service_access" {
+  description = "When true, create the private service access peering (global address + connection). Set false when the VPC already has it, e.g. from vnet.private_service_access."
+  type        = bool
+  default     = true
+}
+
+variable "private_service_access_prefix_length" {
+  description = "Size of the private service access range, when this unit creates it. Follows vnet.private_service_access.prefix_length."
+  type        = number
+  default     = 16
+}
+
 variable "instance_name" {
   description = "The name of the Cloud SQL instance"
   type        = string
