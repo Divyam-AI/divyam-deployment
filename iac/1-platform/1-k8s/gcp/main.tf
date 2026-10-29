@@ -47,7 +47,7 @@ resource "google_container_cluster" "gke_cluster" {
   name     = each.key
   location = coalesce(var.location, var.region)
 
-  deletion_protection = false
+  deletion_protection = each.value.deletion_protection
 
   initial_node_count = 1
   # Autopilot manages its own nodes, so there is no default pool to remove. Sent as null rather

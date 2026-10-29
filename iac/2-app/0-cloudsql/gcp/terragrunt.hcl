@@ -41,6 +41,8 @@ locals {
 inputs = merge(
   {
     create            = try(local.cloudsql.create, false)
+    create_private_service_access = try(local.cloudsql.create_private_service_access, !try(local.root.vnet.private_service_access.create, false))
+    private_service_access_prefix_length = try(local.root.vnet.private_service_access.prefix_length, 16)
     instance_name     = try(local.cloudsql.instance_name, "divyam-${local.root.env_name}-cloudsql")
     project_id        = local.project
     region            = local.root.region

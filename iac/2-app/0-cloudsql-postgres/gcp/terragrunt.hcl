@@ -41,7 +41,8 @@ locals {
 inputs = merge(
   {
     create                        = try(local.cloudsql_postgres.create, false)
-    create_private_service_access = try(local.cloudsql_postgres.create_private_service_access, true)
+    create_private_service_access = try(local.cloudsql_postgres.create_private_service_access, !try(local.root.vnet.private_service_access.create, false))
+    private_service_access_prefix_length = try(local.root.vnet.private_service_access.prefix_length, 16)
     instance_name                 = try(local.cloudsql_postgres.instance_name, "divyam-${local.root.env_name}-cloudsql-pg")
     database_version              = try(local.cloudsql_postgres.database_version, "POSTGRES_16")
     tier                          = try(local.cloudsql_postgres.tier, "db-f1-micro")
@@ -50,10 +51,10 @@ inputs = merge(
     region             = local.root.region
     vpc_network_name   = local.vnet_name
     vpc_network        = "projects/${local.project}/global/networks/${local.vnet_name}"
-    divyam_selfserve_pg_user_name     = get_env("TF_VAR_divyam_selfserve_pg_user_name", "divyam")
-    divyam_selfserve_pg_password      = get_env("TF_VAR_divyam_selfserve_pg_password", "")
-    divyam_selfserve_pg_root_password = get_env("TF_VAR_divyam_selfserve_pg_root_password", "")
-    divyam_selfserve_pg_db_name       = get_env("TF_VAR_divyam_selfserve_pg_db_name", "divyam")
+    divyam_switch_pg_user_name     = get_env("TF_VAR_divyam_switch_pg_user_name", "divyam")
+    divyam_switch_pg_password      = get_env("TF_VAR_divyam_switch_pg_password", "")
+    divyam_switch_pg_root_password = get_env("TF_VAR_divyam_switch_pg_root_password", "")
+    divyam_switch_pg_db_name       = get_env("TF_VAR_divyam_switch_pg_db_name", "divyam")
 
     common_tags = try(local.root.common_tags, {})
     tag_globals = try(include.root.inputs.tag_globals, {})

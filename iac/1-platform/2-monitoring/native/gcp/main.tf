@@ -26,6 +26,8 @@ locals {
   )
 
   observability_clusters = local.manage_cluster_observability ? { primary = var.cluster_name } : {}
+
+  cluster_location = coalesce(var.location, var.region)
 }
 
 resource "google_logging_project_bucket_config" "default_bucket" {
@@ -40,21 +42,21 @@ data "google_container_cluster" "primary" {
   for_each = local.observability_clusters
 
   name     = each.value
-  location = var.region
+  location = local.cluster_location
   project  = var.project_id
 }
 
 import {
   for_each = local.observability_clusters
   to       = google_container_cluster.observability[each.key]
-  id       = "projects/${var.project_id}/locations/${var.region}/clusters/${each.value}"
+  id       = "projects/${var.project_id}/locations/${local.cluster_location}/clusters/${each.value}"
 }
 
 resource "google_container_cluster" "observability" {
   for_each = local.observability_clusters
 
   name     = each.value
-  location = var.region
+  location = local.cluster_location
   project  = var.project_id
 
   dynamic "logging_config" {

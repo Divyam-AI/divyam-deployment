@@ -145,3 +145,15 @@ variable "mysql_database" {
   type        = string
   default     = ""
 }
+
+variable "switch_pg_host" {
+  description = "Switch Postgres host (Cloud SQL private IP). Empty omits it, so the helmfile deploys the in-cluster Postgres."
+  type        = string
+  default     = ""
+}
+
+variable "switch_pg_port" {
+  description = "Switch Postgres port."
+  type        = number
+  default     = 5432
+}

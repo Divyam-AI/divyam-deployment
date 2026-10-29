@@ -102,6 +102,9 @@ umask 077
   echo "export TF_VAR_divyam_evalm8_jwt_secret=$(rand 48)"
   echo "export TF_VAR_divyam_evalm8_encryption_key=$(LC_ALL=C tr -dc 'a-f0-9' </dev/urandom | head -c 64)"
   echo "export TF_VAR_divyam_evalm8_admin_password="
+  echo "# self-serve stack (used when STACK includes self-serve): Cloud SQL Postgres credentials."
+  echo "export TF_VAR_divyam_switch_pg_password=$(rand 24)"
+  echo "export TF_VAR_divyam_switch_pg_root_password=$(rand 24)"
   echo
 
   echo "# --- identifiers (non-secret; defaults match the IaC, override if needed) ---"
@@ -109,6 +112,8 @@ umask 077
   echo "export TF_VAR_divyam_db_name=$(passthru TF_VAR_divyam_db_name "divyam")"
   echo "export TF_VAR_divyam_db_user_name=$(passthru TF_VAR_divyam_db_user_name "divyam-$ENV_NAME")"
   echo "export TF_VAR_divyam_clickhouse_user_name=$(passthru TF_VAR_divyam_clickhouse_user_name "default")"
+  echo "export TF_VAR_divyam_switch_pg_user_name=$(passthru TF_VAR_divyam_switch_pg_user_name "divyam")"
+  echo "export TF_VAR_divyam_switch_pg_db_name=$(passthru TF_VAR_divyam_switch_pg_db_name "divyam")"
   echo
 
   echo "# --- ISSUED BY DIVYAM: random fallback for a standalone sandbox; replace with the real"
@@ -147,6 +152,13 @@ umask 077
   echo "export TF_VAR_datadog_app_key=$(passthru TF_VAR_datadog_app_key "")"
   echo "export TF_VAR_grafana_api_token=$(passthru TF_VAR_grafana_api_token "")   # Azure Managed Grafana dashboards"
   echo "export TF_VAR_divyam_openai_billing_admin_api_key=$(passthru TF_VAR_divyam_openai_billing_admin_api_key "")"
+  echo "# self-serve stack (used when STACK includes self-serve): router admin API key, email (Resend) and model-provider keys."
+  echo "# A key left empty is not written to the secret store."
+  echo "export TF_VAR_divyam_router_admin_api_key=$(passthru TF_VAR_divyam_router_admin_api_key "")"
+  echo "export TF_VAR_divyam_switch_resend_api_key=$(passthru TF_VAR_divyam_switch_resend_api_key "")"
+  echo "export TF_VAR_divyam_switch_openai_api_key=$(passthru TF_VAR_divyam_switch_openai_api_key "")"
+  echo "export TF_VAR_divyam_switch_gemini_api_key=$(passthru TF_VAR_divyam_switch_gemini_api_key "")"
+  echo "export TF_VAR_divyam_switch_deepinfra_api_key=$(passthru TF_VAR_divyam_switch_deepinfra_api_key "")"
   echo "# Self-serve sign-in (only when a sign-in method is on). An empty value leaves its secret unmanaged."
   echo "# The Descope access key, from the environment's Descope project:"
   echo "export TF_VAR_divyam_switch_descope_access_key=$(passthru TF_VAR_divyam_switch_descope_access_key "")"
