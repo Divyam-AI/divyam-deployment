@@ -349,8 +349,9 @@ locals {
       azure_monitor_workspace_id   = null
       grafana_endpoint             = null
 
-      gcp_project_id   = null
-      gmp_cluster_name = null
+      gcp_project_id       = null
+      gmp_cluster_name     = null
+      gmp_cluster_location = null # zone or region of gmp_cluster_name; null uses k8s.location
     }
   }
 

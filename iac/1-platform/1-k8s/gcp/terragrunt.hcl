@@ -61,6 +61,7 @@ locals {
     use_spot                  = try(local.pools.default.spot_instance, false)
     enable_cost_allocation    = try(local.k8s.enable_cost_allocation, false)
     remove_default_node_pool  = try(local.k8s.remove_default_node_pool, false)
+    deletion_protection       = try(local.k8s.deletion_protection, false)
     node_auto_provisioning    = try({
       max_cpu          = local.k8s.node_auto_provisioning.max_cpu
       max_memory_gb    = local.k8s.node_auto_provisioning.max_memory_gb
