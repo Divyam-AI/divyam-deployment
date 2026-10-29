@@ -155,9 +155,9 @@ locals {
   # credentials plus the divyam-switch app secrets (four generated above, two passed in via TF_VAR).
   self_serve_secrets = var.input.self_serve_enabled ? merge(
     {
-      "divyam-selfserve-pg-user-name"     = var.input.divyam_selfserve_pg_user_name
-      "divyam-selfserve-pg-password"      = var.input.divyam_selfserve_pg_password
-      "divyam-selfserve-pg-root-password" = var.input.divyam_selfserve_pg_root_password
+      "divyam-switch-pg-user-name"     = var.input.divyam_switch_pg_user_name
+      "divyam-switch-pg-password"      = var.input.divyam_switch_pg_password
+      "divyam-switch-pg-root-password" = var.input.divyam_switch_pg_root_password
 
       "divyam-switch-jwt-secret"               = random_password.switch_jwt_secret[0].result
       "divyam-switch-verification-code-secret" = random_password.switch_verification_code_secret[0].result
