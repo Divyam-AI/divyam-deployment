@@ -39,6 +39,26 @@ variable "enable_managed_prometheus" {
   default = false
 }
 
+variable "metrics_components" {
+  description = "GKE components that export metrics to Managed Prometheus (monitoring_config.enable_components). Used when enable_managed_prometheus is true."
+  type        = list(string)
+  nullable    = false
+  default = [
+    "SYSTEM_COMPONENTS",
+    # kube-state metrics: pod phase, container waiting/terminated reasons, restarts, ready replicas, jobs, PV/PVC.
+    "STORAGE",
+    "HPA",
+    "POD",
+    "DAEMONSET",
+    "DEPLOYMENT",
+    "STATEFULSET",
+    "JOBSET",
+    # cAdvisor + kubelet: container usage, kubelet volume stats.
+    "CADVISOR",
+    "KUBELET",
+  ]
+}
+
 variable "logs_retention_days" {
   type    = number
   default = 30

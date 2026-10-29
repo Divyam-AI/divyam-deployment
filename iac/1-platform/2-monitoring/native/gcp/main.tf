@@ -69,7 +69,7 @@ resource "google_container_cluster" "observability" {
   dynamic "monitoring_config" {
     for_each = var.enable_managed_prometheus ? [1] : []
     content {
-      enable_components = ["SYSTEM_COMPONENTS"]
+      enable_components = var.metrics_components
       managed_prometheus {
         enabled = true
       }
